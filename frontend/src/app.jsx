@@ -9,6 +9,9 @@ import { DinoTaming } from './components/DinoTaming.jsx';
 import { MyDinos } from './components/MyDinos.jsx';
 import { DinoDetail } from './components/DinoDetail.jsx';
 import { Plaza } from './components/Plaza.jsx';
+import { PlayMenu } from './components/PlayMenu.jsx';
+import { PlayLobby } from './components/PlayLobby.jsx';
+import { PlayTrivia } from './components/PlayTrivia.jsx';
 
 export function App() {
   const { loading, player, route } = useStore();
@@ -69,11 +72,18 @@ function Screen({ route }) {
   const dinoDetail = route.match(/^\/dinos\/(\w+)/);
   if (dinoDetail) return <DinoDetail species={dinoDetail[1]} />;
 
+  // Play routes
+  const playLobby = route.match(/^\/play\/lobby\/([^/]+)$/);
+  if (playLobby) return <PlayLobby code={playLobby[1]} />;
+
+  const playTrivia = route.match(/^\/play\/trivia\/([^/]+)$/);
+  if (playTrivia) return <PlayTrivia code={playTrivia[1]} />;
+
   // Main screens
   switch (route) {
     case '/plaza': return <Plaza />;
     case '/dinos': return <MyDinos />;
-    case '/play': return <Placeholder name="Play" />;
+    case '/play': return <PlayMenu />;
     case '/feed': return <Placeholder name="Feed" />;
     case '/profile': return <Placeholder name="Profile" />;
     default: return <Plaza />;

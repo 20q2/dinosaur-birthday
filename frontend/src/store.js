@@ -14,6 +14,9 @@ export const store = {
   route: window.location.hash.slice(1) || '/plaza',
   bossState: null,
   feedEntries: [],
+  // Lobby / play session state (ephemeral, not persisted)
+  lobbyRole: null,   // 'host' | 'guest' | null
+  lobbyTrivia: null, // { question, options } set when guest joins
 
   // Initialize
   async init() {
