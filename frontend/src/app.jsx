@@ -5,6 +5,8 @@ import { Onboarding } from './components/Onboarding.jsx';
 import { BottomNav } from './components/BottomNav.jsx';
 import { DinoEncounter } from './components/DinoEncounter.jsx';
 import { DinoTaming } from './components/DinoTaming.jsx';
+import { MyDinos } from './components/MyDinos.jsx';
+import { DinoDetail } from './components/DinoDetail.jsx';
 
 export function App() {
   const { loading, player, route } = useStore();
@@ -38,10 +40,14 @@ function Screen({ route }) {
   const scanFood = route.match(/^\/scan\/food\/(\w+)/);
   if (scanFood) return <DinoTaming foodType={scanFood[1]} />;
 
-  // Main screens (placeholders for now)
+  // Dino detail route: /dinos/:species
+  const dinoDetail = route.match(/^\/dinos\/(\w+)/);
+  if (dinoDetail) return <DinoDetail species={dinoDetail[1]} />;
+
+  // Main screens
   switch (route) {
     case '/plaza': return <Placeholder name="Plaza" />;
-    case '/dinos': return <Placeholder name="My Dinos" />;
+    case '/dinos': return <MyDinos />;
     case '/play': return <Placeholder name="Play" />;
     case '/feed': return <Placeholder name="Feed" />;
     case '/profile': return <Placeholder name="Profile" />;

@@ -19,7 +19,7 @@ export function BottomNav() {
           onClick={() => store.navigate(tab.route)}
           style={{
             ...styles.tab,
-            color: current === tab.route ? '#4ade80' : '#888',
+            color: current === tab.route || current.startsWith(tab.route + '/') ? '#4ade80' : '#888',
           }}
         >
           <span style={styles.icon}>{tab.icon}</span>
