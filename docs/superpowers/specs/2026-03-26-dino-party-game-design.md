@@ -39,7 +39,7 @@ The loop is designed to make players good party guests:
 4. **Name & Hat** — Name your dino and pick a starter hat.
 5. **Socialize** — Find another player IRL, set up a play lobby, answer a dino trivia question together. Earn XP + a random hat. Bonus XP or rare hat for a correct answer.
 6. **Party events** — Activities like the "cooking pot" (making a mixed drink). Scan the event QR, optionally describe what happened (e.g., the drink recipe). Earn XP + a random item (hat or paint).
-7. **Collect & customize** — Level up dinos with XP, equip hats, use paint to recolor, send dinos to the plaza.
+7. **Collect & customize** — Level up dinos with XP, equip hats, use paint to recolor, set your partner for the plaza.
 8. **Boss fight** — Godzilla raid triggered by the host. Everyone taps to attack. Collective victory.
 
 **Why this encourages good party behavior**:
@@ -74,11 +74,12 @@ Each player can have at most one of each species (7 max). Each dino instance has
 - **XP & Level**: starts at level 1, cap at level 5. 100 XP per level (500 XP total to max). Leveling has no mechanical effect except boss fight damage and visual size scaling.
 - **Hat**: one equipped at a time, visible in the plaza
 - **Tamed**: boolean — must scan the correct food QR to tame
-- **In Plaza**: boolean — player chooses to send to plaza or keep with them
+- **Partner**: boolean — one dino at a time can be the player's partner, displayed in the plaza. All other dinos stay in the collection.
+- **Shiny**: boolean — ~5% chance at creation. Sparkle effect on sprite. Pure bragging rights.
 
 **Level size scaling**: Dinos get slightly larger at each level, visible in the plaza as a flex.
 
-**Champion crown**: The highest-level dino currently in the plaza gets an automatic crown overlay. Ties: all tied dinos get it. Updates live as people level up.
+**Champion crown**: The highest-level partner dino currently in the plaza gets an automatic crown overlay. Ties: all tied dinos get it. Updates live as people level up.
 
 ## Items
 
@@ -102,12 +103,14 @@ Two item types, both cosmetic:
 The plaza is the home screen — where players land after onboarding and on every return visit.
 
 - **Top-down pixel art** scene with grass, decorations, maybe a little pond
-- Dinos hop/wander around with random movement paths assigned server-side
+- Each player's **partner dino** hops/wanders around with random movement paths assigned server-side
+- One dino per player in the plaza (30–40 dinos max) — clean and readable
 - Each dino wears its equipped hat
 - Dinos scale slightly larger based on level
-- Champion crown on the strongest dino(s)
+- Champion crown on the strongest partner dino
 - **Tap a dino** to see: dino name, species, level, owner name, owner photo
 - Real-time updates via WebSocket — see new dinos arrive, movements update
+- Players can switch their partner anytime from the My Dinos screen
 
 ### Bottom Navigation Bar
 
@@ -174,6 +177,60 @@ Alex (the birthday girl) gets a special printed QR code — her personal "DM Ins
 - Scanning posts to the feed: "Alex blessed [player] with Inspiration! ✨"
 - Encourages guests to entertain Alex — like a DM giving inspiration to players
 
+## Discovery & Secrets
+
+Hidden surprises that reward exploration and make the party feel alive. None of these are announced — players discover them organically.
+
+### Shiny Dinos
+- ~5% chance when scanning a dino QR that the instance is "shiny" — a sparkle/shimmer effect on the sprite
+- No gameplay difference, pure bragging rights
+- Visible in the plaza — other players will notice
+- Feed post: "Sarah found a ✨SHINY✨ Spinosaurus!"
+
+### Explorer's Notes
+- 5 hidden QR codes placed in sneaky spots around the party (taped under a table, inside a cabinet, behind a plant, etc.)
+- Each reveals a silly lore entry written as an ARK-style explorer's note — narrating why dinosaurs crashed Alex's birthday
+- No XP reward — pure flavor and collectibility
+- Tracked in the player's profile: "Explorer's Notes: 3/5 found"
+- Example notes:
+  - Note #1: "Day 1. Arrived at what the locals call 'Alex's Birthday.' The creatures here are... friendly? One tried to eat my hat."
+  - Note #2: "Day 3. The Mejoberry supply is running low. The herbivores have started eyeing the veggie platter with alarming intensity."
+
+### Secret Recipes (Cooking Pot Combos)
+- Multiple cooking pot QR codes at different drink stations (not just one)
+- Each station has its own themed QR (e.g., "Potion of Fire" at the hot sauce station, "Elixir of Calm" at the beer cooler, "Berry Brew" at the juice bar)
+- Scanning any single station gives normal event rewards (25 XP + random item)
+- But certain combinations unlock a rare hat. Players don't know the combos — they have to experiment and compare notes with other guests
+- Example combos:
+  - "Potion of Fire" + "Elixir of Calm" → "Mad Scientist" hat
+  - "Berry Brew" + "Potion of Fire" + "Elixir of Calm" → "Master Chef" hat
+- Combos checked client-side against the player's scanned events — no extra backend needed
+
+### Dino Flavor Text
+- Each species has a funny bio displayed on the dino detail screen
+- Written specifically for the party context, ARK-inspired
+- Examples:
+  - T-Rex: "The apex predator of the party. Will fight you for the last chicken wing."
+  - Pachycephalosaurus: "Known for headbutting the snack table. Approach from behind."
+  - Dilophosaurus: "Will absolutely spit on you if you don't bring it meat. Just like Alex's cat."
+  - Ankylosaurus: "Built like a tank. Immune to peer pressure and spicy food."
+
+### Achievement Badges
+- Fun badges that appear on your profile when milestones are hit
+- Not announced beforehand — players discover them when they earn one
+- Badge list:
+  - "First Blood" — tame your first dino
+  - "Gotta Tame 'Em All" — collect all 7 species
+  - "Social Butterfly" — play with 5+ different people
+  - "Trivia Master" — answer 3 trivia questions correctly
+  - "Alex's Favorite" — receive Inspiration
+  - "Explorer" — find all 5 explorer's notes
+  - "Shiny Hunter" — own a shiny dino
+  - "Mad Scientist" — unlock a secret recipe
+  - "Kaiju Slayer" — participate in the boss fight
+  - "Party Animal" — scan 3+ party event QRs
+- Checked client-side against player data — no backend changes needed
+
 ## Boss Fight — Godzilla Raid
 
 ### Trigger
@@ -182,7 +239,7 @@ Host triggers the boss fight from the admin panel when the moment feels right (s
 ### Mechanics
 - WebSocket push to all connected players: "GODZILLA IS ATTACKING THE PLAZA!"
 - Banner appears on whatever screen players are on
-- Tap-to-attack: each tap deals damage. Damage per tap = base (e.g., 5) + level bonus from highest-level dino (e.g., +2 per level, so a Lv5 dino = 15 dmg/tap)
+- Tap-to-attack: each tap deals damage. Damage per tap = base (e.g., 5) + bonus from all dinos' combined levels (e.g., +1 per total level — a player with three dinos at Lv3, Lv2, Lv1 = 6 bonus = 11 dmg/tap). All dinos contribute, not just the partner.
 - Godzilla HP scales to active player count (~300 HP per player, so ~2–3 minutes of collective tapping)
 - Live HP bar on everyone's screen
 - Visual feedback: damage numbers, screen shakes on big hits
@@ -209,15 +266,16 @@ Secret URL, accessible only to the host. No auth needed (obscurity is fine for a
 | PK                     | SK                          | Data                                                    |
 |------------------------|-----------------------------|---------------------------------------------------------|
 | `PLAYER#<id>`         | `PROFILE`                   | name, photo_url, created_at                             |
-| `PLAYER#<id>`         | `DINO#<species>`            | name, colors, gender, nature, hat, xp, level, in_plaza, tamed |
+| `PLAYER#<id>`         | `DINO#<species>`            | name, colors, gender, nature, hat, xp, level, is_partner, tamed, shiny |
 | `PLAYER#<id>`         | `ITEM#<id>`                 | type (hat/paint), name, details                         |
 | `PLAYER#<id>`         | `INSPIRATION`               | received (boolean), received_at                         |
-| `PLAZA`               | `DINO#<player_id>#<species>`| position, hat, colors, level, name, owner_name, owner_photo |
+| `PLAZA`               | `PARTNER#<player_id>`       | species, position, hat, colors, level, name, owner_name, owner_photo |
 | `LOBBY#<code>`        | `META`                      | host_id, guest_id, status, trivia_question, created_at, expires_at |
 | `BOSS`                | `STATE`                     | hp, max_hp, status (waiting/active/defeated), started_at |
 | `FEED`                | `<timestamp>#<id>`          | type, message, player_name, details                     |
 | `COOLDOWN#<p1>#<p2>`  | `META`                      | expires_at (TTL for auto-cleanup)                       |
 | `EVENT#<player_id>`   | `<event_type>`              | claimed_at (prevents double-claiming)                   |
+| `PLAYER#<id>`         | `NOTE#<note_id>`            | found_at                                                |
 
 ### REST Endpoints
 
@@ -229,12 +287,13 @@ Secret URL, accessible only to the host. No auth needed (obscurity is fine for a
 | POST   | `/scan/food/<type>`         | List untamed dinos of matching diet; tame selected one |
 | POST   | `/scan/event/<type>`        | Claim event XP + item, post to feed          |
 | POST   | `/scan/inspiration`         | Receive Alex's Inspiration (once per player) |
+| POST   | `/scan/note/<note_id>`      | Discover an explorer's note (once per player)|
 | POST   | `/lobby`                    | Create a lobby (returns 3-symbol code)       |
 | POST   | `/lobby/<code>/join`        | Join a lobby                                 |
 | POST   | `/lobby/<code>/answer`      | Submit trivia answer                         |
 | POST   | `/boss/tap`                 | Send tap damage during boss fight            |
 | PUT    | `/dino/<species>/customize` | Rename, equip hat, apply paint               |
-| PUT    | `/dino/<species>/plaza`     | Send to or recall from plaza                 |
+| PUT    | `/dino/<species>/partner`   | Set this dino as your plaza partner          |
 | POST   | `/admin/boss/start`         | Trigger boss fight (admin only)              |
 | POST   | `/admin/announce`           | Post announcement to feed (admin only)       |
 | GET    | `/admin/dashboard`          | Get stats (admin only)                       |
@@ -260,7 +319,7 @@ Players subscribe to `plaza` and `feed` on connect. `lobby:<code>` is subscribed
 
 - **Framework**: Preact (~3KB) or vanilla JS — decision deferred to implementation
 - **Routing**: Hash-based (`/#/plaza`, `/#/dinos`, `/#/play`, `/#/feed`, `/#/profile`)
-- **QR URL format**: `https://<site>/#/scan/dino/<species>`, `/#/scan/food/<type>`, `/#/scan/event/<type>`, `/#/scan/inspiration`
+- **QR URL format**: `https://<site>/#/scan/dino/<species>`, `/#/scan/food/<type>`, `/#/scan/event/<type>`, `/#/scan/inspiration`, `/#/scan/note/<note_id>`
 - **Plaza rendering**: `<canvas>` element for top-down pixel art with sprite rendering
 - **State**: Simple client-side state (no Redux). Player data fetched on load, WebSocket for live updates.
 - **Profile pic capture**: `<input type="file" accept="image/*" capture>` — works on all mobile browsers
