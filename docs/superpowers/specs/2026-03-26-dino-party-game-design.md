@@ -89,7 +89,7 @@ Two item types, both cosmetic:
 - Pool of ~15–20 hat designs (party hat, cowboy hat, crown, top hat, flower crown, sunglasses, chef hat, viking helmet, wizard hat, pirate hat, etc.)
 - One hat equipped per dino at a time
 - Visible on the dino's sprite in the plaza
-- Earned from: social play (guaranteed drop), trivia bonus (rare hat), party events, Alex's Inspiration
+- Earned from: social play (only if trivia answered correctly), party events, Alex's Inspiration
 - Starter hat chosen during taming
 
 ### Paint
@@ -133,8 +133,8 @@ The plaza is the home screen — where players land after onboarding and on ever
 ### Trivia
 - Multiple choice (4 options), dinosaur-themed
 - Both players see the same question. Either player can submit the answer.
-- **Correct**: base XP + bonus XP + guaranteed hat drop (chance of rare hat)
-- **Incorrect**: base XP + guaranteed hat drop (common hat)
+- **Correct**: XP + hat drop
+- **Incorrect**: XP only (no hat)
 - Pool of ~30–50 trivia questions, pre-loaded
 
 ### Cooldown
@@ -142,8 +142,11 @@ The plaza is the home screen — where players land after onboarding and on ever
 - Recent plays shown on the Play screen with countdown timers
 - Encourages meeting new people
 
-### Play Animation
-After trivia, a short animation of the two players' dinos playing together. Then the rewards screen.
+### Play Screen Layout
+The social play screen is split vertically:
+- **Top half**: both players' partner dinos shown together, hopping around and playing in a shared pixel art scene. This animation runs the entire time — before, during, and after the trivia.
+- **Bottom half**: the trivia question with 4 multiple-choice answers.
+- After answering, the bottom half transitions to the rewards screen while the dinos keep playing above.
 
 ## Live Feed
 
@@ -196,16 +199,6 @@ Hidden surprises that reward exploration and make the party feel alive. None of 
   - Note #1: "Day 1. Arrived at what the locals call 'Alex's Birthday.' The creatures here are... friendly? One tried to eat my hat."
   - Note #2: "Day 3. The Mejoberry supply is running low. The herbivores have started eyeing the veggie platter with alarming intensity."
 
-### Secret Recipes (Cooking Pot Combos)
-- Multiple cooking pot QR codes at different drink stations (not just one)
-- Each station has its own themed QR (e.g., "Potion of Fire" at the hot sauce station, "Elixir of Calm" at the beer cooler, "Berry Brew" at the juice bar)
-- Scanning any single station gives normal event rewards (25 XP + random item)
-- But certain combinations unlock a rare hat. Players don't know the combos — they have to experiment and compare notes with other guests
-- Example combos:
-  - "Potion of Fire" + "Elixir of Calm" → "Mad Scientist" hat
-  - "Berry Brew" + "Potion of Fire" + "Elixir of Calm" → "Master Chef" hat
-- Combos checked client-side against the player's scanned events — no extra backend needed
-
 ### Dino Flavor Text
 - Each species has a funny bio displayed on the dino detail screen
 - Written specifically for the party context, ARK-inspired
@@ -215,26 +208,19 @@ Hidden surprises that reward exploration and make the party feel alive. None of 
   - Dilophosaurus: "Will absolutely spit on you if you don't bring it meat. Just like Alex's cat."
   - Ankylosaurus: "Built like a tank. Immune to peer pressure and spicy food."
 
-### Achievement Badges
-- Fun badges that appear on your profile when milestones are hit
-- Not announced beforehand — players discover them when they earn one
-- Badge list:
-  - "First Blood" — tame your first dino
-  - "Gotta Tame 'Em All" — collect all 7 species
-  - "Social Butterfly" — play with 5+ different people
-  - "Trivia Master" — answer 3 trivia questions correctly
-  - "Alex's Favorite" — receive Inspiration
-  - "Explorer" — find all 5 explorer's notes
-  - "Shiny Hunter" — own a shiny dino
-  - "Mad Scientist" — unlock a secret recipe
-  - "Kaiju Slayer" — participate in the boss fight
-  - "Party Animal" — scan 3+ party event QRs
-- Checked client-side against player data — no backend changes needed
-
 ## Boss Fight — Godzilla Raid
 
+### Pre-Boss Buildup
+Host triggers buildup mode from the admin panel. This is a separate button from the actual boss fight — you control the pacing.
+
+- **Phase 1 — Shadows**: A massive shadow sweeps across the plaza every 30–60 seconds. Dinos scatter briefly when it passes. Feed post: "Something huge just flew over the plaza... 👀"
+- **Phase 2 — Tremors**: The plaza canvas shakes subtly every now and then. Feed post: "The ground is shaking... 🌋"
+- **Phase 3 — Roar**: A screen-wide flash with "ROOOOAR" text. All dinos in the plaza freeze for a moment. Feed post: "A terrible roar echoes across the party! 🔊"
+
+Each phase is triggered manually from the admin panel so you control the timing. Space them out over 10–20 minutes to build dread. Players will start talking about it IRL — "did you see that shadow?!"
+
 ### Trigger
-Host triggers the boss fight from the admin panel when the moment feels right (suggested: peak energy, ~2 hours in).
+When the tension peaks, host triggers the actual boss fight from the admin panel.
 
 ### Mechanics
 - WebSocket push to all connected players: "GODZILLA IS ATTACKING THE PLAZA!"
@@ -255,7 +241,8 @@ Host triggers the boss fight from the admin panel when the moment feels right (s
 Secret URL, accessible only to the host. No auth needed (obscurity is fine for a party game).
 
 - **Dashboard**: player count, dinos tamed, total feed events
-- **Boss fight**: trigger start, see HP bar live, trigger manually if needed
+- **Boss buildup**: trigger each phase (Shadows → Tremors → Roar) individually
+- **Boss fight**: trigger start after buildup, see HP bar live
 - **Announcements**: post messages to the feed ("Boss fight in 10 minutes!", "Go find the dinos!")
 - **Player list**: see all players and their dinos (for troubleshooting)
 
@@ -294,6 +281,7 @@ Secret URL, accessible only to the host. No auth needed (obscurity is fine for a
 | POST   | `/boss/tap`                 | Send tap damage during boss fight            |
 | PUT    | `/dino/<species>/customize` | Rename, equip hat, apply paint               |
 | PUT    | `/dino/<species>/partner`   | Set this dino as your plaza partner          |
+| POST   | `/admin/boss/buildup`       | Trigger next buildup phase (admin only)      |
 | POST   | `/admin/boss/start`         | Trigger boss fight (admin only)              |
 | POST   | `/admin/announce`           | Post announcement to feed (admin only)       |
 | GET    | `/admin/dashboard`          | Get stats (admin only)                       |
@@ -339,8 +327,8 @@ Players subscribe to `plaza` and `feed` on connect. `lobby:<code>` is subscribed
 
 | Source                    | XP     | Items                        |
 |---------------------------|--------|------------------------------|
-| Social play (base)        | 30 XP  | 1 random hat                 |
-| Social play trivia bonus  | +20 XP | chance of rare hat           |
+| Social play (correct)     | 50 XP  | 1 random hat                 |
+| Social play (incorrect)   | 30 XP  | —                            |
 | Party event               | 25 XP  | 1 random item (hat or paint) |
 | Alex's Inspiration        | 50 XP  | "Birthday Girl's Blessing" hat |
 
