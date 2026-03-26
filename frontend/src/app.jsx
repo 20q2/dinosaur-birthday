@@ -16,6 +16,9 @@ import { FeedScreen } from './components/FeedScreen.jsx';
 import { EventScan } from './components/EventScan.jsx';
 import { InspirationScan } from './components/InspirationScan.jsx';
 import { NoteScan } from './components/NoteScan.jsx';
+import { BossBanner } from './components/BossBanner.jsx';
+import { BossFight } from './components/BossFight.jsx';
+import { BossVictory } from './components/BossVictory.jsx';
 
 export function App() {
   const { loading, player, route } = useStore();
@@ -33,6 +36,7 @@ export function App() {
     // Wire boss handlers
     ws.on('boss', 'boss_start', (data) => {
       store.setBossState({ status: 'active', ...data });
+      store.navigate('/boss');
     });
     ws.on('boss', 'hp_update', (data) => {
       if (store.bossState) {
@@ -42,6 +46,7 @@ export function App() {
     });
     ws.on('boss', 'boss_defeated', (data) => {
       store.setBossState({ status: 'defeated', ...data });
+      store.navigate('/boss/victory');
     });
   }, []);
 
@@ -54,12 +59,16 @@ export function App() {
     return <Onboarding />;
   }
 
+  const isBossRoute = route === '/boss' || route === '/boss/victory';
+
   return (
     <div style={styles.app}>
+      {/* Global boss buildup overlay — renders on any screen */}
+      <BossBanner />
       <div style={styles.content}>
         <Screen route={route} />
       </div>
-      {!route.startsWith('/scan/') && <BottomNav />}
+      {!route.startsWith('/scan/') && !isBossRoute && <BottomNav />}
     </div>
   );
 }
@@ -90,6 +99,10 @@ function Screen({ route }) {
 
   const playTrivia = route.match(/^\/play\/trivia\/([^/]+)$/);
   if (playTrivia) return <PlayTrivia code={playTrivia[1]} />;
+
+  // Boss routes
+  if (route === '/boss') return <BossFight />;
+  if (route === '/boss/victory') return <BossVictory />;
 
   // Main screens
   switch (route) {
