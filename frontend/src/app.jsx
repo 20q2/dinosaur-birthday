@@ -20,6 +20,7 @@ import { BossBanner } from './components/BossBanner.jsx';
 import { BossFight } from './components/BossFight.jsx';
 import { BossVictory } from './components/BossVictory.jsx';
 import { AdminPanel } from './components/AdminPanel.jsx';
+import { Profile } from './components/Profile.jsx';
 
 export function App() {
   const { loading, player, route } = useStore();
@@ -122,20 +123,12 @@ function Screen({ route }) {
     case '/dinos': return <MyDinos />;
     case '/play': return <PlayMenu />;
     case '/feed': return <FeedScreen />;
-    case '/profile': return <Placeholder name="Profile" />;
+    case '/profile': return <Profile />;
     case '/admin': return <AdminPanel />;
     default: return <Plaza />;
   }
 }
 
-function Placeholder({ name }) {
-  return (
-    <div style={{ padding: '20px', textAlign: 'center' }}>
-      <h2>{name}</h2>
-      <p style={{ color: '#888' }}>Coming soon...</p>
-    </div>
-  );
-}
 
 const styles = {
   loading: { display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100dvh' },
