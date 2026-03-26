@@ -1,5 +1,7 @@
 import json
 import time
+import uuid
+from datetime import datetime, timezone
 from ..shared.db import get_item, put_item, update_item, query_pk
 from ..shared.response import success, error
 from ..shared.game_data import generate_lobby_code, random_trivia, random_hat
@@ -221,15 +223,23 @@ def answer_lobby_handler(event, context):
         host_name = host_profile.get("name", "Someone") if host_profile else "Someone"
         guest_name = guest_profile.get("name", "Someone") if guest_profile else "Someone"
 
-        feed_text = f"{host_name} and {guest_name}'s dinos played together!"
+        play_message = f"{host_name} and {guest_name}'s dinos played together!"
+        ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
+        feed_sk = f"{ts}#{uuid.uuid4()}"
         put_item({
             "PK": "FEED",
-            "SK": f"ENTRY#{now}#{code}",
-            "text": feed_text,
-            "timestamp": now,
-            "ttl": now + 86400,  # 24 hours
+            "SK": feed_sk,
+            "type": "play",
+            "message": play_message,
+            "player_name": host_name,
         })
-        broadcast("feed", "new_entry", {"text": feed_text, "timestamp": now})
+        broadcast("feed", "new_entry", {
+            "id": feed_sk,
+            "type": "play",
+            "message": play_message,
+            "player_name": host_name,
+            "timestamp": ts,
+        })
     except Exception:
         pass
 

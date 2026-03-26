@@ -417,6 +417,23 @@ Resources:
             Path: /plaza
             Method: GET
 
+  # REST handlers - Feed
+  FeedFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src.handlers.feed.handler
+      CodeUri: .
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref GameTable
+      Events:
+        GetFeed:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RestApi
+            Path: /feed
+            Method: GET
+
   # REST handlers - Admin
   AdminFunction:
     Type: AWS::Serverless::Function

@@ -67,4 +67,6 @@ export const api = {
     request('GET', '/admin/dashboard'),
 
   getPlaza: () => request('GET', '/plaza'),
+
+  getFeed: () => request('GET', '/feed'),
 };

@@ -1,5 +1,7 @@
 import json
-from ..shared.db import get_item, update_item, query_pk
+import uuid
+from datetime import datetime, timezone
+from ..shared.db import get_item, put_item, update_item, query_pk
 from ..shared.response import success, error
 from ..shared.game_data import SPECIES
 from ..shared.ws_broadcast import broadcast
@@ -39,10 +41,22 @@ def handler(event, context):
         update_item(f"PLAYER#{player_id}", f"DINO#{species}", {"tamed": True})
 
         try:
-            broadcast("feed", "new_entry", {
+            ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
+            feed_sk = f"{ts}#{uuid.uuid4()}"
+            tamed_message = f"{profile['name']} tamed a wild {SPECIES[species]['name']}!"
+            put_item({
+                "PK": "FEED",
+                "SK": feed_sk,
                 "type": "tamed",
-                "message": f"{profile['name']} tamed a wild {SPECIES[species]['name']}!",
+                "message": tamed_message,
                 "player_name": profile["name"],
+            })
+            broadcast("feed", "new_entry", {
+                "id": feed_sk,
+                "type": "tamed",
+                "message": tamed_message,
+                "player_name": profile["name"],
+                "timestamp": ts,
             })
         except Exception:
             pass
@@ -81,10 +95,22 @@ def handler(event, context):
     update_item(f"PLAYER#{player_id}", f"DINO#{species}", {"tamed": True})
 
     try:
-        broadcast("feed", "new_entry", {
+        ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
+        feed_sk = f"{ts}#{uuid.uuid4()}"
+        tamed_message = f"{profile['name']} tamed a wild {SPECIES[species]['name']}!"
+        put_item({
+            "PK": "FEED",
+            "SK": feed_sk,
             "type": "tamed",
-            "message": f"{profile['name']} tamed a wild {SPECIES[species]['name']}!",
+            "message": tamed_message,
             "player_name": profile["name"],
+        })
+        broadcast("feed", "new_entry", {
+            "id": feed_sk,
+            "type": "tamed",
+            "message": tamed_message,
+            "player_name": profile["name"],
+            "timestamp": ts,
         })
     except Exception:
         pass

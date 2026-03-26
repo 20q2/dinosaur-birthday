@@ -1,4 +1,6 @@
 import json
+import uuid
+from datetime import datetime, timezone
 from ..shared.db import put_item, get_item
 from ..shared.response import success, error
 from ..shared.game_data import SPECIES, random_colors, random_nature, random_gender, is_shiny
@@ -51,11 +53,23 @@ def handler(event, context):
     put_item(dino)
 
     feed_msg = f"✨SHINY✨ {species_data['name']}" if shiny else f"wild {species_data['name']}"
+    feed_entry_message = f"{profile['name']} encountered a {feed_msg}!"
     try:
-        broadcast("feed", "new_entry", {
+        ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
+        feed_sk = f"{ts}#{uuid.uuid4()}"
+        put_item({
+            "PK": "FEED",
+            "SK": feed_sk,
             "type": "encounter",
-            "message": f"{profile['name']} encountered a {feed_msg}!",
+            "message": feed_entry_message,
             "player_name": profile["name"],
+        })
+        broadcast("feed", "new_entry", {
+            "id": feed_sk,
+            "type": "encounter",
+            "message": feed_entry_message,
+            "player_name": profile["name"],
+            "timestamp": ts,
         })
     except Exception:
         pass

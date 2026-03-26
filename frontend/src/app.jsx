@@ -12,6 +12,7 @@ import { Plaza } from './components/Plaza.jsx';
 import { PlayMenu } from './components/PlayMenu.jsx';
 import { PlayLobby } from './components/PlayLobby.jsx';
 import { PlayTrivia } from './components/PlayTrivia.jsx';
+import { FeedScreen } from './components/FeedScreen.jsx';
 
 export function App() {
   const { loading, player, route } = useStore();
@@ -84,7 +85,7 @@ function Screen({ route }) {
     case '/plaza': return <Plaza />;
     case '/dinos': return <MyDinos />;
     case '/play': return <PlayMenu />;
-    case '/feed': return <Placeholder name="Feed" />;
+    case '/feed': return <FeedScreen />;
     case '/profile': return <Placeholder name="Profile" />;
     default: return <Plaza />;
   }
