@@ -54,8 +54,8 @@ export const api = {
   bossTap: (playerId) =>
     request('POST', '/boss/tap', { player_id: playerId }),
 
-  adminBossBuildup: () =>
-    request('POST', '/admin/boss/buildup'),
+  adminBossBuildup: (phase) =>
+    request('POST', '/admin/boss/buildup', { phase }),
 
   adminBossStart: () =>
     request('POST', '/admin/boss/start'),

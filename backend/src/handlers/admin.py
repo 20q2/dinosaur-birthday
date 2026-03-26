@@ -157,7 +157,7 @@ def announce_handler(event, context):
 
 
 def dashboard_handler(event, context):
-    """GET /admin/dashboard — Get stats."""
+    """GET /admin/dashboard — Get stats including player list."""
     try:
         # Count players (scan for PROFILE SKs)
         table = get_table()
@@ -168,14 +168,24 @@ def dashboard_handler(event, context):
             FilterExpression="SK = :sk",
             ExpressionAttributeValues={":sk": "PROFILE"},
         )
-        player_count = len(resp.get("Items", []))
+        profile_items = resp.get("Items", [])
+        player_count = len(profile_items)
 
-        # Count tamed dinos
+        # Count tamed dinos (also gather per-player counts)
         dino_resp = table.scan(
             FilterExpression="begins_with(SK, :prefix) AND tamed = :t",
             ExpressionAttributeValues={":prefix": "DINO#", ":t": True},
         )
-        dino_count = len(dino_resp.get("Items", []))
+        tamed_dinos = dino_resp.get("Items", [])
+        dino_count = len(tamed_dinos)
+
+        # Build per-player dino count map
+        player_dino_counts = {}
+        for dino in tamed_dinos:
+            pk = dino.get("PK", "")
+            if pk.startswith("PLAYER#"):
+                pid = pk[len("PLAYER#"):]
+                player_dino_counts[pid] = player_dino_counts.get(pid, 0) + 1
 
         # Count feed entries
         feed_items = query_pk("FEED")
@@ -191,6 +201,20 @@ def dashboard_handler(event, context):
                 "status": boss.get("status", "waiting"),
             }
 
+        # Build player list with dino counts
+        players = []
+        for item in profile_items:
+            pk = item.get("PK", "")
+            if pk.startswith("PLAYER#"):
+                pid = pk[len("PLAYER#"):]
+                players.append({
+                    "id": pid,
+                    "name": item.get("name", "Unknown"),
+                    "dino_count": player_dino_counts.get(pid, 0),
+                })
+        # Sort by name for consistent ordering
+        players.sort(key=lambda p: p["name"].lower())
+
     except Exception as e:
         return error(f"Dashboard query failed: {str(e)}", 500)
 
@@ -199,6 +223,7 @@ def dashboard_handler(event, context):
         "dinos_tamed": dino_count,
         "feed_entries": feed_count,
         "boss": boss_info,
+        "player_list": players,
     })
 
 

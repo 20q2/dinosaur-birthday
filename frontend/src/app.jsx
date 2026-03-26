@@ -19,6 +19,7 @@ import { NoteScan } from './components/NoteScan.jsx';
 import { BossBanner } from './components/BossBanner.jsx';
 import { BossFight } from './components/BossFight.jsx';
 import { BossVictory } from './components/BossVictory.jsx';
+import { AdminPanel } from './components/AdminPanel.jsx';
 
 export function App() {
   const { loading, player, route } = useStore();
@@ -49,6 +50,17 @@ export function App() {
       store.navigate('/boss/victory');
     });
   }, []);
+
+  // Admin panel is a secret page — no player auth required, no nav
+  if (route === '/admin') {
+    return (
+      <div style={styles.app}>
+        <div style={styles.content}>
+          <AdminPanel />
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return <div style={styles.loading}><p>Loading...</p></div>;
@@ -111,6 +123,7 @@ function Screen({ route }) {
     case '/play': return <PlayMenu />;
     case '/feed': return <FeedScreen />;
     case '/profile': return <Placeholder name="Profile" />;
+    case '/admin': return <AdminPanel />;
     default: return <Plaza />;
   }
 }
