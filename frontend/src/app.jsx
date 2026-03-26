@@ -13,6 +13,9 @@ import { PlayMenu } from './components/PlayMenu.jsx';
 import { PlayLobby } from './components/PlayLobby.jsx';
 import { PlayTrivia } from './components/PlayTrivia.jsx';
 import { FeedScreen } from './components/FeedScreen.jsx';
+import { EventScan } from './components/EventScan.jsx';
+import { InspirationScan } from './components/InspirationScan.jsx';
+import { NoteScan } from './components/NoteScan.jsx';
 
 export function App() {
   const { loading, player, route } = useStore();
@@ -68,6 +71,14 @@ function Screen({ route }) {
 
   const scanFood = route.match(/^\/scan\/food\/(\w+)/);
   if (scanFood) return <DinoTaming foodType={scanFood[1]} />;
+
+  const scanEvent = route.match(/^\/scan\/event\/(\w+)/);
+  if (scanEvent) return <EventScan eventType={scanEvent[1]} />;
+
+  if (route === '/scan/inspiration') return <InspirationScan />;
+
+  const scanNote = route.match(/^\/scan\/note\/(\w+)/);
+  if (scanNote) return <NoteScan noteId={scanNote[1]} />;
 
   // Dino detail route: /dinos/:species
   const dinoDetail = route.match(/^\/dinos\/(\w+)/);
