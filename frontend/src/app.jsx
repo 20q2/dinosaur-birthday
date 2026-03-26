@@ -1,5 +1,6 @@
 import { useEffect } from 'preact/hooks';
 import { store } from './store.js';
+import { ws } from './ws.js';
 import { useStore } from './router.jsx';
 import { Onboarding } from './components/Onboarding.jsx';
 import { BottomNav } from './components/BottomNav.jsx';
@@ -12,7 +13,30 @@ import { Plaza } from './components/Plaza.jsx';
 export function App() {
   const { loading, player, route } = useStore();
 
-  useEffect(() => { store.init(); }, []);
+  useEffect(() => {
+    store.init();
+
+    ws.connect();
+
+    // Wire feed handler
+    ws.on('feed', 'new_entry', (data) => {
+      store.addFeedEntry(data);
+    });
+
+    // Wire boss handlers
+    ws.on('boss', 'boss_start', (data) => {
+      store.setBossState({ status: 'active', ...data });
+    });
+    ws.on('boss', 'hp_update', (data) => {
+      if (store.bossState) {
+        store.bossState = { ...store.bossState, ...data };
+        store.notify();
+      }
+    });
+    ws.on('boss', 'boss_defeated', (data) => {
+      store.setBossState({ status: 'defeated', ...data });
+    });
+  }, []);
 
   if (loading) {
     return <div style={styles.loading}><p>Loading...</p></div>;

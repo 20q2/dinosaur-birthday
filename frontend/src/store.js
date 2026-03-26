@@ -13,6 +13,7 @@ export const store = {
   loading: true,
   route: window.location.hash.slice(1) || '/plaza',
   bossState: null,
+  feedEntries: [],
 
   // Initialize
   async init() {
@@ -68,6 +69,18 @@ export const store = {
     const route = localStorage.getItem(PENDING_ROUTE_KEY);
     localStorage.removeItem(PENDING_ROUTE_KEY);
     return route;
+  },
+
+  // Feed
+  addFeedEntry(entry) {
+    this.feedEntries = [entry, ...this.feedEntries].slice(0, 100);
+    this.notify();
+  },
+
+  // Boss
+  setBossState(state) {
+    this.bossState = state;
+    this.notify();
   },
 
   // Subscriptions

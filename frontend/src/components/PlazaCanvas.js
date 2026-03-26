@@ -110,6 +110,79 @@ export class PlazaCanvas {
     });
   }
 
+  // ── Live partner updates ───────────────────────────────────────────────────
+
+  updatePartners(partners) {
+    this.partners = partners;
+
+    // Build a lookup of existing dino state keyed by player_id
+    const existing = new Map();
+    this.dinos.forEach(d => {
+      if (d.partner.player_id) existing.set(d.partner.player_id, d);
+    });
+
+    const maxLevel = partners.reduce((m, p) => Math.max(m, p.level || 1), 1);
+    const w = this.canvas.width || 1;
+    const h = this.canvas.height || 1;
+
+    this.dinos = partners.map((partner, i) => {
+      // Reuse existing animation state if the dino is already on canvas
+      if (partner.player_id && existing.has(partner.player_id)) {
+        const prev = existing.get(partner.player_id);
+        const level = partner.level || 1;
+        const scale = SCALE_MIN + ((level - 1) / (MAX_LEVEL - 1)) * (SCALE_MAX - SCALE_MIN);
+        const isChampion = level === maxLevel;
+        const bodyHue = partner.colors && partner.colors.body != null
+          ? partner.colors.body
+          : (i * 47) % 360;
+        return {
+          ...prev,
+          partner,
+          scale,
+          radius: BASE_RADIUS * scale,
+          isChampion,
+          bodyColor: hueToColor(bodyHue, 65, 55),
+          bellyColor: hueToColor(bodyHue, 40, 75),
+          borderColor: hueToColor(bodyHue, 65, 35),
+          initial: getSpeciesInitial(partner.species),
+        };
+      }
+
+      // Brand-new arrival — initialize with fresh animation state
+      const level = partner.level || 1;
+      const scale = SCALE_MIN + ((level - 1) / (MAX_LEVEL - 1)) * (SCALE_MAX - SCALE_MIN);
+      const isChampion = level === maxLevel;
+      const bodyHue = partner.colors && partner.colors.body != null
+        ? partner.colors.body
+        : (i * 47) % 360;
+
+      return {
+        partner,
+        x: 0,
+        y: 0,
+        xFrac: 0.1 + Math.random() * 0.8,
+        yFrac: 0.1 + Math.random() * 0.8,
+        radius: BASE_RADIUS * scale,
+        scale,
+        isChampion,
+        bodyColor: hueToColor(bodyHue, 65, 55),
+        bellyColor: hueToColor(bodyHue, 40, 75),
+        borderColor: hueToColor(bodyHue, 65, 35),
+        initial: getSpeciesInitial(partner.species),
+        hopPhase: Math.random() * Math.PI * 2,
+        hopSpeed: 1.5 + Math.random() * 1.0,
+        driftAngle: Math.random() * Math.PI * 2,
+        driftSpeed: 0.3 + Math.random() * 0.4,
+        driftRadius: 20 + Math.random() * 30,
+        driftCenterXFrac: 0.1 + Math.random() * 0.8,
+        driftCenterYFrac: 0.1 + Math.random() * 0.8,
+        sparklePhase: Math.random() * Math.PI * 2,
+        screenX: w * 0.5,
+        screenY: h * 0.5,
+      };
+    });
+  }
+
   // ── Start / Stop ──────────────────────────────────────────────────────────
 
   start() {

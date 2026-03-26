@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { api } from '../api.js';
+import { ws } from '../ws.js';
 import { PlazaCanvas } from './PlazaCanvas.js';
 
 export function Plaza() {
@@ -8,15 +9,17 @@ export function Plaza() {
   const [selected, setSelected] = useState(null);
   const [partners, setPartners] = useState([]);
 
+  // Initial load + canvas setup
   useEffect(() => {
-    // Load plaza data once on mount (WebSocket wiring comes in Task 9)
     api.getPlaza().then(data => {
       setPartners(data.partners || []);
     }).catch(() => {});
   }, []);
 
+  // Create canvas once partners are loaded for the first time
   useEffect(() => {
     if (!canvasRef.current || partners.length === 0) return;
+    if (plazaRef.current) return; // already initialized; updates go via updatePartners
 
     const canvas = canvasRef.current;
     const plaza = new PlazaCanvas(canvas, partners, (partner) => {
@@ -27,6 +30,26 @@ export function Plaza() {
 
     return () => plaza.stop();
   }, [partners]);
+
+  // Wire real-time plaza updates
+  useEffect(() => {
+    const offArrive = ws.on('plaza', 'dino_arrive', (data) => {
+      setPartners(prev => {
+        const updated = [...prev.filter(p => p.player_id !== data.player_id), data];
+        if (plazaRef.current) plazaRef.current.updatePartners(updated);
+        return updated;
+      });
+    });
+    const offLeave = ws.on('plaza', 'dino_leave', (data) => {
+      setPartners(prev => {
+        const updated = prev.filter(p => p.player_id !== data.player_id);
+        if (plazaRef.current) plazaRef.current.updatePartners(updated);
+        return updated;
+      });
+    });
+
+    return () => { offArrive(); offLeave(); };
+  }, []);
 
   return (
     <div style={styles.container}>
