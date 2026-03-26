@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//a/Coding//**)",
+      "Read(//c/Users/andje/.claude/plugins/cache/superpowers-marketplace/superpowers/5.0.6/skills/brainstorming/**)"
+    ]
+  }
+}
