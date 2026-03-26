@@ -7,6 +7,7 @@ import { DinoEncounter } from './components/DinoEncounter.jsx';
 import { DinoTaming } from './components/DinoTaming.jsx';
 import { MyDinos } from './components/MyDinos.jsx';
 import { DinoDetail } from './components/DinoDetail.jsx';
+import { Plaza } from './components/Plaza.jsx';
 
 export function App() {
   const { loading, player, route } = useStore();
@@ -46,12 +47,12 @@ function Screen({ route }) {
 
   // Main screens
   switch (route) {
-    case '/plaza': return <Placeholder name="Plaza" />;
+    case '/plaza': return <Plaza />;
     case '/dinos': return <MyDinos />;
     case '/play': return <Placeholder name="Play" />;
     case '/feed': return <Placeholder name="Feed" />;
     case '/profile': return <Placeholder name="Profile" />;
-    default: return <Placeholder name="Plaza" />;
+    default: return <Plaza />;
   }
 }
 

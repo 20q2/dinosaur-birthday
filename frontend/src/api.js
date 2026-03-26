@@ -65,4 +65,6 @@ export const api = {
 
   adminDashboard: () =>
     request('GET', '/admin/dashboard'),
+
+  getPlaza: () => request('GET', '/plaza'),
 };

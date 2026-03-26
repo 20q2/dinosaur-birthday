@@ -400,6 +400,23 @@ Resources:
             Path: /boss/tap
             Method: POST
 
+  # REST handlers - Plaza
+  PlazaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src.handlers.plaza.handler
+      CodeUri: .
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref GameTable
+      Events:
+        GetPlaza:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RestApi
+            Path: /plaza
+            Method: GET
+
   # REST handlers - Admin
   AdminFunction:
     Type: AWS::Serverless::Function
