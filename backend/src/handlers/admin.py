@@ -289,6 +289,28 @@ def reset_all_handler(event, context):
     return success({"deleted": deleted})
 
 
+def nuke_all_handler(event, context):
+    """DELETE /admin/nuke-all — delete EVERYTHING including player profiles."""
+    table = get_table()
+    deleted = 0
+
+    scan_kwargs = {}
+    while True:
+        resp = table.scan(**scan_kwargs)
+        items = resp.get("Items", [])
+
+        for item in items:
+            delete_item(item["PK"], item["SK"])
+            deleted += 1
+
+        last_key = resp.get("LastEvaluatedKey")
+        if not last_key:
+            break
+        scan_kwargs["ExclusiveStartKey"] = last_key
+
+    return success({"deleted": deleted})
+
+
 def handler(event, context):
     """Route admin endpoints."""
     path = event.get("resource", event.get("path", ""))
@@ -307,6 +329,8 @@ def handler(event, context):
             return dashboard_handler(event, context)
 
     if method == "DELETE":
+        if path.endswith("/nuke-all"):
+            return nuke_all_handler(event, context)
         # Check reset-all BEFORE reset since reset-all path also ends with "reset"
         if path.endswith("/reset-all"):
             return reset_all_handler(event, context)

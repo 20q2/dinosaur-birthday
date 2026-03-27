@@ -4,6 +4,7 @@ import { SPECIES } from '../data/species.js';
 import { HAT_MAP } from '../data/hats.js';
 import { DinoSprite } from './DinoSprite.jsx';
 
+const TOTAL_SPECIES = Object.keys(SPECIES).length;
 const XP_PER_LEVEL = 100;
 const MAX_LEVEL = 5;
 
@@ -28,9 +29,9 @@ function DinoCard({ dino }) {
         borderColor: dino.is_partner ? '#4ade80' : '#2a2a3e',
       }}
     >
-      {/* Sprite + shiny badge */}
-      <div style={styles.emojiBox}>
-        <DinoSprite species={dino.species} colors={dino.colors || {}} scale={2} />
+      {/* Sprite — clipped to box */}
+      <div style={styles.spriteBox}>
+        <DinoSprite species={dino.species} colors={dino.colors || {}} scale={2} style={{ width: '100%', height: '100%' }} />
         {dino.shiny && <span style={styles.shinyBadge}>✨</span>}
       </div>
 
@@ -56,6 +57,8 @@ function DinoCard({ dino }) {
           <div style={styles.untamedMsg}>Untamed — find food!</div>
         )}
       </div>
+
+      <div style={styles.chevron}>›</div>
     </button>
   );
 }
@@ -68,7 +71,6 @@ export function MyDinos() {
     return (
       <div style={styles.empty}>
         <div style={{ fontSize: '64px' }}>🦕</div>
-        {/* Empty state keeps emoji */}
         <p style={{ color: '#aaa', marginTop: '12px' }}>No dinos yet!</p>
         <p style={{ color: '#666', fontSize: '13px' }}>Scan a dino QR code to encounter one.</p>
       </div>
@@ -84,9 +86,14 @@ export function MyDinos() {
     return aName.localeCompare(bName);
   });
 
+  const tamedCount = dinos.filter(d => d.tamed).length;
+
   return (
     <div style={styles.page}>
-      <h2 style={styles.title}>My Dinos</h2>
+      <div style={styles.header}>
+        <h2 style={styles.title}>My Dinos</h2>
+        <div style={styles.counter}>{dinos.length} / {TOTAL_SPECIES} discovered · {tamedCount} tamed</div>
+      </div>
       <div style={styles.list}>
         {sorted.map(dino => (
           <DinoCard key={dino.species} dino={dino} />
@@ -98,7 +105,9 @@ export function MyDinos() {
 
 const styles = {
   page: { padding: '16px 16px 80px' },
-  title: { margin: '0 0 16px', fontSize: '22px', color: '#e0e0e0' },
+  header: { marginBottom: '16px' },
+  title: { margin: '0 0 4px', fontSize: '22px', color: '#e0e0e0' },
+  counter: { fontSize: '13px', color: '#888' },
   list: { display: 'flex', flexDirection: 'column', gap: '10px' },
   empty: {
     display: 'flex', flexDirection: 'column', alignItems: 'center',
@@ -106,17 +115,17 @@ const styles = {
   },
   card: {
     display: 'flex', flexDirection: 'row', gap: '14px', alignItems: 'center',
-    background: '#16213e', borderRadius: '12px', border: '2px solid #2a2a3e',
-    padding: '14px', width: '100%', cursor: 'pointer', textAlign: 'left',
+    background: '#1a1a2e', borderRadius: '12px', border: '2px solid #2a2a3e',
+    padding: '12px', width: '100%', cursor: 'pointer', textAlign: 'left',
     color: '#e0e0e0',
   },
-  emojiBox: {
-    position: 'relative', width: '56px', height: '56px', flexShrink: 0,
-    background: '#1a2e1a', borderRadius: '10px',
+  spriteBox: {
+    position: 'relative', width: '60px', height: '60px', flexShrink: 0,
+    borderRadius: '10px', overflow: 'hidden',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
   },
   shinyBadge: {
-    position: 'absolute', top: '-6px', right: '-6px', fontSize: '12px',
+    position: 'absolute', top: '-2px', right: '-2px', fontSize: '14px',
   },
   info: { flex: 1, minWidth: 0 },
   nameRow: { display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' },
@@ -140,4 +149,7 @@ const styles = {
   },
   xpBarFill: { height: '100%', background: '#4ade80', borderRadius: '2px' },
   untamedMsg: { fontSize: '12px', color: '#f59e0b', marginTop: '4px' },
+  chevron: {
+    fontSize: '22px', color: '#555', flexShrink: 0, marginLeft: '4px',
+  },
 };

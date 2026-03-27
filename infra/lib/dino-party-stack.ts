@@ -239,6 +239,7 @@ export class DinoPartyStack extends Stack {
     addRoute(adminFn, 'GET', '/admin/dashboard');
     addRoute(adminFn, 'DELETE', '/admin/reset');
     addRoute(adminFn, 'DELETE', '/admin/reset-all');
+    addRoute(adminFn, 'DELETE', '/admin/nuke-all');
 
     // ── Outputs ─────────────────────────────────────────────────
 

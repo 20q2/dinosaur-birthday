@@ -26,8 +26,20 @@ export function AdminBots() {
     const name = `Bot-${nameBase}-${bots.length + 1}`;
     try {
       await api.createPlayer(id, name, '');
-      setBots(prev => [...prev, { id, name, state: 'idle', dinos: 0 }]);
+      const bot = { id, name, state: 'collecting', dinos: 0 };
+      setBots(prev => [...prev, bot]);
       addLog(`Spawned ${name}`);
+
+      // Auto-collect a dino so the bot appears in the plaza immediately
+      const species = SPECIES[Math.floor(Math.random() * SPECIES.length)];
+      const food = FOOD_MAP[species];
+      await api.scanDino(id, species);
+      await api.scanFood(id, food, species);
+      const dinoName = `${name}'s ${SPECIES_NAMES[species]}`;
+      await api.customizeDino(id, species, { name: dinoName });
+      await api.setPartner(id, species);
+      addLog(`${name} auto-collected ${SPECIES_NAMES[species]} and set as partner`);
+      updateBot(id, { state: 'idle', dinos: 1 });
     } catch (err) {
       addLog(`Failed to spawn bot: ${err.message}`);
     }

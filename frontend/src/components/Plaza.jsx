@@ -10,7 +10,7 @@ export function Plaza() {
   const plazaRef = useRef(null);
   const [selected, setSelected] = useState(null);
   const [partners, setPartners] = useState([]);
-  const [feedEntries, setFeedEntries] = useState(store.feedEntries.slice(0, 5));
+  const [feedEntries, setFeedEntries] = useState(store.feedEntries.slice(0, 7));
 
   // Initial load + canvas setup
   useEffect(() => {
@@ -19,19 +19,21 @@ export function Plaza() {
     }).catch(() => {});
   }, []);
 
-  // Create canvas once partners are loaded for the first time
+  // Create canvas once on mount
   useEffect(() => {
     if (!canvasRef.current) return;
-    if (plazaRef.current) return; // already initialized; updates go via updatePartners
-
     const canvas = canvasRef.current;
-    const plaza = new PlazaCanvas(canvas, partners, (partner) => {
+    const plaza = new PlazaCanvas(canvas, [], (partner) => {
       setSelected(partner);
     });
     plazaRef.current = plaza;
     plaza.start();
-
     return () => plaza.stop();
+  }, []);
+
+  // Push partner updates into the existing canvas instance
+  useEffect(() => {
+    if (plazaRef.current) plazaRef.current.updatePartners(partners);
   }, [partners]);
 
   // Wire real-time plaza updates
@@ -57,7 +59,7 @@ export function Plaza() {
   // Subscribe to live feed entries from store
   useEffect(() => {
     const unsub = store.subscribe(() => {
-      setFeedEntries(store.feedEntries.slice(0, 5));
+      setFeedEntries(store.feedEntries.slice(0, 7));
     });
     return unsub;
   }, []);
@@ -75,26 +77,18 @@ export function Plaza() {
       )}
 
       {/* Mini live feed overlay */}
-      <div style={styles.feedOverlay}>
-        <div style={styles.feedList}>
-          {feedEntries.length === 0 ? (
-            <div style={styles.feedEmpty}>No activity yet...</div>
-          ) : (
-            feedEntries.map(entry => (
+      {feedEntries.length > 0 && (
+        <div style={styles.feedOverlay}>
+          <div style={styles.feedList}>
+            {feedEntries.map(entry => (
               <div key={entry.id} style={styles.feedItem}>
                 <span style={styles.feedIcon}>{FEED_ICONS[entry.type] || '🌿'}</span>
                 <span style={styles.feedText}>{entry.message}</span>
               </div>
-            ))
-          )}
+            ))}
+          </div>
         </div>
-        <button
-          style={styles.feedButton}
-          onClick={() => store.navigate('/feed')}
-        >
-          📰 View Full Feed
-        </button>
-      </div>
+      )}
 
       {selected && (
         <div style={styles.popup} onClick={() => setSelected(null)}>
@@ -120,6 +114,12 @@ export function Plaza() {
             <div style={{ color: '#4ade80', fontSize: '13px', marginTop: '10px' }}>
               Owner: {selected.owner_name || 'Unknown'}
             </div>
+            <button
+              onClick={() => { setSelected(null); store.navigate('/play'); }}
+              style={styles.playBtn}
+            >
+              🤝 Play Together
+            </button>
             <button onClick={() => setSelected(null)} style={styles.closeBtn}>
               Close
             </button>
@@ -142,17 +142,17 @@ const FEED_ICONS = {
 
 const styles = {
   container: {
-    position: 'relative',
-    width: '100%',
-    height: '100%',
-    minHeight: '300px',
+    position: 'absolute',
+    inset: 0,
     overflow: 'hidden',
     background: '#15803d',
   },
   canvas: {
-    display: 'block',
+    position: 'absolute',
+    inset: 0,
     width: '100%',
     height: '100%',
+    display: 'block',
     cursor: 'grab',
     touchAction: 'none',
   },
@@ -182,49 +182,55 @@ const styles = {
     minWidth: '200px',
     boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
   },
-  closeBtn: {
+  playBtn: {
     marginTop: '14px',
     padding: '8px 22px',
-    background: '#4ade80',
-    color: '#14532d',
+    background: '#6366f1',
+    color: '#fff',
     border: 'none',
     borderRadius: '8px',
     fontWeight: 'bold',
     fontSize: '14px',
     cursor: 'pointer',
+    width: '100%',
+  },
+  closeBtn: {
+    marginTop: '8px',
+    padding: '8px 22px',
+    background: 'transparent',
+    color: '#86efac',
+    border: '1px solid #86efac',
+    borderRadius: '8px',
+    fontWeight: 'bold',
+    fontSize: '14px',
+    cursor: 'pointer',
+    width: '100%',
   },
   feedOverlay: {
     position: 'absolute',
-    bottom: '4px',
-    left: '4px',
-    width: '50%',
-    background: 'rgba(0, 0, 0, 0.45)',
-    backdropFilter: 'blur(4px)',
-    borderRadius: '10px',
-    padding: '8px 10px 6px',
-    pointerEvents: 'auto',
+    bottom: '8px',
+    left: '8px',
+    width: '200px',
+    pointerEvents: 'none',
     zIndex: 5,
-    maxHeight: '140px',
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  feedList: {
-    flex: 1,
-    overflow: 'hidden',
+    background: 'rgba(0, 0, 0, 0.25)',
+    borderRadius: '8px',
+    padding: '6px 8px',
     display: 'flex',
     flexDirection: 'column',
     gap: '3px',
   },
-  feedEmpty: {
-    color: 'rgba(255,255,255,0.4)',
-    fontSize: '12px',
-    padding: '4px 0',
+  feedList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '3px',
   },
   feedItem: {
     display: 'flex',
     alignItems: 'center',
     gap: '6px',
     lineHeight: '1.3',
+    textShadow: '0 1px 3px rgba(0,0,0,0.8)',
   },
   feedIcon: {
     fontSize: '12px',
@@ -232,22 +238,7 @@ const styles = {
   },
   feedText: {
     fontSize: '12px',
-    color: 'rgba(255, 255, 255, 0.8)',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-  },
-  feedButton: {
-    marginTop: '6px',
-    background: 'rgba(74, 222, 128, 0.2)',
-    border: '1px solid rgba(74, 222, 128, 0.4)',
-    borderRadius: '6px',
-    color: '#4ade80',
-    fontSize: '12px',
-    fontWeight: 'bold',
-    padding: '5px 0',
-    cursor: 'pointer',
-    textAlign: 'center',
-    width: '100%',
+    color: 'rgba(255, 255, 255, 0.85)',
+    wordBreak: 'break-word',
   },
 };

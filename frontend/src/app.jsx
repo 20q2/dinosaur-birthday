@@ -135,5 +135,5 @@ function Screen({ route }) {
 const styles = {
   loading: { display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100dvh' },
   app: { display: 'flex', flexDirection: 'column', minHeight: '100dvh' },
-  content: { flex: 1, overflow: 'auto' },
+  content: { flex: 1, overflow: 'auto', position: 'relative', minHeight: 0 },
 };

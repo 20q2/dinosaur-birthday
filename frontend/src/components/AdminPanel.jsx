@@ -1,4 +1,5 @@
 import { useState } from 'preact/hooks';
+import { store } from '../store.js';
 import { AdminDashboard } from './AdminDashboard.jsx';
 import { AdminQRCodes } from './AdminQRCodes.jsx';
 import { AdminSimulator } from './AdminSimulator.jsx';
@@ -29,8 +30,15 @@ export function AdminPanel() {
     <div style={styles.page}>
       {/* Header */}
       <div style={styles.header}>
-        <div style={styles.headerTitle}>ADMIN PANEL</div>
-        <div style={styles.headerSub}>Party Host Controls</div>
+        <div style={styles.headerRow}>
+          <div>
+            <div style={styles.headerTitle}>ADMIN PANEL</div>
+            <div style={styles.headerSub}>Party Host Controls</div>
+          </div>
+          <button style={styles.plazaBtn} onClick={() => store.navigate('/plaza')}>
+            Back to Plaza
+          </button>
+        </div>
       </div>
 
       {/* Tab bar */}
@@ -73,6 +81,11 @@ const styles = {
     borderBottom: '2px solid #7f1d1d',
     flexShrink: 0,
   },
+  headerRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   headerTitle: {
     fontSize: '26px',
     fontWeight: '900',
@@ -84,6 +97,16 @@ const styles = {
     fontSize: '13px',
     color: '#fca5a5',
     marginTop: '3px',
+  },
+  plazaBtn: {
+    background: '#6366f1',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '8px',
+    padding: '8px 16px',
+    fontSize: '13px',
+    fontWeight: '600',
+    cursor: 'pointer',
   },
   tabBar: {
     display: 'flex',

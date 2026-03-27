@@ -75,4 +75,7 @@ export const api = {
 
   resetAll: () =>
     request('DELETE', '/admin/reset-all'),
+
+  nukeAll: () =>
+    request('DELETE', '/admin/nuke-all'),
 };

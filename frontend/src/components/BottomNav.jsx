@@ -1,11 +1,14 @@
 import { store } from '../store.js';
 
+const IS_LOCAL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
 const tabs = [
   { route: '/plaza', icon: '🌿', label: 'Plaza' },
   { route: '/dinos', icon: '🦕', label: 'My Dinos' },
   { route: '/play', icon: '🤝', label: 'Play' },
   { route: '/feed', icon: '📰', label: 'Feed' },
   { route: '/profile', icon: '👤', label: 'Profile' },
+  ...(IS_LOCAL ? [{ route: '/admin', icon: '⚙️', label: 'Admin' }] : []),
 ];
 
 export function BottomNav() {

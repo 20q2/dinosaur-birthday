@@ -5,6 +5,7 @@ export function AdminReset() {
   const [players, setPlayers] = useState([]);
   const [selectedId, setSelectedId] = useState('');
   const [resetConfirm, setResetConfirm] = useState('');
+  const [nukeConfirm, setNukeConfirm] = useState('');
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -42,6 +43,20 @@ export function AdminReset() {
     setLoading(false);
   }
 
+  async function handleNukeAll() {
+    if (nukeConfirm !== 'NUKE') return;
+    setLoading(true);
+    try {
+      const res = await api.nukeAll();
+      setResult({ ok: true, msg: `Full nuke complete. Deleted ${res.deleted} items. All profiles wiped.` });
+      setNukeConfirm('');
+      setPlayers([]);
+    } catch (err) {
+      setResult({ ok: false, msg: err.message });
+    }
+    setLoading(false);
+  }
+
   return (
     <div style={styles.container}>
       {/* Per-player reset */}
@@ -68,7 +83,7 @@ export function AdminReset() {
         <h3 style={{ ...styles.sectionTitle, color: '#ef4444' }}>Full Game Reset</h3>
         <div style={styles.warningBox}>
           <p style={styles.warningText}>
-            This deletes ALL data — every player's dinos, items, notes, the plaza, feed, boss state, lobbies, and cooldowns. Player profiles are kept.
+            This deletes ALL game data — every player's dinos, items, notes, the plaza, feed, boss state, lobbies, and cooldowns. Player profiles are kept so players don't have to re-register.
           </p>
         </div>
         <p style={styles.desc}>Type <strong style={{ color: '#ef4444' }}>RESET</strong> to enable the button:</p>
@@ -85,6 +100,32 @@ export function AdminReset() {
             disabled={resetConfirm !== 'RESET' || loading}
           >
             Reset Everything
+          </button>
+        </div>
+      </div>
+
+      {/* Full nuke */}
+      <div style={styles.section}>
+        <h3 style={{ ...styles.sectionTitle, color: '#ff0000' }}>Full Nuke</h3>
+        <div style={{ ...styles.warningBox, background: '#2a0000', borderColor: '#991b1b' }}>
+          <p style={styles.warningText}>
+            This deletes EVERYTHING — all game data AND all player profiles. Every player will need to re-register from scratch. There is no undo.
+          </p>
+        </div>
+        <p style={styles.desc}>Type <strong style={{ color: '#ff0000' }}>NUKE</strong> to enable the button:</p>
+        <div style={styles.row}>
+          <input
+            style={styles.input}
+            value={nukeConfirm}
+            onInput={e => setNukeConfirm(e.target.value)}
+            placeholder='Type "NUKE" to confirm'
+          />
+          <button
+            style={{ ...styles.nukeBtn, opacity: nukeConfirm === 'NUKE' ? 1 : 0.4 }}
+            onClick={handleNukeAll}
+            disabled={nukeConfirm !== 'NUKE' || loading}
+          >
+            Nuke Everything
           </button>
         </div>
       </div>
@@ -108,6 +149,7 @@ const styles = {
   select: { flex: '1 1 160px', padding: '8px', background: '#1f2937', border: '1px solid #374151', borderRadius: '6px', color: '#f0f0f0', fontSize: '13px' },
   input: { flex: '1 1 160px', padding: '8px', background: '#1f2937', border: '1px solid #374151', borderRadius: '6px', color: '#f0f0f0', fontSize: '13px' },
   dangerBtn: { padding: '8px 16px', background: '#dc2626', border: 'none', borderRadius: '6px', color: '#fff', fontWeight: '700', fontSize: '13px', cursor: 'pointer', whiteSpace: 'nowrap' },
+  nukeBtn: { padding: '8px 16px', background: '#7f1d1d', border: '2px solid #ff0000', borderRadius: '6px', color: '#ff0000', fontWeight: '700', fontSize: '13px', cursor: 'pointer', whiteSpace: 'nowrap' },
   warningBox: { padding: '12px', background: '#1a0000', border: '1px solid #7f1d1d', borderRadius: '8px', marginBottom: '10px' },
   warningText: { margin: 0, fontSize: '13px', color: '#fca5a5', lineHeight: '1.5' },
   resultBox: { padding: '12px', background: '#0a0a0a', border: '2px solid', borderRadius: '10px' },

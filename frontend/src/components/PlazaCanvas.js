@@ -6,7 +6,7 @@ const SCALE_MIN = 1.0;
 const SCALE_MAX = 1.4;
 const MAX_LEVEL = 5;
 
-const WORLD_W = 1200;
+const WORLD_W = 1800;
 const WORLD_H = 1200;
 const MIN_ZOOM = 0.4;
 const MAX_ZOOM = 2.5;
