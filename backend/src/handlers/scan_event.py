@@ -1,5 +1,6 @@
 import json
 import uuid
+import random
 from datetime import datetime, timezone
 from ..shared.db import get_item, put_item, query_pk
 from ..shared.response import success, error
@@ -41,16 +42,32 @@ def handler(event, context):
     # Award 25 XP to partner dino
     dino_result = award_xp(player_id, 25)
 
-    # Award random hat to player inventory
-    hat = random_hat()
+    # Award random hat or paint item (50/50)
     item_id = str(uuid.uuid4())
-    put_item({
-        "PK": f"PLAYER#{player_id}",
-        "SK": f"ITEM#{item_id}",
-        "type": "hat",
-        "name": hat["name"],
-        "details": {"hat_id": hat["id"], "rarity": hat["rarity"]},
-    })
+    if random.random() < 0.5:
+        hat = random_hat()
+        put_item({
+            "PK": f"PLAYER#{player_id}",
+            "SK": f"ITEM#{item_id}",
+            "type": "hat",
+            "name": hat["name"],
+            "details": {"hat_id": hat["id"], "rarity": hat["rarity"]},
+        })
+        item_result = {
+            "type": "hat",
+            "name": hat["name"],
+            "hat_id": hat["id"],
+            "rarity": hat["rarity"],
+        }
+    else:
+        put_item({
+            "PK": f"PLAYER#{player_id}",
+            "SK": f"ITEM#{item_id}",
+            "type": "paint",
+            "name": "Paint",
+            "details": {},
+        })
+        item_result = {"type": "paint", "name": "Paint"}
 
     # Mark as claimed
     put_item({
@@ -94,10 +111,5 @@ def handler(event, context):
         "event_type": event_type,
         "xp_awarded": 25,
         "dino": dino_result,
-        "item": {
-            "type": "hat",
-            "name": hat["name"],
-            "hat_id": hat["id"],
-            "rarity": hat["rarity"],
-        },
+        "item": item_result,
     })

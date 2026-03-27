@@ -2,6 +2,7 @@ import { useEffect } from 'preact/hooks';
 import { store } from './store.js';
 import { ws } from './ws.js';
 import { useStore } from './router.jsx';
+import { preloadAll } from './utils/spriteEngine.js';
 import { Onboarding } from './components/Onboarding.jsx';
 import { BottomNav } from './components/BottomNav.jsx';
 import { DinoEncounter } from './components/DinoEncounter.jsx';
@@ -27,6 +28,7 @@ export function App() {
 
   useEffect(() => {
     store.init();
+    preloadAll();
 
     ws.connect();
 

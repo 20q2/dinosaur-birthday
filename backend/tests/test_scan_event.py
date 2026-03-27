@@ -54,10 +54,10 @@ def test_claim_event_awards_xp_and_item():
     dino = get_item("PLAYER#ev1", "DINO#trex")
     assert int(dino["xp"]) == 25
 
-    # Hat item should be in inventory
+    # Reward item should be in inventory (hat or paint)
     items = query_pk("PLAYER#ev1", "ITEM#")
     assert len(items) == 1
-    assert items[0]["type"] == "hat"
+    assert items[0]["type"] in ("hat", "paint")
 
     # Event claim should be recorded
     claim = get_item("EVENT#ev1", "cooking_pot")

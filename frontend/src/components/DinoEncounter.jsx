@@ -2,6 +2,7 @@ import { useState, useEffect } from 'preact/hooks';
 import { store } from '../store.js';
 import { api } from '../api.js';
 import { SPECIES } from '../data/species.js';
+import { DinoSprite } from './DinoSprite.jsx';
 
 export function DinoEncounter({ species }) {
   const [dino, setDino] = useState(null);
@@ -40,7 +41,7 @@ export function DinoEncounter({ species }) {
       <div style={styles.header}>⚡ WILD ENCOUNTER ⚡</div>
 
       <div style={styles.dinoBox}>
-        <div style={{ fontSize: '64px' }}>🦕</div>
+        <DinoSprite species={species} colors={dino.colors || {}} scale={3} />
       </div>
 
       <h2>{speciesData?.name || species}</h2>

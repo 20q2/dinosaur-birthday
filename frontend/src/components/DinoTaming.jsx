@@ -3,6 +3,7 @@ import { store } from '../store.js';
 import { api } from '../api.js';
 import { SPECIES } from '../data/species.js';
 import { STARTER_HATS } from '../data/hats.js';
+import { DinoSprite } from './DinoSprite.jsx';
 
 export function DinoTaming({ foodType }) {
   const [untamed, setUntamed] = useState([]);
@@ -75,7 +76,7 @@ export function DinoTaming({ foodType }) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '24px', gap: '12px' }}>
         <div style={{ color: '#22c55e', fontSize: '14px' }}>✨ TAMING TIME ✨</div>
-        <div style={styles.dinoBox}><span style={{ fontSize: '64px' }}>🦕</span></div>
+        <div style={styles.dinoBox}><DinoSprite species={selectedSpecies} colors={{}} scale={3} /></div>
         <h2>{speciesData?.name}</h2>
         <div style={{ color: '#22c55e' }}>❤️ Munching on {foodType === 'meat' ? 'Meat' : 'Mejoberries'}...</div>
 

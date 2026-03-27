@@ -2,6 +2,7 @@ import { store } from '../store.js';
 import { useStore } from '../router.jsx';
 import { SPECIES } from '../data/species.js';
 import { HAT_MAP } from '../data/hats.js';
+import { DinoSprite } from './DinoSprite.jsx';
 
 const XP_PER_LEVEL = 100;
 const MAX_LEVEL = 5;
@@ -27,9 +28,9 @@ function DinoCard({ dino }) {
         borderColor: dino.is_partner ? '#4ade80' : '#2a2a3e',
       }}
     >
-      {/* Emoji placeholder + shiny badge */}
+      {/* Sprite + shiny badge */}
       <div style={styles.emojiBox}>
-        <span style={{ fontSize: '36px' }}>🦕</span>
+        <DinoSprite species={dino.species} colors={dino.colors || {}} scale={2} />
         {dino.shiny && <span style={styles.shinyBadge}>✨</span>}
       </div>
 
@@ -67,6 +68,7 @@ export function MyDinos() {
     return (
       <div style={styles.empty}>
         <div style={{ fontSize: '64px' }}>🦕</div>
+        {/* Empty state keeps emoji */}
         <p style={{ color: '#aaa', marginTop: '12px' }}>No dinos yet!</p>
         <p style={{ color: '#666', fontSize: '13px' }}>Scan a dino QR code to encounter one.</p>
       </div>

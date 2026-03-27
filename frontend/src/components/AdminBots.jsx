@@ -3,9 +3,9 @@ import { api } from '../api.js';
 import { generateId } from '../utils/uuid.js';
 
 const BOT_NAMES = ['Rex', 'Stego', 'Trike', 'Spino', 'Pachy', 'Para', 'Dilo'];
-const SPECIES = ['trex', 'spinosaurus', 'dilophosaurus', 'pachycephalosaurus', 'parasaurolophus', 'stegosaurus', 'triceratops'];
-const FOOD_MAP = { trex: 'meat', spinosaurus: 'meat', dilophosaurus: 'meat', pachycephalosaurus: 'mejoberries', parasaurolophus: 'mejoberries', stegosaurus: 'mejoberries', triceratops: 'mejoberries' };
-const SPECIES_NAMES = { trex: 'T-Rex', spinosaurus: 'Spinosaurus', dilophosaurus: 'Dilophosaurus', pachycephalosaurus: 'Pachycephalosaurus', parasaurolophus: 'Parasaurolophus', stegosaurus: 'Stegosaurus', triceratops: 'Triceratops' };
+const SPECIES = ['trex', 'spinosaurus', 'dilophosaurus', 'pachycephalosaurus', 'parasaurolophus', 'triceratops', 'ankylosaurus'];
+const FOOD_MAP = { trex: 'meat', spinosaurus: 'meat', dilophosaurus: 'meat', pachycephalosaurus: 'mejoberries', parasaurolophus: 'mejoberries', triceratops: 'mejoberries', ankylosaurus: 'mejoberries' };
+const SPECIES_NAMES = { trex: 'T-Rex', spinosaurus: 'Spinosaurus', dilophosaurus: 'Dilophosaurus', pachycephalosaurus: 'Pachycephalosaurus', parasaurolophus: 'Parasaurolophus', triceratops: 'Triceratops', ankylosaurus: 'Ankylosaurus' };
 
 export function AdminBots() {
   const [bots, setBots] = useState([]);

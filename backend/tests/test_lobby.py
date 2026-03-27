@@ -209,7 +209,7 @@ def test_answer_correct_awards_50xp_and_hat():
     body = json.loads(resp["body"])
     assert body["correct"] is True
     assert body["xp_awarded"] == 50
-    assert body["hat"] is not None  # hat was awarded
+    assert body["reward"] is not None  # reward was awarded
 
     # Check both dinos gained XP
     host_dino = get_item("PLAYER#host6", "DINO#trex")
@@ -217,13 +217,13 @@ def test_answer_correct_awards_50xp_and_hat():
     assert int(host_dino["xp"]) == 50
     assert int(guest_dino["xp"]) == 50
 
-    # Check hat items were added to inventories
+    # Check items were added to inventories (hat or paint)
     host_items = query_pk("PLAYER#host6", "ITEM#")
     guest_items = query_pk("PLAYER#guest6", "ITEM#")
     assert len(host_items) >= 1
-    assert any(i.get("type") == "hat" for i in host_items)
+    assert any(i.get("type") in ("hat", "paint") for i in host_items)
     assert len(guest_items) >= 1
-    assert any(i.get("type") == "hat" for i in guest_items)
+    assert any(i.get("type") in ("hat", "paint") for i in guest_items)
 
 
 # ── Test 4: Answer incorrectly awards 30 XP, no hat ─────────────────────────
@@ -247,7 +247,7 @@ def test_answer_incorrect_awards_30xp_no_hat():
     body = json.loads(resp["body"])
     assert body["correct"] is False
     assert body["xp_awarded"] == 30
-    assert body["hat"] is None  # no hat for incorrect
+    assert body["reward"] is None  # no reward for incorrect
 
     # Check both dinos gained XP
     host_dino = get_item("PLAYER#host7", "DINO#triceratops")
@@ -255,11 +255,11 @@ def test_answer_incorrect_awards_30xp_no_hat():
     assert int(host_dino["xp"]) == 30
     assert int(guest_dino["xp"]) == 30
 
-    # No hat items should exist
+    # No items should exist for incorrect answer
     host_items = query_pk("PLAYER#host7", "ITEM#")
     guest_items = query_pk("PLAYER#guest7", "ITEM#")
-    assert not any(i.get("type") == "hat" for i in host_items)
-    assert not any(i.get("type") == "hat" for i in guest_items)
+    assert len(host_items) == 0
+    assert len(guest_items) == 0
 
 
 # ── Test 5: Cooldown enforcement ─────────────────────────────────────────────

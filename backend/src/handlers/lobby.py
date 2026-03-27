@@ -1,6 +1,7 @@
 import json
 import time
 import uuid
+import random
 from datetime import datetime, timezone
 from ..shared.db import get_item, put_item, update_item, query_pk
 from ..shared.response import success, error
@@ -9,19 +10,28 @@ from ..shared.ws_broadcast import broadcast
 from ..shared.xp import award_xp
 
 
-def _give_hat(player_id):
-    """Give a random hat item to the player's inventory. Returns the hat."""
-    import uuid
-    hat = random_hat()
+def _give_reward(player_id):
+    """Give a random hat or paint item (50/50) to the player's inventory."""
     item_id = str(uuid.uuid4())
-    put_item({
-        "PK": f"PLAYER#{player_id}",
-        "SK": f"ITEM#{item_id}",
-        "type": "hat",
-        "name": hat["name"],
-        "details": {"hat_id": hat["id"], "rarity": hat["rarity"]},
-    })
-    return hat
+    if random.random() < 0.5:
+        hat = random_hat()
+        put_item({
+            "PK": f"PLAYER#{player_id}",
+            "SK": f"ITEM#{item_id}",
+            "type": "hat",
+            "name": hat["name"],
+            "details": {"hat_id": hat["id"], "rarity": hat["rarity"]},
+        })
+        return {"type": "hat", "name": hat["name"]}
+    else:
+        put_item({
+            "PK": f"PLAYER#{player_id}",
+            "SK": f"ITEM#{item_id}",
+            "type": "paint",
+            "name": "Paint",
+            "details": {},
+        })
+        return {"type": "paint", "name": "Paint"}
 
 
 # ── Handler: POST /lobby ──────────────────────────────────────────────────────
@@ -166,14 +176,14 @@ def answer_lobby_handler(event, context):
     guest_dino = award_xp(guest_id, xp_amount) if guest_id else None
 
     rewards = {"xp": xp_amount, "correct": is_correct}
-    hat_reward = None
+    item_reward = None
 
     if is_correct:
-        # Give a random hat to each player
-        host_hat = _give_hat(host_id)
+        # Give a random reward to each player
+        host_reward = _give_reward(host_id)
         if guest_id:
-            _give_hat(guest_id)
-        hat_reward = host_hat  # representative hat for response
+            _give_reward(guest_id)
+        item_reward = host_reward
 
     # Create cooldown — expires in 15 minutes
     now = int(time.time())
@@ -223,8 +233,8 @@ def answer_lobby_handler(event, context):
         "host_dino": host_dino,
         "guest_dino": guest_dino,
     }
-    if hat_reward:
-        result_data["hat"] = hat_reward["name"]
+    if item_reward:
+        result_data["reward"] = item_reward["name"]
 
     try:
         broadcast(f"lobby:{code}", "trivia_result", result_data)
@@ -235,7 +245,7 @@ def answer_lobby_handler(event, context):
         "correct": is_correct,
         "correct_index": correct_index,
         "xp_awarded": xp_amount,
-        "hat": hat_reward["name"] if hat_reward else None,
+        "reward": item_reward["name"] if item_reward else None,
         "host_dino": host_dino,
         "guest_dino": guest_dino,
     })

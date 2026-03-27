@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { api } from '../api.js';
 import { ws } from '../ws.js';
 import { PlazaCanvas } from './PlazaCanvas.js';
+import { DinoSprite } from './DinoSprite.jsx';
+import { SPECIES } from '../data/species.js';
 
 export function Plaza() {
   const canvasRef = useRef(null);
@@ -18,7 +20,7 @@ export function Plaza() {
 
   // Create canvas once partners are loaded for the first time
   useEffect(() => {
-    if (!canvasRef.current || partners.length === 0) return;
+    if (!canvasRef.current) return;
     if (plazaRef.current) return; // already initialized; updates go via updatePartners
 
     const canvas = canvasRef.current;
@@ -77,7 +79,13 @@ export function Plaza() {
       {selected && (
         <div style={styles.popup} onClick={() => setSelected(null)}>
           <div style={styles.popupCard} onClick={(e) => e.stopPropagation()}>
-            <div style={{ fontSize: '40px', marginBottom: '8px' }}>🦕</div>
+            <div style={{ marginBottom: '8px' }}>
+              <DinoSprite
+                species={selected.species}
+                colors={selected.colors || {}}
+                scale={3}
+              />
+            </div>
             <div style={{ fontWeight: 'bold', fontSize: '18px', color: '#f0fdf4' }}>
               {selected.name || 'Unnamed'}
             </div>

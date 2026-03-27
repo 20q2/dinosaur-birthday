@@ -3,8 +3,8 @@ import { api } from '../api.js';
 import { HATS } from '../data/hats.js';
 import { generateId } from '../utils/uuid.js';
 
-const SPECIES = ['trex', 'spinosaurus', 'dilophosaurus', 'pachycephalosaurus', 'parasaurolophus', 'stegosaurus', 'triceratops'];
-const SPECIES_NAMES = { trex: 'T-Rex', spinosaurus: 'Spinosaurus', dilophosaurus: 'Dilophosaurus', pachycephalosaurus: 'Pachycephalosaurus', parasaurolophus: 'Parasaurolophus', stegosaurus: 'Stegosaurus', triceratops: 'Triceratops' };
+const SPECIES = ['trex', 'spinosaurus', 'dilophosaurus', 'pachycephalosaurus', 'parasaurolophus', 'triceratops', 'ankylosaurus'];
+const SPECIES_NAMES = { trex: 'T-Rex', spinosaurus: 'Spinosaurus', dilophosaurus: 'Dilophosaurus', pachycephalosaurus: 'Pachycephalosaurus', parasaurolophus: 'Parasaurolophus', triceratops: 'Triceratops', ankylosaurus: 'Ankylosaurus' };
 const FOOD_TYPES = ['meat', 'mejoberries'];
 const EVENT_TYPES = ['cooking_pot', 'dance_floor', 'photo_booth', 'cake_table', 'mystery_chest'];
 

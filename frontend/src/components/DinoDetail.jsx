@@ -4,9 +4,31 @@ import { useStore } from '../router.jsx';
 import { api } from '../api.js';
 import { SPECIES } from '../data/species.js';
 import { HATS, HAT_MAP } from '../data/hats.js';
+import { DinoSprite } from './DinoSprite.jsx';
 
 const XP_PER_LEVEL = 100;
 const MAX_LEVEL = 5;
+
+const PAINT_COLORS = [
+  { name: 'Crimson', hue: 0 },
+  { name: 'Scarlet', hue: 15 },
+  { name: 'Rose', hue: 340 },
+  { name: 'Orange', hue: 30 },
+  { name: 'Amber', hue: 45 },
+  { name: 'Gold', hue: 50 },
+  { name: 'Forest', hue: 130 },
+  { name: 'Lime', hue: 90 },
+  { name: 'Emerald', hue: 155 },
+  { name: 'Navy', hue: 230 },
+  { name: 'Sky', hue: 200 },
+  { name: 'Cyan', hue: 180 },
+  { name: 'Violet', hue: 270 },
+  { name: 'Plum', hue: 300 },
+  { name: 'Lavender', hue: 260 },
+  { name: 'White', hue: 0 },
+  { name: 'Silver', hue: 210 },
+  { name: 'Charcoal', hue: 0 },
+];
 
 function xpProgress(xp, level) {
   if (level >= MAX_LEVEL) return 100;
@@ -37,6 +59,9 @@ export function DinoDetail({ species }) {
   const [renaming, setRenaming] = useState(false);
   const [nameInput, setNameInput] = useState('');
   const [showHats, setShowHats] = useState(false);
+  const [painting, setPainting] = useState(false);
+  const [paintRegion, setPaintRegion] = useState(null);
+  const [paintHue, setPaintHue] = useState(null);
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState('');
 
@@ -66,6 +91,17 @@ export function DinoDetail({ species }) {
   if (dino.hat) ownedHatIds.add(dino.hat);
 
   const availableHats = HATS.filter(h => ownedHatIds.has(h.id));
+
+  // Paint inventory count
+  const paintCount = (player?.items || []).filter(i => i.type === 'paint').length;
+
+  // Regions for this species
+  const regions = speciesData.regions || [];
+
+  // Preview colors during paint mode
+  const previewColors = painting && paintRegion && paintHue !== null
+    ? { ...colors, [paintRegion]: paintHue }
+    : colors;
 
   async function doAction(action) {
     setBusy(true);
@@ -104,6 +140,30 @@ export function DinoDetail({ species }) {
     });
   }
 
+  function handleStartPaint() {
+    setPainting(true);
+    setPaintRegion(regions[0] || null);
+    setPaintHue(null);
+  }
+
+  function handleApplyPaint() {
+    if (!paintRegion || paintHue === null) return;
+    doAction(async () => {
+      await api.customizeDino(store.playerId, species, {
+        paint: { region: paintRegion, color: paintHue },
+      });
+      setPainting(false);
+      setPaintRegion(null);
+      setPaintHue(null);
+    });
+  }
+
+  function handleCancelPaint() {
+    setPainting(false);
+    setPaintRegion(null);
+    setPaintHue(null);
+  }
+
   return (
     <div style={styles.page}>
       {/* Header */}
@@ -117,7 +177,7 @@ export function DinoDetail({ species }) {
 
       {/* Dino portrait */}
       <div style={styles.portrait}>
-        <span style={{ fontSize: '72px' }}>🦕</span>
+        <DinoSprite species={species} colors={previewColors} scale={4} />
         {dino.shiny && <div style={styles.shinyLabel}>✨ SHINY</div>}
         {dino.is_partner && <div style={styles.partnerLabel}>Plaza Partner</div>}
       </div>
@@ -236,6 +296,74 @@ export function DinoDetail({ species }) {
         </button>
       )}
 
+      {/* Paint flow */}
+      {painting ? (
+        <div style={styles.card}>
+          <div style={styles.sectionTitle}>Paint a Region</div>
+          <div style={styles.regionRow}>
+            {regions.map(r => (
+              <button
+                key={r}
+                onClick={() => { setPaintRegion(r); setPaintHue(null); }}
+                style={{
+                  ...styles.regionBtn,
+                  borderColor: paintRegion === r ? '#a78bfa' : '#333',
+                  background: paintRegion === r ? '#2d1b69' : '#0d1117',
+                }}
+              >
+                <div
+                  style={{
+                    width: '14px', height: '14px', borderRadius: '4px',
+                    background: colors[r] != null ? `hsl(${colors[r]}, 70%, 50%)` : '#555',
+                    flexShrink: 0,
+                  }}
+                />
+                <span style={{ textTransform: 'capitalize' }}>{r}</span>
+              </button>
+            ))}
+          </div>
+          <div style={styles.swatchGrid}>
+            {PAINT_COLORS.map(c => (
+              <button
+                key={c.name}
+                onClick={() => setPaintHue(c.hue)}
+                title={c.name}
+                style={{
+                  ...styles.paintSwatch,
+                  background: c.name === 'White' ? '#e8e8e8'
+                    : c.name === 'Charcoal' ? '#333'
+                    : `hsl(${c.hue}, 70%, 50%)`,
+                  borderColor: paintHue === c.hue ? '#fff' : 'transparent',
+                }}
+              />
+            ))}
+          </div>
+          <div style={{ fontSize: '11px', color: '#666', textAlign: 'center' }}>
+            {paintCount} paint{paintCount !== 1 ? 's' : ''} remaining
+          </div>
+          <div style={styles.btnRow}>
+            <button
+              onClick={handleApplyPaint}
+              disabled={busy || paintHue === null}
+              style={{
+                ...styles.btn,
+                background: '#7c3aed',
+                opacity: paintHue !== null ? 1 : 0.5,
+              }}
+            >
+              {busy ? '...' : 'Apply Paint'}
+            </button>
+            <button onClick={handleCancelPaint} style={styles.ghostBtn}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : paintCount > 0 && dino.tamed ? (
+        <button onClick={handleStartPaint} style={{ ...styles.btn, background: '#7c3aed' }} disabled={busy}>
+          Paint ({paintCount})
+        </button>
+      ) : null}
+
       {/* Set Partner */}
       {dino.tamed && !dino.is_partner && (
         <button onClick={handleSetPartner} style={{ ...styles.btn, background: '#166534', color: '#4ade80' }} disabled={busy}>
@@ -319,6 +447,21 @@ const styles = {
     padding: '12px', borderRadius: '8px', border: '2px solid #333',
     background: '#0d1117', color: '#e0e0e0', fontSize: '14px',
     cursor: 'pointer', width: '100%',
+  },
+  regionRow: { display: 'flex', gap: '6px' },
+  regionBtn: {
+    flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+    padding: '10px 6px', borderRadius: '8px', border: '2px solid #333',
+    background: '#0d1117', color: '#e0e0e0', fontSize: '12px',
+    cursor: 'pointer', fontWeight: 'bold',
+  },
+  swatchGrid: {
+    display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '8px',
+    justifyItems: 'center',
+  },
+  paintSwatch: {
+    width: '36px', height: '36px', borderRadius: '50%', border: '3px solid transparent',
+    cursor: 'pointer', padding: 0,
   },
   partnerNote: { textAlign: 'center', color: '#4ade80', fontSize: '13px' },
   untamedNote: {
