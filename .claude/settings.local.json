@@ -3,7 +3,15 @@
     "allow": [
       "Read(//a/Coding//**)",
       "Read(//c/Users/andje/.claude/plugins/cache/superpowers-marketplace/superpowers/5.0.6/skills/brainstorming/**)",
-      "Bash(node -e:*)"
+      "Bash(node -e:*)",
+      "Bash(npx cdk deploy:*)",
+      "Bash(aws logs tail:*)",
+      "Bash(aws logs describe-log-groups:*)",
+      "Bash(MSYS_NO_PATHCONV=1 aws logs describe-log-groups:*)",
+      "Bash(MSYS_NO_PATHCONV=1 aws logs tail:*)"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\andje\\.claude\\projects\\a--Coding-AlexBirthdayDinos\\memory"
     ]
   }
 }

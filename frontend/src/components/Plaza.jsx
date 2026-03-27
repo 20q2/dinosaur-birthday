@@ -64,18 +64,7 @@ export function Plaza() {
 
   return (
     <div style={styles.container}>
-      <canvas
-        ref={canvasRef}
-        style={styles.canvas}
-        onClick={(e) => {
-          if (plazaRef.current) {
-            const rect = e.target.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            plazaRef.current.handleTap(x, y);
-          }
-        }}
-      />
+      <canvas ref={canvasRef} style={styles.canvas} />
 
       {partners.length === 0 && (
         <div style={styles.emptyHint}>
@@ -164,7 +153,8 @@ const styles = {
     display: 'block',
     width: '100%',
     height: '100%',
-    cursor: 'pointer',
+    cursor: 'grab',
+    touchAction: 'none',
   },
   emptyHint: {
     position: 'absolute',
@@ -205,9 +195,9 @@ const styles = {
   },
   feedOverlay: {
     position: 'absolute',
-    bottom: '8px',
-    left: '8px',
-    right: '8px',
+    bottom: '4px',
+    left: '4px',
+    width: '50%',
     background: 'rgba(0, 0, 0, 0.45)',
     backdropFilter: 'blur(4px)',
     borderRadius: '10px',

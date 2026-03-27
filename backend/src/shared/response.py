@@ -1,4 +1,12 @@
 import json
+from decimal import Decimal
+
+
+class DecimalEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, Decimal):
+            return int(o) if o == int(o) else float(o)
+        return super().default(o)
 
 
 def success(body, status_code=200):
@@ -7,10 +15,10 @@ def success(body, status_code=200):
         "headers": {
             "Content-Type": "application/json",
             "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "GET,POST,PUT,OPTIONS",
+            "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
             "Access-Control-Allow-Headers": "Content-Type",
         },
-        "body": json.dumps(body),
+        "body": json.dumps(body, cls=DecimalEncoder),
     }
 
 
