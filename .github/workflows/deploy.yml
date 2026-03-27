@@ -33,6 +33,10 @@ jobs:
 
       - run: npm run build
         working-directory: frontend
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+          VITE_WS_URL: ${{ vars.VITE_WS_URL }}
+          VITE_PHOTO_BUCKET: ${{ vars.VITE_PHOTO_BUCKET }}
 
       - uses: actions/upload-pages-artifact@v3
         with:
