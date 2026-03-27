@@ -2,9 +2,9 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { api } from '../api.js';
 
 const BUILDUP_PHASES = [
-  { phase: 1, label: 'Shadows', icon: '\u{1F311}', description: 'Shadows creep over the plaza' },
-  { phase: 2, label: 'Tremors', icon: '\u{1F30D}', description: 'The ground starts shaking' },
-  { phase: 3, label: 'Roar',    icon: '\u{1F50A}', description: 'A deafening roar echoes out' },
+  { phase: 1, label: 'Shadows', icon: '\uD83C\uDF11', description: 'Shadows creep over the plaza' },
+  { phase: 2, label: 'Tremors', icon: '\uD83C\uDF0D', description: 'The ground starts shaking' },
+  { phase: 3, label: 'Roar',    icon: '\uD83D\uDD0A', description: 'A deafening roar echoes out' },
 ];
 
 export function AdminDashboard() {
@@ -124,19 +124,19 @@ export function AdminDashboard() {
       `}</style>
 
       {/* ── Dashboard Section ─────────────────────────────────────────────── */}
-      <Section title="Dashboard" icon="\u{1F4CA}">
+      <Section title="Dashboard" icon={'\uD83D\uDCCA'}>
         {dashLoading && <p style={styles.muted}>Loading...</p>}
         {dashError  && <p style={styles.errorText}>{dashError}</p>}
         {dashboard && (
           <>
             <div style={styles.statsGrid}>
-              <StatCard label="Players"      value={dashboard.players}      icon="\u{1F465}" />
-              <StatCard label="Dinos Tamed"  value={dashboard.dinos_tamed}  icon="\u{1F995}" />
-              <StatCard label="Feed Events"  value={dashboard.feed_entries} icon="\u{1F4F0}" />
+              <StatCard label="Players"      value={dashboard.players}      icon={'\uD83D\uDC65'} />
+              <StatCard label="Dinos Tamed"  value={dashboard.dinos_tamed}  icon={'\uD83E\uDD95'} />
+              <StatCard label="Feed Events"  value={dashboard.feed_entries} icon={'\uD83D\uDCF0'} />
               <StatCard
                 label="Boss"
                 value={bossStatus.toUpperCase()}
-                icon={bossStatus === 'active' ? '\u{2694}\u{FE0F}' : bossStatus === 'defeated' ? '\u{1F480}' : '\u{1F634}'}
+                icon={bossStatus === 'active' ? '\u2694\uFE0F' : bossStatus === 'defeated' ? '\uD83D\uDC80' : '\uD83D\uDE34'}
                 valueColor={
                   bossStatus === 'active'   ? '#f87171' :
                   bossStatus === 'defeated' ? '#4ade80' :
@@ -175,7 +175,7 @@ export function AdminDashboard() {
       </Section>
 
       {/* ── Boss Buildup Section ──────────────────────────────────────────── */}
-      <Section title="Boss Buildup" icon="\u{1F311}">
+      <Section title="Boss Buildup" icon={'\uD83C\uDF11'}>
         <p style={styles.sectionDesc}>
           Trigger buildup phases in sequence to build tension before the boss fight.
         </p>
@@ -207,7 +207,7 @@ export function AdminDashboard() {
       </Section>
 
       {/* ── Boss Fight Control ────────────────────────────────────────────── */}
-      <Section title="Boss Fight Control" icon="\u{2694}\u{FE0F}">
+      <Section title="Boss Fight Control" icon={'\u2694\uFE0F'}>
         <p style={styles.sectionDesc}>
           Start the boss fight — all players will be pushed to the fight screen immediately.
         </p>
@@ -255,7 +255,7 @@ export function AdminDashboard() {
       </Section>
 
       {/* ── Announcements Section ─────────────────────────────────────────── */}
-      <Section title="Announcements" icon="\u{1F4E2}">
+      <Section title="Announcements" icon={'\uD83D\uDCE2'}>
         <p style={styles.sectionDesc}>
           Post an announcement to the live feed for all players.
         </p>
@@ -291,7 +291,7 @@ export function AdminDashboard() {
       </Section>
 
       {/* ── Player List ───────────────────────────────────────────────────── */}
-      <Section title="Players" icon="\u{1F465}">
+      <Section title="Players" icon={'\uD83D\uDC65'}>
         {dashLoading && <p style={styles.muted}>Loading...</p>}
         {!dashLoading && !dashboard?.player_list?.length && (
           <p style={styles.muted}>No players registered yet.</p>

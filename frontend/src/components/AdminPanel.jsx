@@ -6,11 +6,11 @@ import { AdminBots } from './AdminBots.jsx';
 import { AdminReset } from './AdminReset.jsx';
 
 const TABS = [
-  { id: 'dashboard',  label: 'Dashboard', icon: '\u{1F4CA}' },
-  { id: 'qrcodes',    label: 'QR Codes',  icon: '\u{1F4F1}' },
-  { id: 'simulator',  label: 'Simulator', icon: '\u{1F3AE}' },
-  { id: 'bots',       label: 'Bots',      icon: '\u{1F916}' },
-  { id: 'reset',      label: 'Reset',     icon: '\u{1F5D1}\u{FE0F}' },
+  { id: 'dashboard',  label: 'Dashboard', icon: '\uD83D\uDCCA' },
+  { id: 'qrcodes',    label: 'QR Codes',  icon: '\uD83D\uDCF1' },
+  { id: 'simulator',  label: 'Simulator', icon: '\uD83C\uDFAE' },
+  { id: 'bots',       label: 'Bots',      icon: '\uD83E\uDD16' },
+  { id: 'reset',      label: 'Reset',     icon: '\uD83D\uDDD1\uFE0F' },
 ];
 
 const TAB_COMPONENTS = {
