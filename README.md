@@ -4,6 +4,14 @@ A multiplayer dinosaur-collecting party game where guests scan QR codes to disco
 
 Built as a birthday party activity. Players move around the venue scanning printed QR codes to trigger encounters, collect items, and interact with the event.
 
+## Links
+
+| | URL |
+|-|-----|
+| Live App | https://20q2.github.io/dinosaur-birthday/ |
+| Admin Panel | https://20q2.github.io/dinosaur-birthday/#admin |
+| Repository | https://github.com/20q2/dinosaur-birthday |
+
 ## Tech Stack
 
 | Layer | Technology |
