@@ -69,4 +69,10 @@ export const api = {
   getPlaza: () => request('GET', '/plaza'),
 
   getFeed: () => request('GET', '/feed'),
+
+  resetPlayer: (playerId) =>
+    request('DELETE', `/admin/reset?player_id=${encodeURIComponent(playerId)}`),
+
+  resetAll: () =>
+    request('DELETE', '/admin/reset-all'),
 };

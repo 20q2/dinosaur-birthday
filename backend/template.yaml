@@ -70,7 +70,7 @@ Resources:
       StageName: prod
       Cors:
         AllowOrigin: "'*'"
-        AllowMethods: "'GET,POST,PUT,OPTIONS'"
+        AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
         AllowHeaders: "'Content-Type'"
 
   # WebSocket API
@@ -474,6 +474,18 @@ Resources:
             RestApiId: !Ref RestApi
             Path: /admin/dashboard
             Method: GET
+        ResetPlayer:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RestApi
+            Path: /admin/reset
+            Method: DELETE
+        ResetAll:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RestApi
+            Path: /admin/reset-all
+            Method: DELETE
 
 Outputs:
   RestApiUrl:
