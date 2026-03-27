@@ -20,7 +20,7 @@ Built as a birthday party activity. Players move around the venue scanning print
 | Backend | AWS Lambda (Python 3.12), API Gateway, DynamoDB |
 | Real-time | WebSocket API (API Gateway V2) |
 | Storage | S3 (profile photos, 7-day TTL) |
-| Infrastructure | AWS SAM (CloudFormation) |
+| Infrastructure | AWS CDK (TypeScript) |
 | QR Codes | Python script (qrcode + Pillow) |
 
 ## Features
@@ -72,8 +72,11 @@ Built as a birthday party activity. Players move around the venue scanning print
 │   ├── src/
 │   │   ├── handlers/              # Lambda functions (player, scan_*, lobby, boss, admin, ws_*)
 │   │   └── shared/                # DB operations, game data, WebSocket broadcast
-│   ├── template.yaml              # SAM CloudFormation template
 │   └── requirements.txt
+├── infra/                             # AWS CDK stack (TypeScript)
+│   ├── lib/dino-party-stack.ts    # All AWS resources
+│   ├── bin/app.ts                 # CDK app entry point
+│   └── package.json
 └── scripts/
     └── generate_qr_codes.py       # Generates printable QR code PNGs
 ```
@@ -82,10 +85,9 @@ Built as a birthday party activity. Players move around the venue scanning print
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 20+
 - Python 3.12+
 - AWS CLI configured with credentials
-- AWS SAM CLI
 
 ### Frontend
 
@@ -97,17 +99,16 @@ npm run build      # Production build to dist/
 npm test           # Run tests
 ```
 
-### Backend
+### Backend (CDK)
 
 ```bash
-cd backend
-pip install -r requirements.txt
-sam build
-sam deploy --guided   # First deploy (interactive setup)
-sam deploy            # Subsequent deploys
+cd infra
+npm install
+npx cdk bootstrap    # First time only (provisions CDK toolkit in your AWS account)
+npx cdk deploy       # Deploy all resources
 ```
 
-After deploying, set the output values as environment variables for the frontend:
+After deploying, set the stack output values as environment variables for the frontend:
 
 ```bash
 VITE_API_URL=<RestApiUrl output>
@@ -151,9 +152,9 @@ Print the generated QR codes and place them around the party venue. Each code ma
 
 ## Infrastructure
 
-The SAM template provisions:
+The CDK stack ([infra/lib/dino-party-stack.ts](infra/lib/dino-party-stack.ts)) provisions:
 - **2 DynamoDB tables**: `dino-party-game` (PK/SK with TTL) and `dino-party-connections` (WebSocket tracking)
 - **S3 bucket**: Profile photos with 7-day auto-expiry and CORS
 - **REST API**: API Gateway with CORS enabled
 - **WebSocket API**: For real-time plaza updates, boss HP sync, feed entries, and lobby events
-- **14 Lambda functions**: All Python 3.12, 256MB memory, 10s timeout
+- **16 Lambda functions**: All Python 3.12, 256MB memory, 10s timeout
