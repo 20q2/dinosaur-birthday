@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime, timezone
 from decimal import Decimal
 
-from ..shared.db import get_item, put_item, query_pk, get_table, get_connections_table
+from ..shared.db import get_item, put_item, query_pk, delete_item, get_table, get_connections_table
 from ..shared.response import success, error
 from ..shared.ws_broadcast import broadcast
 
@@ -227,6 +227,68 @@ def dashboard_handler(event, context):
     })
 
 
+def reset_player_handler(event, context):
+    """DELETE /admin/reset?player_id=X — wipe a player's game data (keep PROFILE)."""
+    params = event.get("queryStringParameters") or {}
+    player_id = params.get("player_id", "").strip()
+
+    if not player_id:
+        return error("player_id is required")
+
+    deleted = 0
+
+    # Delete all PLAYER#{id} items except PROFILE
+    player_items = query_pk(f"PLAYER#{player_id}")
+    for item in player_items:
+        sk = item.get("SK", "")
+        if sk != "PROFILE":
+            delete_item(f"PLAYER#{player_id}", sk)
+            deleted += 1
+
+    # Delete PLAZA entry for this player
+    plaza_sk = f"PARTNER#{player_id}"
+    plaza_item = get_item("PLAZA", plaza_sk)
+    if plaza_item is not None:
+        delete_item("PLAZA", plaza_sk)
+        deleted += 1
+
+    # Delete COOLDOWN items that contain the player_id
+    cooldown_items = query_pk("COOLDOWN")
+    for item in cooldown_items:
+        sk = item.get("SK", "")
+        if player_id in sk:
+            delete_item("COOLDOWN", sk)
+            deleted += 1
+
+    return success({"deleted": deleted, "player_id": player_id})
+
+
+def reset_all_handler(event, context):
+    """DELETE /admin/reset-all — wipe the entire game table (keep PROFILEs)."""
+    table = get_table()
+    deleted = 0
+
+    # Scan the entire table and delete everything except PROFILE items
+    scan_kwargs = {}
+    while True:
+        resp = table.scan(**scan_kwargs)
+        items = resp.get("Items", [])
+
+        for item in items:
+            sk = item.get("SK", "")
+            if sk == "PROFILE":
+                continue
+            delete_item(item["PK"], sk)
+            deleted += 1
+
+        last_key = resp.get("LastEvaluatedKey")
+        if not last_key:
+            break
+        scan_kwargs["ExclusiveStartKey"] = last_key
+
+    return success({"deleted": deleted})
+
+
 def handler(event, context):
     """Route admin endpoints."""
     path = event.get("resource", event.get("path", ""))
@@ -243,5 +305,12 @@ def handler(event, context):
     if method == "GET":
         if path.endswith("/dashboard"):
             return dashboard_handler(event, context)
+
+    if method == "DELETE":
+        # Check reset-all BEFORE reset since reset-all path also ends with "reset"
+        if path.endswith("/reset-all"):
+            return reset_all_handler(event, context)
+        if path.endswith("/reset"):
+            return reset_player_handler(event, context)
 
     return error("Not found", 404)
