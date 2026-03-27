@@ -3,7 +3,7 @@ import preact from '@preact/preset-vite';
 
 export default defineConfig({
   plugins: [preact()],
-  base: '/AlexBirthdayDinos/',
+  base: '/dinosaur-birthday/',
   server: {
     port: 3000,
   },
