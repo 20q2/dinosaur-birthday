@@ -60,7 +60,7 @@ export function App() {
 
   // Hard-lock: redirect to /boss whenever a fight is active
   useEffect(() => {
-    if (bossState?.status === 'active' && route !== '/boss' && route !== '/admin') {
+    if (bossState?.status === 'active' && route !== '/boss' && route !== '/boss/victory' && route !== '/admin') {
       store.navigate('/boss');
     }
   }, [bossState, route]);
