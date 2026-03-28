@@ -131,24 +131,24 @@ def test_create_lobby_requires_player_id():
 def test_join_lobby_sets_guest_returns_trivia():
     _make_profile("host3")
     _make_profile("guest3")
-    _make_lobby("meat_bone_egg", "host3")
+    _make_lobby("meat_berry_paint", "host3")
 
     with patch("src.handlers.lobby.broadcast"):
         resp = join_lobby_handler(
-            _join_event("meat_bone_egg", {"player_id": "guest3"}),
+            _join_event("meat_berry_paint", {"player_id": "guest3"}),
             None,
         )
 
     assert resp["statusCode"] == 200
     body = json.loads(resp["body"])
-    assert body["code"] == "meat_bone_egg"
+    assert body["code"] == "meat_berry_paint"
     assert "trivia" in body
     assert "question" in body["trivia"]
     assert "options" in body["trivia"]
     assert len(body["trivia"]["options"]) == 4
 
     # Lobby should now be active with guest set
-    lobby = get_item("LOBBY#meat_bone_egg", "META")
+    lobby = get_item("LOBBY#meat_berry_paint", "META")
     assert lobby["status"] == "active"
     assert lobby["guest_id"] == "guest3"
 
@@ -234,11 +234,11 @@ def test_answer_correct_awards_50xp_and_hat():
     _make_partner_dino("guest6", "spinosaurus", xp=0, level=1)
 
     # Correct answer index is 1 (Cretaceous)
-    _make_lobby("bone_egg_leaf", "host6", status="active", guest_id="guest6")
+    _make_lobby("berry_paint_cooked_meat", "host6", status="active", guest_id="guest6")
 
     with patch("src.handlers.lobby.broadcast"):
         resp = answer_lobby_handler(
-            _answer_event("bone_egg_leaf", {"player_id": "host6", "answer": 1}),
+            _answer_event("berry_paint_cooked_meat", {"player_id": "host6", "answer": 1}),
             None,
         )
 
@@ -272,11 +272,11 @@ def test_answer_incorrect_awards_30xp_no_hat():
     _make_partner_dino("guest7", "ankylosaurus", xp=0, level=1)
 
     # Correct answer is index 1; we submit index 0 (wrong)
-    _make_lobby("paint_bone_egg", "host7", status="active", guest_id="guest7")
+    _make_lobby("paint_meat_berry", "host7", status="active", guest_id="guest7")
 
     with patch("src.handlers.lobby.broadcast"):
         resp = answer_lobby_handler(
-            _answer_event("paint_bone_egg", {"player_id": "host7", "answer": 0}),
+            _answer_event("paint_meat_berry", {"player_id": "host7", "answer": 0}),
             None,
         )
 
@@ -308,12 +308,12 @@ def test_cooldown_enforced_after_play():
     _make_partner_dino("guest8", "dilophosaurus", xp=0, level=1)
 
     # First game
-    _make_lobby("leaf_sunglasses_meat", "host8", status="active", guest_id="guest8")
+    _make_lobby("cooked_meat_berry_paint", "host8", status="active", guest_id="guest8")
 
     with patch("src.handlers.lobby.broadcast"):
         resp = answer_lobby_handler(
             _answer_event(
-                "leaf_sunglasses_meat",
+                "cooked_meat_berry_paint",
                 {"player_id": "host8", "answer": 0},
             ),
             None,
@@ -350,10 +350,10 @@ def test_cooldown_not_enforced_for_different_pairs():
     _make_partner_dino("guestB", "ankylosaurus", xp=0, level=1)
 
     # Pair A plays
-    _make_lobby("meat_bone_leaf", "hostA", status="active", guest_id="guestA")
+    _make_lobby("meat_berry_cooked_meat", "hostA", status="active", guest_id="guestA")
     with patch("src.handlers.lobby.broadcast"):
         answer_lobby_handler(
-            _answer_event("meat_bone_leaf", {"player_id": "hostA", "answer": 0}),
+            _answer_event("meat_berry_cooked_meat", {"player_id": "hostA", "answer": 0}),
             None,
         )
 

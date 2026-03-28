@@ -53,10 +53,7 @@ NATURES = [
     "Naughty", "Relaxed", "Modest",
 ]
 
-LOBBY_SYMBOLS = [
-    "meat", "mejoberry", "party_hat", "cowboy_hat", "top_hat",
-    "sunglasses", "paint", "bone", "egg",
-]
+LOBBY_SYMBOLS = ["meat", "berry", "paint", "cooked_meat"]
 
 TRIVIA = [
     {"question": "What period did the T-Rex live in?", "options": ["Jurassic", "Cretaceous", "Triassic", "Permian"], "answer": 1},
