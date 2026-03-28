@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'preact/hooks';
 import { store } from '../store.js';
-import { useStore } from '../router.jsx';
 import { api } from '../api.js';
 import { ws } from '../ws.js';
 import { LOBBY_SYMBOLS } from '../data/lobbySymbols.js';
@@ -13,7 +12,6 @@ function SymbolIcon({ sym, size }) {
 }
 
 export function PlayLobby({ code }) {
-  const { player } = useStore();
   const isHost = store.lobbyRole === 'host';
 
   const [symbols, setSymbols] = useState(() => code ? code.split('_') : []);
