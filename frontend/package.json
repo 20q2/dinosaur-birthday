@@ -11,6 +11,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "lucide-preact": "^1.7.0",
     "preact": "^10.25.0"
   },
   "devDependencies": {
