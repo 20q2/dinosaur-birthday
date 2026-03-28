@@ -302,7 +302,7 @@ export const DinoPlayScene = forwardRef(function DinoPlayScene(props, ref) {
         const scale = Math.max(w / imgW, h / imgH);
         const sw = imgW * scale;
         const sh = imgH * scale;
-        ctx.drawImage(s.bgImage, (w - sw) / 2, (h - sh) / 2, sw, sh);
+        ctx.drawImage(s.bgImage, (w - sw) / 2, h - sh, sw, sh);
         // Darken overlay so dinos are visible
         ctx.fillStyle = 'rgba(0,0,0,0.35)';
         ctx.fillRect(0, 0, w, h);

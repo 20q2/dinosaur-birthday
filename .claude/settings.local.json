@@ -20,7 +20,14 @@
       "Read(//c/Users/andje/.claude/plugins/cache/superpowers-marketplace/superpowers/5.0.6/skills/subagent-driven-development/**)",
       "Bash(python -m pylint:*)",
       "Bash(python:*)",
-      "Bash(git log:*)"
+      "Bash(git log:*)",
+      "Read(//c/Users/andje/.claude/plugins/cache/superpowers-marketplace/superpowers/5.0.6/skills/requesting-code-review/**)",
+      "Bash(pytest:*)",
+      "Bash(grep:*)",
+      "Bash(cat:*)",
+      "Bash(aws lambda list-functions:*)",
+      "Bash(zip -r:*)",
+      "Bash(aws lambda update-function-code:*)"
     ],
     "additionalDirectories": [
       "C:\\Users\\andje\\.claude\\projects\\a--Coding-AlexBirthdayDinos\\memory",

@@ -3,7 +3,6 @@ export const HATS = [
   { id: 'cowboy_hat', name: 'Cowboy Hat', rarity: 'common' },
   { id: 'top_hat', name: 'Top Hat', rarity: 'common' },
   { id: 'flower_crown', name: 'Flower Crown', rarity: 'common' },
-  { id: 'sunglasses', name: 'Sunglasses', rarity: 'common' },
   { id: 'chef_hat', name: 'Chef Hat', rarity: 'common' },
   { id: 'viking_helmet', name: 'Viking Helmet', rarity: 'uncommon' },
   { id: 'wizard_hat', name: 'Wizard Hat', rarity: 'uncommon' },

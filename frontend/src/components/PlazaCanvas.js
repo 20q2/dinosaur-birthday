@@ -583,7 +583,7 @@ export class PlazaCanvas {
       if (hatInfo?.loaded) {
         const hatW = hatInfo.img.naturalWidth * drawScale;
         const hatH = hatInfo.img.naturalHeight * drawScale;
-        const anchorDrawX = hatAnchor.x * drawScale;
+        const anchorDrawX = (hatAnchor.x + (hatInfo.offsetX || 0)) * drawScale;
         const anchorDrawY = (hatAnchor.y + hatInfo.offsetY) * drawScale;
 
         ctx.save();

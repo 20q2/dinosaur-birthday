@@ -190,11 +190,11 @@ export function DinoDetail({ species }) {
   // Compute backdrop for full page background
   const pageBg = (() => {
     if (!dino.tamed && WILD_BG[species]) {
-      return { backgroundImage: `url(${WILD_BG[species]})`, backgroundSize: 'cover', backgroundPosition: 'center top', backgroundAttachment: 'fixed' };
+      return { backgroundImage: `url(${WILD_BG[species]})`, backgroundSize: 'cover', backgroundPosition: 'center top' };
     }
     if (dino.tamed && dino.background) {
       const bg = BG_OPTIONS.find(b => b.id === dino.background);
-      if (bg?.img) return { backgroundImage: `url(${bg.img})`, backgroundSize: 'cover', backgroundPosition: 'center top', backgroundAttachment: 'fixed' };
+      if (bg?.img) return { backgroundImage: `url(${bg.img})`, backgroundSize: 'cover', backgroundPosition: 'center top' };
     }
     return {};
   })();

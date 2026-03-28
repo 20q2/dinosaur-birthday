@@ -2,7 +2,6 @@ import partyHatSrc from '../assets/hats/partyhat.png';
 import cowboyHatSrc from '../assets/hats/cowboyhat.png';
 import topHatSrc from '../assets/hats/tophat.png';
 import flowerCrownSrc from '../assets/hats/flowercrownhat.png';
-import sunglassesSrc from '../assets/hats/sunglasses.png';
 import chefHatSrc from '../assets/hats/chefhat.png';
 import headbandSrc from '../assets/hats/headband.png';
 import beanieSrc from '../assets/hats/beanie.png';
@@ -25,18 +24,17 @@ const HAT_META = {
   cowboy_hat:   { src: cowboyHatSrc,   offsetY: 2 },
   top_hat:      { src: topHatSrc,      offsetY: 0 },
   flower_crown: { src: flowerCrownSrc, offsetY: 2 },
-  sunglasses:   { src: sunglassesSrc,  offsetY: 8 },
-  chef_hat:     { src: chefHatSrc,     offsetY: 0 },
-  headband:     { src: headbandSrc,    offsetY: 4 },
+  chef_hat:     { src: chefHatSrc,     offsetY: 2 },
+  headband:     { src: headbandSrc,    offsetY: 2 },
   beanie:           { src: beanieSrc,           offsetY: 2 },
   viking_helmet:    { src: vikingHelmetSrc,    offsetY: 1 },
   wizard_hat:       { src: wizardHatSrc,       offsetY: 0 },
   pirate_hat:       { src: pirateHatSrc,       offsetY: 1 },
   crown:            { src: crownSrc,           offsetY: 1 },
-  halo:             { src: haloSrc,            offsetY: -2 },
-  bow:              { src: bowSrc,             offsetY: 2 },
+  halo:             { src: haloSrc,            offsetY: 4 },
+  bow:              { src: bowSrc,             offsetY: 4 },
   birthday_blessing: { src: birthdayBlessingSrc, offsetY: 0 },
-  kaiju_slayer:     { src: kaijuSlayerSrc,     offsetY: 0 },
+  kaiju_slayer:     { src: kaijuSlayerSrc,     offsetY: 2 },
 };
 
 /**
@@ -58,7 +56,7 @@ const _cache = {};
 Object.entries(HAT_META).forEach(([id, meta]) => {
   const img = new Image();
   img.src = meta.src;
-  const entry = { img, offsetY: meta.offsetY, loaded: false };
+  const entry = { img, offsetY: meta.offsetY, offsetX: meta.offsetX || 0, loaded: false };
   img.onload = () => { entry.loaded = true; };
   _cache[id] = entry;
 });

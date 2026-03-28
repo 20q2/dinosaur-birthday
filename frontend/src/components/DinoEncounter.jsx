@@ -3,6 +3,7 @@ import { store } from '../store.js';
 import { api } from '../api.js';
 import { SPECIES } from '../data/species.js';
 import { DinoSprite } from './DinoSprite.jsx';
+import { DinoTaming } from './DinoTaming.jsx';
 import meatImg from '../assets/items/meat.png';
 import berryImg from '../assets/items/berry.png';
 
@@ -11,6 +12,8 @@ export function DinoEncounter({ species }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showReveal, setShowReveal] = useState(true);
+  const [phase, setPhase] = useState('encounter'); // 'encounter' | 'taming'
+  const [tamingResult, setTamingResult] = useState(null);
 
   useEffect(() => {
     (async () => {
@@ -71,6 +74,26 @@ export function DinoEncounter({ species }) {
     );
   }
 
+  const handleFeedNow = async () => {
+    setLoading(true);
+    try {
+      const foodType = SPECIES[species]?.food;
+      const result = await api.scanFood(store.playerId, foodType, species);
+      await store.refresh();
+      setTamingResult(result);
+      setPhase('taming');
+    } catch (err) {
+      setError(err.message);
+    }
+    setLoading(false);
+  };
+
+  // Phase 2: taming (name + hat selection)
+  if (phase === 'taming') {
+    const foodType = SPECIES[species]?.food;
+    return <DinoTaming foodType={foodType} prefetchedResult={tamingResult} />;
+  }
+
   const speciesData = SPECIES[species];
   const isCarnivore = dino.diet === 'carnivore';
 
@@ -119,21 +142,42 @@ export function DinoEncounter({ species }) {
         </span>
       </div>
 
-      {/* Quest card — what to do next */}
-      <div style={{
-        ...styles.questCard,
-        borderColor: isCarnivore ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.3)',
-      }}>
-        <div style={styles.questHeader}>
-          <img src={isCarnivore ? meatImg : berryImg} style={styles.questFoodImg} />
-          <span style={styles.questTitle}>Find Food to Tame!</span>
+      {/* Feed now — player already has food */}
+      {dino.has_food ? (
+        <>
+          <div style={{
+            ...styles.questCard,
+            borderColor: isCarnivore ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.3)',
+          }}>
+            <div style={styles.questHeader}>
+              <img src={isCarnivore ? meatImg : berryImg} style={styles.questFoodImg} />
+              <span style={styles.questTitle}>You have {isCarnivore ? 'Meat' : 'Mejoberries'}!</span>
+            </div>
+            <p style={styles.questDesc}>
+              You already have the food this dino needs. Feed it now to tame it!
+            </p>
+          </div>
+          <button onClick={handleFeedNow} style={styles.primaryBtn}>
+            <img src={isCarnivore ? meatImg : berryImg} style={{ width: '20px', height: '20px', imageRendering: 'pixelated', verticalAlign: 'middle', marginRight: '8px' }} />
+            Feed Now!
+          </button>
+        </>
+      ) : (
+        <div style={{
+          ...styles.questCard,
+          borderColor: isCarnivore ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.3)',
+        }}>
+          <div style={styles.questHeader}>
+            <img src={isCarnivore ? meatImg : berryImg} style={styles.questFoodImg} />
+            <span style={styles.questTitle}>Find Food to Tame!</span>
+          </div>
+          <p style={styles.questDesc}>
+            {isCarnivore
+              ? 'This dino eats Meat. Look for the Meat QR code near the grill!'
+              : 'This dino eats Mejoberries. Look for the Mejoberry QR code near the veggie platters!'}
+          </p>
         </div>
-        <p style={styles.questDesc}>
-          {isCarnivore
-            ? 'This dino eats Meat. Look for the Meat QR code near the grill!'
-            : 'This dino eats Mejoberries. Look for the Mejoberry QR code near the veggie platters!'}
-        </p>
-      </div>
+      )}
 
       {/* Hint */}
       <p style={styles.hintText}>You can revisit this dino from your "My Dinos" tab.</p>
@@ -174,7 +218,7 @@ const styles = {
     position: 'relative',
     width: '180px', height: '180px',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    margin: '0',
+    margin: '-16px 0 12px',
     overflow: 'visible',
   },
   spriteGlow: {

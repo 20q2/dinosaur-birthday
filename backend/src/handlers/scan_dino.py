@@ -74,6 +74,10 @@ def handler(event, context):
     except Exception:
         pass
 
+    # Check if player already harvested the food this dino needs
+    food_type = species_data["food"]
+    has_food = get_item(f"FOOD#{player_id}", food_type) is not None
+
     return success({
         "species": species,
         "colors": colors,
@@ -83,5 +87,6 @@ def handler(event, context):
         "tamed": False,
         "diet": species_data["diet"],
         "food": species_data["food"],
+        "has_food": has_food,
         "already_owned": False,
     })

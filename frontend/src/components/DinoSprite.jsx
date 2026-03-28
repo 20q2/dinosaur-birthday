@@ -56,7 +56,7 @@ export function DinoSprite({ species, colors = {}, scale = 3, style = {}, hat = 
     if (hatInfo?.loaded && anchor) {
       const hatW = hatInfo.img.naturalWidth * scale;
       const hatH = hatInfo.img.naturalHeight * scale;
-      const hatX = anchor.x * scale - hatW / 2;
+      const hatX = (anchor.x + (hatInfo.offsetX || 0)) * scale - hatW / 2;
       const hatY = (anchor.y + hatRise + hatInfo.offsetY) * scale - hatH;
       ctx.drawImage(hatInfo.img, hatX, hatY, hatW, hatH);
     }
