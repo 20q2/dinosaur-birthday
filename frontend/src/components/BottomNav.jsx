@@ -1,14 +1,15 @@
 import { store } from '../store.js';
+import { Leaf, Footprints, Handshake, Backpack, User, Settings } from 'lucide-preact';
 
 const IS_LOCAL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
 const tabs = [
-  { route: '/plaza', icon: '🌿', label: 'Plaza' },
-  { route: '/dinos', icon: '🦕', label: 'My Dinos' },
-  { route: '/play', icon: '🤝', label: 'Play' },
-  { route: '/inventory', icon: '🎒', label: 'Inventory' },
-  { route: '/profile', icon: '👤', label: 'Profile' },
-  ...(IS_LOCAL ? [{ route: '/admin', icon: '⚙️', label: 'Admin' }] : []),
+  { route: '/plaza',     Icon: Leaf,      label: 'Plaza' },
+  { route: '/dinos',     Icon: Footprints, label: 'My Dinos' },
+  { route: '/play',      Icon: Handshake, label: 'Play' },
+  { route: '/inventory', Icon: Backpack,  label: 'Inventory' },
+  { route: '/profile',   Icon: User,      label: 'Profile' },
+  ...(IS_LOCAL ? [{ route: '/admin', Icon: Settings, label: 'Admin' }] : []),
 ];
 
 export function BottomNav() {
@@ -16,19 +17,19 @@ export function BottomNav() {
 
   return (
     <nav style={styles.nav}>
-      {tabs.map(tab => (
-        <button
-          key={tab.route}
-          onClick={() => store.navigate(tab.route)}
-          style={{
-            ...styles.tab,
-            color: current === tab.route || current.startsWith(tab.route + '/') ? '#4ade80' : '#888',
-          }}
-        >
-          <span style={styles.icon}>{tab.icon}</span>
-          <span style={styles.label}>{tab.label}</span>
-        </button>
-      ))}
+      {tabs.map(tab => {
+        const color = current === tab.route || current.startsWith(tab.route + '/') ? '#4ade80' : '#888';
+        return (
+          <button
+            key={tab.route}
+            onClick={() => store.navigate(tab.route)}
+            style={{ ...styles.tab, color }}
+          >
+            <tab.Icon size={24} />
+            <span style={styles.label}>{tab.label}</span>
+          </button>
+        );
+      })}
     </nav>
   );
 }
@@ -45,6 +46,5 @@ const styles = {
     gap: '2px', background: 'none', border: 'none', cursor: 'pointer',
     padding: '4px',
   },
-  icon: { fontSize: '20px' },
   label: { fontSize: '10px' },
 };
