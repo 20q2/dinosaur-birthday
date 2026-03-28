@@ -3,6 +3,7 @@ import { useStore } from '../router.jsx';
 import { SPECIES } from '../data/species.js';
 import { HAT_MAP } from '../data/hats.js';
 import { DinoSprite } from './DinoSprite.jsx';
+import { TitleBar } from './TitleBar.jsx';
 
 const TOTAL_SPECIES = Object.keys(SPECIES).length;
 const XP_PER_LEVEL = 100;
@@ -63,21 +64,29 @@ function DinoCard({ dino }) {
   );
 }
 
+const ALL_SPECIES = Object.keys(SPECIES);
+
+function UnknownCard({ speciesKey }) {
+  const speciesData = SPECIES[speciesKey] || {};
+  return (
+    <div style={styles.unknownCard}>
+      <div style={styles.unknownSpriteBox}>
+        <span style={styles.unknownIcon}>?</span>
+      </div>
+      <div style={styles.info}>
+        <div style={styles.unknownName}>???</div>
+        <div style={styles.unknownHint}>{speciesData.diet === 'carnivore' ? 'Carnivore' : 'Herbivore'}</div>
+      </div>
+    </div>
+  );
+}
+
 export function MyDinos() {
   const { player } = useStore();
   const dinos = player?.dinos || [];
+  const discoveredKeys = new Set(dinos.map(d => d.species));
 
-  if (dinos.length === 0) {
-    return (
-      <div style={styles.empty}>
-        <div style={{ fontSize: '64px' }}>🦕</div>
-        <p style={{ color: '#aaa', marginTop: '12px' }}>No dinos yet!</p>
-        <p style={{ color: '#666', fontSize: '13px' }}>Scan a dino QR code to encounter one.</p>
-      </div>
-    );
-  }
-
-  // Sort: tamed first, then by level desc, then alpha
+  // Sort discovered: tamed first, then by level desc, then alpha
   const sorted = [...dinos].sort((a, b) => {
     if (a.tamed !== b.tamed) return a.tamed ? -1 : 1;
     if ((b.level || 1) !== (a.level || 1)) return (b.level || 1) - (a.level || 1);
@@ -86,17 +95,18 @@ export function MyDinos() {
     return aName.localeCompare(bName);
   });
 
+  const undiscovered = ALL_SPECIES.filter(s => !discoveredKeys.has(s));
   const tamedCount = dinos.filter(d => d.tamed).length;
 
   return (
     <div style={styles.page}>
-      <div style={styles.header}>
-        <h2 style={styles.title}>My Dinos</h2>
-        <div style={styles.counter}>{dinos.length} / {TOTAL_SPECIES} discovered · {tamedCount} tamed</div>
-      </div>
+      <TitleBar title="My Dinos" subtitle={`${dinos.length}/${TOTAL_SPECIES} discovered · ${tamedCount} tamed`} />
       <div style={styles.list}>
         {sorted.map(dino => (
           <DinoCard key={dino.species} dino={dino} />
+        ))}
+        {undiscovered.map(sp => (
+          <UnknownCard key={sp} speciesKey={sp} />
         ))}
       </div>
     </div>
@@ -104,11 +114,12 @@ export function MyDinos() {
 }
 
 const styles = {
-  page: { padding: '16px 16px 80px' },
-  header: { marginBottom: '16px' },
-  title: { margin: '0 0 4px', fontSize: '22px', color: '#e0e0e0' },
-  counter: { fontSize: '13px', color: '#888' },
-  list: { display: 'flex', flexDirection: 'column', gap: '10px' },
+  page: {
+    paddingBottom: '80px',
+    background: 'linear-gradient(180deg, #0d1117 0%, #1a1a2e 40%, #0d1117 100%)',
+    minHeight: '100dvh',
+  },
+  list: { display: 'flex', flexDirection: 'column', gap: '10px', padding: '16px' },
   empty: {
     display: 'flex', flexDirection: 'column', alignItems: 'center',
     justifyContent: 'center', minHeight: '70dvh', textAlign: 'center',
@@ -151,5 +162,24 @@ const styles = {
   untamedMsg: { fontSize: '12px', color: '#f59e0b', marginTop: '4px' },
   chevron: {
     fontSize: '22px', color: '#555', flexShrink: 0, marginLeft: '4px',
+  },
+  unknownCard: {
+    display: 'flex', flexDirection: 'row', gap: '14px', alignItems: 'center',
+    background: '#111', borderRadius: '12px', border: '2px dashed #2a2a3e',
+    padding: '12px', width: '100%',
+  },
+  unknownSpriteBox: {
+    width: '60px', height: '60px', flexShrink: 0,
+    borderRadius: '10px', background: '#1a1a2e',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+  },
+  unknownIcon: {
+    fontSize: '28px', color: '#333', fontWeight: 'bold',
+  },
+  unknownName: {
+    fontSize: '16px', fontWeight: 'bold', color: '#333',
+  },
+  unknownHint: {
+    fontSize: '12px', color: '#2a2a3e', marginTop: '2px',
   },
 };

@@ -200,19 +200,19 @@ def test_customize_paint_consumes_item():
     _make_profile("p9")
     _make_dino("p9", "trex", tamed=True)
 
-    # Give player a paint item
+    # Give player a crimson paint item
     put_item({
         "PK": "PLAYER#p9",
         "SK": "ITEM#paint001",
         "type": "paint",
-        "name": "Red Paint",
-        "details": {},
+        "name": "Crimson Paint",
+        "details": {"paint_id": "crimson", "hue": 0},
     })
 
     resp = customize_handler(
         _customize_event("trex", {
             "player_id": "p9",
-            "paint": {"region": "body", "color": 0},
+            "paint": {"region": "body", "paint_id": "crimson"},
         }),
         None,
     )
@@ -235,7 +235,7 @@ def test_customize_paint_requires_inventory():
     resp = customize_handler(
         _customize_event("trex", {
             "player_id": "p10",
-            "paint": {"region": "body", "color": 45},
+            "paint": {"region": "body", "paint_id": "crimson"},
         }),
         None,
     )

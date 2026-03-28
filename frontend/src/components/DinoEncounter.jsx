@@ -3,6 +3,8 @@ import { store } from '../store.js';
 import { api } from '../api.js';
 import { SPECIES } from '../data/species.js';
 import { DinoSprite } from './DinoSprite.jsx';
+import meatImg from '../assets/items/meat.png';
+import berryImg from '../assets/items/berry.png';
 
 export function DinoEncounter({ species }) {
   const [dino, setDino] = useState(null);
@@ -103,7 +105,8 @@ export function DinoEncounter({ species }) {
           color: isCarnivore ? '#fca5a5' : '#86efac',
           borderColor: isCarnivore ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.3)',
         }}>
-          {isCarnivore ? '🥩 Carnivore' : '🫐 Herbivore'}
+          <img src={isCarnivore ? meatImg : berryImg} style={styles.foodIcon} />
+          {isCarnivore ? ' Carnivore' : ' Herbivore'}
         </span>
         <span style={styles.traitTag}>{dino.gender}</span>
         <span style={styles.traitTag}>{dino.nature}</span>
@@ -115,7 +118,7 @@ export function DinoEncounter({ species }) {
         borderColor: isCarnivore ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.3)',
       }}>
         <div style={styles.questHeader}>
-          <span style={styles.questIcon}>{isCarnivore ? '🥩' : '🫐'}</span>
+          <img src={isCarnivore ? meatImg : berryImg} style={styles.questFoodImg} />
           <span style={styles.questTitle}>Find Food to Tame!</span>
         </div>
         <p style={styles.questDesc}>
@@ -215,7 +218,8 @@ const styles = {
   questHeader: {
     display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px',
   },
-  questIcon: { fontSize: '20px' },
+  foodIcon: { width: '16px', height: '16px', verticalAlign: 'middle', imageRendering: 'pixelated' },
+  questFoodImg: { width: '24px', height: '24px', imageRendering: 'pixelated' },
   questTitle: {
     fontSize: '15px', fontWeight: '700', color: '#e5e7eb',
   },

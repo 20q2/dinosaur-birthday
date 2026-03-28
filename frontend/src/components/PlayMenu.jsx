@@ -2,11 +2,23 @@ import { useState, useEffect } from 'preact/hooks';
 import { store } from '../store.js';
 import { useStore } from '../router.jsx';
 import { api } from '../api.js';
+import { TitleBar } from './TitleBar.jsx';
+import meatImg from '../assets/items/meat.png';
+import berryImg from '../assets/items/berry.png';
 
 const SYMBOL_EMOJI = {
   meat: '🥩', mejoberry: '🫐', party_hat: '🎉', cowboy_hat: '🤠',
   top_hat: '🎩', sunglasses: '😎', paint: '🎨', bone: '🦴', egg: '🥚',
 };
+
+const SYMBOL_IMG = { meat: meatImg, mejoberry: berryImg };
+
+function SymbolIcon({ sym, size }) {
+  if (SYMBOL_IMG[sym]) {
+    return <img src={SYMBOL_IMG[sym]} style={{ width: size, height: size, imageRendering: 'pixelated' }} />;
+  }
+  return <span style={{ fontSize: size }}>{SYMBOL_EMOJI[sym] || '?'}</span>;
+}
 
 const ALL_SYMBOLS = Object.keys(SYMBOL_EMOJI);
 
@@ -87,11 +99,9 @@ export function PlayMenu() {
 
   return (
     <div style={styles.page}>
-      <div style={styles.header}>
-        <h2 style={styles.title}>Play Together</h2>
-        <p style={styles.subtitle}>Team up with another dino tamer!</p>
-      </div>
+      <TitleBar title="Play Together" subtitle="Team up with another dino tamer!" />
 
+      <div style={styles.content}>
       {/* Host button */}
       <button
         onClick={handleHost}
@@ -129,7 +139,7 @@ export function PlayMenu() {
                   borderColor: selectedSymbols[i] ? '#60a5fa' : '#333',
                 }}>
                   {selectedSymbols[i]
-                    ? SYMBOL_EMOJI[selectedSymbols[i]]
+                    ? <SymbolIcon sym={selectedSymbols[i]} size="28px" />
                     : <span style={{ color: '#444' }}>?</span>}
                 </div>
                 <div style={styles.symbolGrid}>
@@ -144,7 +154,7 @@ export function PlayMenu() {
                       }}
                       title={sym}
                     >
-                      {SYMBOL_EMOJI[sym]}
+                      <SymbolIcon sym={sym} size="18px" />
                     </button>
                   ))}
                 </div>
@@ -195,18 +205,20 @@ export function PlayMenu() {
           <span>Set a tamed dino as your Plaza Partner to earn XP from play!</span>
         </div>
       )}
+      </div>
     </div>
   );
 }
 
 const styles = {
   page: {
-    display: 'flex', flexDirection: 'column', gap: '14px',
-    padding: '20px 16px 80px',
+    display: 'flex', flexDirection: 'column',
+    paddingBottom: '80px',
   },
-  header: { textAlign: 'center', marginBottom: '4px' },
-  title: { color: '#4ade80', fontSize: '22px', margin: '0 0 4px' },
-  subtitle: { color: '#86efac', fontSize: '13px', margin: 0 },
+  content: {
+    display: 'flex', flexDirection: 'column', gap: '14px',
+    padding: '16px',
+  },
   bigBtn: {
     display: 'flex', alignItems: 'center', gap: '16px',
     padding: '18px 20px', borderRadius: '14px', border: '2px solid',

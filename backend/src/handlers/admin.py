@@ -6,6 +6,7 @@ from decimal import Decimal
 from ..shared.db import get_item, put_item, query_pk, delete_item, get_table, get_connections_table
 from ..shared.response import success, error
 from ..shared.ws_broadcast import broadcast
+from ..shared.game_data import HATS
 
 
 def _to_int(val):
@@ -311,6 +312,51 @@ def nuke_all_handler(event, context):
     return success({"deleted": deleted})
 
 
+def give_all_items_handler(event, context):
+    """POST /admin/give-all-items — give a player one of every hat + 5 paints."""
+    body = json.loads(event.get("body") or "{}")
+    player_id = body.get("player_id", "").strip()
+
+    if not player_id:
+        return error("player_id is required")
+
+    # Verify player exists
+    profile = get_item(f"PLAYER#{player_id}", "PROFILE")
+    if not profile:
+        return error("Player not found", 404)
+
+    created = 0
+
+    # Give one of every hat
+    for hat in HATS:
+        item_id = str(uuid.uuid4())[:8]
+        put_item({
+            "PK": f"PLAYER#{player_id}",
+            "SK": f"ITEM#{item_id}",
+            "type": "hat",
+            "name": hat["name"],
+            "details": {"hat_id": hat["id"], "rarity": hat["rarity"]},
+        })
+        created += 1
+
+    # Give 5 paints
+    for _ in range(5):
+        item_id = str(uuid.uuid4())[:8]
+        put_item({
+            "PK": f"PLAYER#{player_id}",
+            "SK": f"ITEM#{item_id}",
+            "type": "paint",
+            "name": "Paint",
+            "details": {},
+        })
+        created += 1
+
+    player_name = profile.get("name", "Unknown")
+    _post_feed_entry("event", f"{player_name} received a treasure trove of items!")
+
+    return success({"created": created, "player_id": player_id})
+
+
 def handler(event, context):
     """Route admin endpoints."""
     path = event.get("resource", event.get("path", ""))
@@ -323,6 +369,8 @@ def handler(event, context):
             return start_handler(event, context)
         if path.endswith("/announce"):
             return announce_handler(event, context)
+        if path.endswith("/give-all-items"):
+            return give_all_items_handler(event, context)
 
     if method == "GET":
         if path.endswith("/dashboard"):

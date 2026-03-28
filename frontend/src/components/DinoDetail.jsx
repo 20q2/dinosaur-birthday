@@ -4,12 +4,17 @@ import { useStore } from '../router.jsx';
 import { api } from '../api.js';
 import { SPECIES } from '../data/species.js';
 import { HATS, HAT_MAP } from '../data/hats.js';
+import { PAINT_MAP } from '../data/paints.js';
 import { DinoSprite } from './DinoSprite.jsx';
+import { PaintSprite } from './PaintSprite.jsx';
+import { TitleBar } from './TitleBar.jsx';
 
 import bgRocks from '../assets/backgrounds/dino_find_rocks.png';
 import bgSwamp from '../assets/backgrounds/dino_find_swamp.png';
 import bgRiver from '../assets/backgrounds/dino_find_river.png';
 import bgGrass from '../assets/backgrounds/dino_find_tall_grass.png';
+import meatImg from '../assets/items/meat.png';
+import berryImg from '../assets/items/berry.png';
 
 const WILD_BG = {
   trex: bgRocks,
@@ -22,7 +27,7 @@ const WILD_BG = {
 };
 
 const BG_OPTIONS = [
-  { id: '', label: 'Default', color: '#1a2e1a', img: null },
+  { id: '', label: 'Default', color: '#0a0a0a', img: null },
   { id: 'rocks', label: 'Rocks', color: null, img: bgRocks },
   { id: 'swamp', label: 'Swamp', color: null, img: bgSwamp },
   { id: 'river', label: 'River', color: null, img: bgRiver },
@@ -31,27 +36,6 @@ const BG_OPTIONS = [
 
 const XP_PER_LEVEL = 100;
 const MAX_LEVEL = 5;
-
-const PAINT_COLORS = [
-  { name: 'Crimson', hue: 0 },
-  { name: 'Scarlet', hue: 15 },
-  { name: 'Rose', hue: 340 },
-  { name: 'Orange', hue: 30 },
-  { name: 'Amber', hue: 45 },
-  { name: 'Gold', hue: 50 },
-  { name: 'Forest', hue: 130 },
-  { name: 'Lime', hue: 90 },
-  { name: 'Emerald', hue: 155 },
-  { name: 'Navy', hue: 230 },
-  { name: 'Sky', hue: 200 },
-  { name: 'Cyan', hue: 180 },
-  { name: 'Violet', hue: 270 },
-  { name: 'Plum', hue: 300 },
-  { name: 'Lavender', hue: 260 },
-  { name: 'White', hue: 0 },
-  { name: 'Silver', hue: 210 },
-  { name: 'Charcoal', hue: 0 },
-];
 
 function xpProgress(xp, level) {
   if (level >= MAX_LEVEL) return 100;
@@ -82,19 +66,18 @@ export function DinoDetail({ species }) {
   const [renaming, setRenaming] = useState(false);
   const [nameInput, setNameInput] = useState('');
   const [showHats, setShowHats] = useState(false);
-  const [painting, setPainting] = useState(false);
+  const [selectedPaint, setSelectedPaint] = useState(null); // paint_id
   const [paintRegion, setPaintRegion] = useState(null);
-  const [paintHue, setPaintHue] = useState(null);
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState('');
 
   if (!dino) {
     return (
-      <div style={styles.center}>
-        <p style={{ color: '#ef4444' }}>Dino not found.</p>
-        <button onClick={() => store.navigate('/dinos')} style={styles.backBtn}>
-          Back
-        </button>
+      <div style={styles.page}>
+        <TitleBar title="Not Found" back="/dinos" />
+        <div style={styles.center}>
+          <p style={{ color: '#ef4444' }}>Dino not found.</p>
+        </div>
       </div>
     );
   }
@@ -115,15 +98,21 @@ export function DinoDetail({ species }) {
 
   const availableHats = HATS.filter(h => ownedHatIds.has(h.id));
 
-  // Paint inventory count
-  const paintCount = (player?.items || []).filter(i => i.type === 'paint').length;
+  // Paint inventory grouped by paint_id
+  const paintItems = (player?.items || []).filter(i => i.type === 'paint' && i.details?.paint_id);
+  const paintCounts = {};
+  paintItems.forEach(i => {
+    const pid = i.details.paint_id;
+    paintCounts[pid] = (paintCounts[pid] || 0) + 1;
+  });
+  const hasPaints = Object.keys(paintCounts).length > 0;
 
   // Regions for this species
   const regions = speciesData.regions || [];
 
   // Preview colors during paint mode
-  const previewColors = painting && paintRegion && paintHue !== null
-    ? { ...colors, [paintRegion]: paintHue }
+  const previewColors = selectedPaint && paintRegion
+    ? { ...colors, [paintRegion]: PAINT_MAP[selectedPaint]?.hue ?? 120 }
     : colors;
 
   async function doAction(action) {
@@ -163,58 +152,48 @@ export function DinoDetail({ species }) {
     });
   }
 
-  function handleStartPaint() {
-    setPainting(true);
-    setPaintRegion(regions[0] || null);
-    setPaintHue(null);
+  function handleSelectPaint(paintId) {
+    setSelectedPaint(paintId);
+    setPaintRegion(null);
   }
 
   function handleApplyPaint() {
-    if (!paintRegion || paintHue === null) return;
+    if (!selectedPaint || !paintRegion) return;
     doAction(async () => {
       await api.customizeDino(store.playerId, species, {
-        paint: { region: paintRegion, color: paintHue },
+        paint: { region: paintRegion, paint_id: selectedPaint },
       });
-      setPainting(false);
+      setSelectedPaint(null);
       setPaintRegion(null);
-      setPaintHue(null);
     });
   }
 
   function handleCancelPaint() {
-    setPainting(false);
+    setSelectedPaint(null);
     setPaintRegion(null);
-    setPaintHue(null);
   }
 
-  return (
-    <div style={styles.page}>
-      {/* Header */}
-      <div style={styles.header}>
-        <button onClick={() => store.navigate('/dinos')} style={styles.backBtn}>
-          Back
-        </button>
-        <h2 style={styles.headerTitle}>{speciesData.name || species} {dino.gender === 'male' ? '\u2642' : '\u2640'}</h2>
-        <div style={{ width: '48px' }} />
-      </div>
+  // Compute backdrop for full page background
+  const pageBg = (() => {
+    if (!dino.tamed && WILD_BG[species]) {
+      return { backgroundImage: `url(${WILD_BG[species]})`, backgroundSize: 'cover', backgroundPosition: 'center top', backgroundAttachment: 'fixed' };
+    }
+    if (dino.tamed && dino.background) {
+      const bg = BG_OPTIONS.find(b => b.id === dino.background);
+      if (bg?.img) return { backgroundImage: `url(${bg.img})`, backgroundSize: 'cover', backgroundPosition: 'center top', backgroundAttachment: 'fixed' };
+    }
+    return {};
+  })();
 
+  return (
+    <div style={{ ...styles.page, ...pageBg }}>
+      <TitleBar
+        title={`${speciesData.name || species} ${dino.gender === 'male' ? '\u2642' : '\u2640'}`}
+        back="/dinos"
+      />
+      <div style={styles.content}>
       {/* Dino portrait */}
-      <div style={{
-        ...styles.portrait,
-        ...(!dino.tamed && WILD_BG[species] ? {
-          backgroundImage: `url(${WILD_BG[species]})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-        } : {}),
-        ...(dino.tamed && dino.background ? (() => {
-          const bg = BG_OPTIONS.find(b => b.id === dino.background);
-          return bg?.img ? {
-            backgroundImage: `url(${bg.img})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-          } : {};
-        })() : {}),
-      }}>
+      <div style={styles.portrait}>
         <DinoSprite species={species} colors={previewColors} scale={4} style={{ filter: 'drop-shadow(0 6px 12px rgba(0,0,0,0.6))' }} />
         {dino.shiny && <div style={styles.shinyLabel}>✨ SHINY</div>}
         {!dino.tamed && <div style={styles.wildLabel}>WILD</div>}
@@ -357,73 +336,83 @@ export function DinoDetail({ species }) {
         </div>
       )}
 
-      {/* Paint flow */}
-      {painting ? (
-        <div style={styles.card}>
-          <div style={styles.sectionTitle}>Paint a Region</div>
-          <div style={styles.regionRow}>
-            {regions.map(r => (
-              <button
-                key={r}
-                onClick={() => { setPaintRegion(r); setPaintHue(null); }}
-                style={{
-                  ...styles.regionBtn,
-                  borderColor: paintRegion === r ? '#a78bfa' : '#333',
-                  background: paintRegion === r ? '#2d1b69' : '#0d1117',
-                }}
-              >
-                <div
+      {/* Paint flow — tamed only */}
+      {dino.tamed && hasPaints && (
+        selectedPaint ? (
+          <div style={styles.card}>
+            <div style={styles.sectionTitle}>
+              Apply {PAINT_MAP[selectedPaint]?.name} Paint
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <PaintSprite hue={PAINT_MAP[selectedPaint]?.hue ?? 120} scale={3} />
+            </div>
+            <div style={{ fontSize: '12px', color: '#888', textAlign: 'center' }}>
+              Pick a region to paint
+            </div>
+            <div style={styles.regionRow}>
+              {regions.map(r => (
+                <button
+                  key={r}
+                  onClick={() => setPaintRegion(r)}
+                  disabled={busy}
                   style={{
+                    ...styles.regionBtn,
+                    borderColor: paintRegion === r ? '#a78bfa' : '#333',
+                    background: paintRegion === r ? '#2d1b69' : '#0d1117',
+                  }}
+                >
+                  <div style={{
                     width: '14px', height: '14px', borderRadius: '4px',
                     background: colors[r] != null ? `hsl(${colors[r]}, 70%, 50%)` : '#555',
                     flexShrink: 0,
-                  }}
-                />
-                <span style={{ textTransform: 'capitalize' }}>{r}</span>
-              </button>
-            ))}
-          </div>
-          <div style={styles.swatchGrid}>
-            {PAINT_COLORS.map(c => (
+                  }} />
+                  <span style={{ textTransform: 'capitalize' }}>{r}</span>
+                </button>
+              ))}
+            </div>
+            <div style={styles.btnRow}>
               <button
-                key={c.name}
-                onClick={() => setPaintHue(c.hue)}
-                title={c.name}
+                onClick={handleApplyPaint}
+                disabled={busy || !paintRegion}
                 style={{
-                  ...styles.paintSwatch,
-                  background: c.name === 'White' ? '#e8e8e8'
-                    : c.name === 'Charcoal' ? '#333'
-                    : `hsl(${c.hue}, 70%, 50%)`,
-                  borderColor: paintHue === c.hue ? '#fff' : 'transparent',
+                  ...styles.btn,
+                  background: '#7c3aed',
+                  opacity: paintRegion ? 1 : 0.5,
                 }}
-              />
-            ))}
+              >
+                {busy ? '...' : 'Apply Paint'}
+              </button>
+              <button onClick={handleCancelPaint} style={styles.ghostBtn}>
+                Cancel
+              </button>
+            </div>
           </div>
-          <div style={{ fontSize: '11px', color: '#666', textAlign: 'center' }}>
-            {paintCount} paint{paintCount !== 1 ? 's' : ''} remaining
+        ) : (
+          <div style={styles.card}>
+            <div style={styles.sectionTitle}>Paints</div>
+            <div style={styles.paintGrid}>
+              {Object.entries(paintCounts).map(([paintId, count]) => {
+                const paintData = PAINT_MAP[paintId];
+                if (!paintData) return null;
+                return (
+                  <button
+                    key={paintId}
+                    onClick={() => handleSelectPaint(paintId)}
+                    disabled={busy}
+                    style={styles.paintItem}
+                  >
+                    <PaintSprite hue={paintData.hue} scale={2} />
+                    <span style={styles.paintItemName}>{paintData.name}</span>
+                    {count > 1 && (
+                      <span style={styles.paintItemCount}>x{count}</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-          <div style={styles.btnRow}>
-            <button
-              onClick={handleApplyPaint}
-              disabled={busy || paintHue === null}
-              style={{
-                ...styles.btn,
-                background: '#7c3aed',
-                opacity: paintHue !== null ? 1 : 0.5,
-              }}
-            >
-              {busy ? '...' : 'Apply Paint'}
-            </button>
-            <button onClick={handleCancelPaint} style={styles.ghostBtn}>
-              Cancel
-            </button>
-          </div>
-        </div>
-      ) : paintCount > 0 && dino.tamed ? (
-        <button onClick={handleStartPaint} style={{ ...styles.btn, background: '#7c3aed' }} disabled={busy}>
-          Paint ({paintCount})
-        </button>
-      ) : null}
+        )
+      )}
 
       {/* Set Partner */}
       {dino.tamed && !dino.is_partner && (
@@ -438,26 +427,22 @@ export function DinoDetail({ species }) {
       {/* Untamed notice */}
       {!dino.tamed && (
         <div style={styles.untamedNote}>
-          <span style={{ fontSize: '20px' }}>🍖</span>
-          <span>Find the food QR to tame this dino!</span>
+          <img src={speciesData.diet === 'carnivore' ? meatImg : berryImg} style={styles.untamedFoodImg} />
+          <span>Find {speciesData.diet === 'carnivore' ? 'Meat' : 'Mejoberries'} to tame this dino!</span>
         </div>
       )}
+      </div>
     </div>
   );
 }
 
 const styles = {
-  page: { display: 'flex', flexDirection: 'column', gap: '12px', padding: '16px 16px 80px' },
+  page: { display: 'flex', flexDirection: 'column', paddingBottom: '80px', background: '#0a0a0a', minHeight: '100dvh' },
+  content: { display: 'flex', flexDirection: 'column', gap: '12px', padding: '16px' },
   center: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '70dvh', gap: '16px' },
-  header: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' },
-  headerTitle: { fontSize: '18px', margin: 0, color: '#e0e0e0' },
-  backBtn: {
-    background: 'none', border: '1px solid #333', borderRadius: '8px',
-    color: '#aaa', padding: '6px 12px', cursor: 'pointer', fontSize: '14px',
-  },
   portrait: {
     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px',
-    background: '#1a2e1a', borderRadius: '16px', padding: '24px',
+    padding: '24px',
   },
   shinyLabel: { color: '#f59e0b', fontSize: '13px', fontWeight: 'bold' },
   wildLabel: {
@@ -521,13 +506,20 @@ const styles = {
     background: '#0d1117', color: '#e0e0e0', fontSize: '12px',
     cursor: 'pointer', fontWeight: 'bold',
   },
-  swatchGrid: {
-    display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '8px',
-    justifyItems: 'center',
+  paintGrid: {
+    display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px',
   },
-  paintSwatch: {
-    width: '36px', height: '36px', borderRadius: '50%', border: '3px solid transparent',
-    cursor: 'pointer', padding: 0,
+  paintItem: {
+    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px',
+    padding: '8px 4px', borderRadius: '10px', border: '2px solid #333',
+    background: '#0d1117', cursor: 'pointer', position: 'relative',
+  },
+  paintItemName: {
+    fontSize: '10px', color: '#ccc', textAlign: 'center',
+  },
+  paintItemCount: {
+    position: 'absolute', top: '2px', right: '4px',
+    fontSize: '10px', color: '#888', fontWeight: 'bold',
   },
   bgRow: {
     display: 'flex', gap: '8px', flexWrap: 'wrap',
@@ -548,4 +540,5 @@ const styles = {
     background: '#1a1a2e', borderRadius: '10px', padding: '14px',
     color: '#f59e0b', fontSize: '14px',
   },
+  untamedFoodImg: { width: '24px', height: '24px', imageRendering: 'pixelated' },
 };

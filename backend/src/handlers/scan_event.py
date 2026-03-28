@@ -4,7 +4,7 @@ import random
 from datetime import datetime, timezone
 from ..shared.db import get_item, put_item, query_pk
 from ..shared.response import success, error
-from ..shared.game_data import random_hat
+from ..shared.game_data import random_hat, random_paint
 from ..shared.xp import award_xp
 from ..shared.ws_broadcast import broadcast
 
@@ -60,14 +60,20 @@ def handler(event, context):
             "rarity": hat["rarity"],
         }
     else:
+        paint = random_paint()
         put_item({
             "PK": f"PLAYER#{player_id}",
             "SK": f"ITEM#{item_id}",
             "type": "paint",
-            "name": "Paint",
-            "details": {},
+            "name": f"{paint['name']} Paint",
+            "details": {"paint_id": paint["id"], "hue": paint["hue"]},
         })
-        item_result = {"type": "paint", "name": "Paint"}
+        item_result = {
+            "type": "paint",
+            "name": f"{paint['name']} Paint",
+            "paint_id": paint["id"],
+            "hue": paint["hue"],
+        }
 
     # Mark as claimed
     put_item({

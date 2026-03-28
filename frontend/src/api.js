@@ -66,6 +66,9 @@ export const api = {
   adminAnnounce: (message) =>
     request('POST', '/admin/announce', { message }),
 
+  adminGiveAllItems: (playerId) =>
+    request('POST', '/admin/give-all-items', { player_id: playerId }),
+
   adminDashboard: () =>
     request('GET', '/admin/dashboard'),
 

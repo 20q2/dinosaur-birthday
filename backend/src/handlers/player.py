@@ -1,4 +1,5 @@
 import json
+import uuid
 from datetime import datetime, timezone
 from ..shared.db import put_item, get_item, query_pk, update_item
 from ..shared.response import success, error
@@ -36,6 +37,16 @@ def create_player(event):
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     put_item(item)
+
+    # Give every new player a starter Party Hat
+    item_id = str(uuid.uuid4())[:8]
+    put_item({
+        "PK": f"PLAYER#{player_id}",
+        "SK": f"ITEM#{item_id}",
+        "type": "hat",
+        "name": "Party Hat",
+        "details": {"hat_id": "party_hat", "rarity": "common"},
+    })
 
     return success({"id": player_id, "name": name, "photo_url": photo_url})
 

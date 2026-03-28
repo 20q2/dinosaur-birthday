@@ -4,6 +4,8 @@ import { api } from '../api.js';
 import { SPECIES } from '../data/species.js';
 import { STARTER_HATS } from '../data/hats.js';
 import { DinoSprite } from './DinoSprite.jsx';
+import meatImg from '../assets/items/meat.png';
+import berryImg from '../assets/items/berry.png';
 
 export function DinoTaming({ foodType }) {
   const [untamed, setUntamed] = useState([]);
@@ -85,7 +87,8 @@ export function DinoTaming({ foodType }) {
 
         <h2 style={styles.dinoName}>{speciesData?.name}</h2>
         <div style={styles.munchLabel}>
-          Munching on {foodType === 'meat' ? 'Meat' : 'Mejoberries'}...
+          <img src={foodType === 'meat' ? meatImg : berryImg} style={styles.munchFoodImg} />
+          {' '}Munching on {foodType === 'meat' ? 'Meat' : 'Mejoberries'}...
         </div>
 
         <div style={styles.card}>
@@ -159,7 +162,9 @@ const styles = {
   },
   munchLabel: {
     color: '#4ade80', fontSize: '14px', textAlign: 'center',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
   },
+  munchFoodImg: { width: '20px', height: '20px', imageRendering: 'pixelated' },
   card: {
     width: '100%', maxWidth: '340px',
     display: 'flex', flexDirection: 'column', gap: '16px',

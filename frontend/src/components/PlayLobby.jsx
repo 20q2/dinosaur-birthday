@@ -3,11 +3,22 @@ import { store } from '../store.js';
 import { useStore } from '../router.jsx';
 import { api } from '../api.js';
 import { ws } from '../ws.js';
+import meatImg from '../assets/items/meat.png';
+import berryImg from '../assets/items/berry.png';
 
 const SYMBOL_EMOJI = {
   meat: '🥩', mejoberry: '🫐', party_hat: '🎉', cowboy_hat: '🤠',
   top_hat: '🎩', sunglasses: '😎', paint: '🎨', bone: '🦴', egg: '🥚',
 };
+
+const SYMBOL_IMG = { meat: meatImg, mejoberry: berryImg };
+
+function SymbolIcon({ sym, size }) {
+  if (SYMBOL_IMG[sym]) {
+    return <img src={SYMBOL_IMG[sym]} style={{ width: size, height: size, imageRendering: 'pixelated' }} />;
+  }
+  return <span style={{ fontSize: size }}>{SYMBOL_EMOJI[sym] || '?'}</span>;
+}
 
 const ALL_SYMBOLS = Object.keys(SYMBOL_EMOJI);
 
@@ -70,7 +81,7 @@ export function PlayLobby({ code }) {
           <div style={styles.symbolRow}>
             {symbols.map((sym, i) => (
               <div key={i} style={styles.symbolBig}>
-                <span style={styles.symbolEmoji}>{SYMBOL_EMOJI[sym] || '?'}</span>
+                <SymbolIcon sym={sym} size="52px" />
                 <span style={styles.symbolName}>{sym.replace('_', ' ')}</span>
               </div>
             ))}
@@ -150,7 +161,7 @@ export function PlayLobby({ code }) {
                 borderColor: selectedSymbols[i] ? '#60a5fa' : '#333',
               }}>
                 {selectedSymbols[i]
-                  ? SYMBOL_EMOJI[selectedSymbols[i]]
+                  ? <SymbolIcon sym={selectedSymbols[i]} size="28px" />
                   : <span style={{ color: '#444', fontSize: '18px' }}>?</span>}
               </div>
               <div style={styles.symbolGrid}>
@@ -165,7 +176,7 @@ export function PlayLobby({ code }) {
                     }}
                     title={sym}
                   >
-                    {SYMBOL_EMOJI[sym]}
+                    <SymbolIcon sym={sym} size="18px" />
                   </button>
                 ))}
               </div>

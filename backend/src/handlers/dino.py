@@ -2,7 +2,7 @@ import json
 from decimal import Decimal
 from ..shared.db import get_item, put_item, update_item, query_pk, delete_item
 from ..shared.response import success, error
-from ..shared.game_data import SPECIES, HATS
+from ..shared.game_data import SPECIES, HATS, PAINT_MAP
 from ..shared.ws_broadcast import broadcast
 
 HAT_IDS = {h["id"] for h in HATS}
@@ -70,36 +70,42 @@ def customize_handler(event, context):
             return error(f"Unknown hat: {new_hat}")
         updates["hat"] = new_hat
 
-    # Handle paint: consumes one paint item from inventory, updates color region
+    # Handle paint: consumes a specific colored paint item, updates color region
     paint = body.get("paint")
     if paint is not None:
         region = paint.get("region")
-        color = paint.get("color")
+        paint_id = paint.get("paint_id")
 
-        if region is None or color is None:
-            return error("paint requires 'region' and 'color' fields")
+        if region is None or paint_id is None:
+            return error("paint requires 'region' and 'paint_id' fields")
+
+        if paint_id not in PAINT_MAP:
+            return error(f"Unknown paint: {paint_id}")
 
         species_regions = SPECIES[species]["regions"]
         if region not in species_regions:
             return error(f"Invalid region '{region}' for {species}. Valid: {species_regions}")
 
-        # Find a paint item in the player's inventory
+        # Find a paint item with matching paint_id in inventory
         items = query_pk(f"PLAYER#{player_id}", sk_prefix="ITEM#")
         paint_item = None
         for item in items:
             if item.get("type") == "paint":
-                paint_item = item
-                break
+                details = item.get("details") or {}
+                if details.get("paint_id") == paint_id:
+                    paint_item = item
+                    break
 
         if not paint_item:
-            return error("No paint items in inventory")
+            return error(f"No {paint_id} paint in inventory")
 
         # Consume the paint item
         delete_item(f"PLAYER#{player_id}", paint_item["SK"])
 
-        # Merge the new color into the dino's existing colors
+        # Merge the paint's hue into the dino's existing colors
+        hue = PAINT_MAP[paint_id]["hue"]
         existing_colors = dict(dino.get("colors", {}))
-        existing_colors[region] = color
+        existing_colors[region] = hue
         updates["colors"] = existing_colors
 
     # Handle background

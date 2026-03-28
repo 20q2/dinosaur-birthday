@@ -2,9 +2,7 @@ import { useState, useRef } from 'preact/hooks';
 import { useStore } from '../router.jsx';
 import { store } from '../store.js';
 import { api } from '../api.js';
-import { HAT_MAP } from '../data/hats.js';
-import { SPECIES } from '../data/species.js';
-import { getSpeciesEmoji } from '../utils/sprites.js';
+import { TitleBar } from './TitleBar.jsx';
 
 function resizeImage(file, maxSize = 200) {
   return new Promise((resolve) => {
@@ -33,12 +31,6 @@ function resizeImage(file, maxSize = 200) {
 }
 
 const TOTAL_NOTES = 5;
-
-const RARITY_COLORS = {
-  common: '#888',
-  uncommon: '#6366f1',
-  legendary: '#f59e0b',
-};
 
 function Avatar({ photoUrl, name }) {
   if (photoUrl) {
@@ -112,85 +104,6 @@ function InspirationBadge() {
   );
 }
 
-function HatItem({ item }) {
-  const hatData = HAT_MAP[item.id] || { name: item.name || item.id, rarity: 'common' };
-  const rarityColor = RARITY_COLORS[hatData.rarity] || RARITY_COLORS.common;
-  return (
-    <div style={{ ...styles.hatCard, borderColor: rarityColor }}>
-      <span style={{ fontSize: '22px' }}>🎩</span>
-      <span style={styles.hatName}>{hatData.name}</span>
-      <span style={{ ...styles.rarityBadge, color: rarityColor }}>
-        {hatData.rarity}
-      </span>
-    </div>
-  );
-}
-
-function PaintItem({ item }) {
-  return (
-    <div style={{ ...styles.hatCard, borderColor: '#6366f1' }}>
-      <span style={{ fontSize: '22px' }}>🎨</span>
-      <span style={styles.hatName}>{item.name || item.id}</span>
-      <span style={{ ...styles.rarityBadge, color: '#6366f1' }}>paint</span>
-    </div>
-  );
-}
-
-function Inventory({ items }) {
-  const hats = (items || []).filter(i => i.type === 'hat');
-  const paints = (items || []).filter(i => i.type === 'paint');
-  const allItems = [...hats, ...paints];
-
-  return (
-    <div style={styles.section}>
-      <h3 style={styles.sectionTitle}>Item Inventory</h3>
-      {allItems.length === 0 ? (
-        <p style={styles.emptyText}>No items yet. Explore to find hats!</p>
-      ) : (
-        <div style={styles.inventoryGrid}>
-          {hats.map(item => <HatItem key={item.id} item={item} />)}
-          {paints.map(item => <PaintItem key={item.id} item={item} />)}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function DinoSummaryRow({ dino }) {
-  const speciesData = SPECIES[dino.species] || {};
-  const emoji = getSpeciesEmoji(dino.species);
-  return (
-    <div style={styles.dinoRow}>
-      <span style={{ fontSize: '22px' }}>{emoji}</span>
-      <div style={styles.dinoRowInfo}>
-        <span style={styles.dinoRowName}>{dino.name || speciesData.name || dino.species}</span>
-        <span style={styles.dinoRowMeta}>{speciesData.name || dino.species}</span>
-      </div>
-      <span style={styles.dinoRowLevel}>Lv {dino.level || 1}</span>
-      {dino.is_partner && <span style={styles.partnerBadge}>Partner</span>}
-    </div>
-  );
-}
-
-function DinoSummary({ dinos }) {
-  const tamed = (dinos || []).filter(d => d.tamed);
-  return (
-    <div style={styles.section}>
-      <h3 style={styles.sectionTitle}>My Dinos</h3>
-      {tamed.length === 0 ? (
-        <p style={styles.emptyText}>No tamed dinos yet. Go scan some!</p>
-      ) : (
-        <div style={styles.dinoList}>
-          {tamed.map(dino => <DinoSummaryRow key={dino.species} dino={dino} />)}
-        </div>
-      )}
-      <button style={styles.linkBtn} onClick={() => store.navigate('/dinos')}>
-        View all dinos →
-      </button>
-    </div>
-  );
-}
-
 export function Profile() {
   const { player } = useStore();
   const fileRef = useRef(null);
@@ -220,10 +133,10 @@ export function Profile() {
 
   const tamedCount = (player.dinos || []).filter(d => d.tamed).length;
   const notesCount = (player.notes || []).length;
-  const itemsCount = (player.items || []).length;
 
   return (
     <div style={styles.page}>
+      <TitleBar title="Profile" />
       {/* Hidden file input */}
       <input
         ref={fileRef}
@@ -234,7 +147,8 @@ export function Profile() {
         style={{ display: 'none' }}
       />
 
-      {/* Header */}
+      <div style={styles.content}>
+      {/* Avatar */}
       <div style={styles.header}>
         <div style={styles.avatarWrapper} onClick={() => fileRef.current?.click()}>
           <Avatar photoUrl={player.photo_url} name={player.name} />
@@ -249,8 +163,6 @@ export function Profile() {
         <StatBox value={tamedCount} label="Dinos" />
         <div style={styles.statDivider} />
         <StatBox value={`${notesCount}/${TOTAL_NOTES}`} label="Notes" />
-        <div style={styles.statDivider} />
-        <StatBox value={itemsCount} label="Items" />
       </div>
 
       {/* Inspiration badge */}
@@ -259,23 +171,22 @@ export function Profile() {
       {/* Explorer's Notes tracker */}
       <NotesTracker notes={player.notes} />
 
-      {/* Item Inventory */}
-      <Inventory items={player.items} />
-
-      {/* Dino Summary */}
-      <DinoSummary dinos={player.dinos} />
+      </div>
     </div>
   );
 }
 
 const styles = {
   page: {
-    padding: '20px 16px 80px',
     maxWidth: '480px',
     margin: '0 auto',
     background: '#0a0a0a',
     minHeight: '100dvh',
     color: '#e0e0e0',
+    paddingBottom: '80px',
+  },
+  content: {
+    padding: '20px 16px',
   },
 
   // Header
@@ -458,86 +369,4 @@ const styles = {
     textAlign: 'right',
   },
 
-  // Inventory grid
-  inventoryGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(2, 1fr)',
-    gap: '8px',
-  },
-  hatCard: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: '4px',
-    background: '#0a0a0a',
-    border: '1.5px solid',
-    borderRadius: '10px',
-    padding: '12px 8px',
-    textAlign: 'center',
-  },
-  hatName: {
-    fontSize: '12px',
-    color: '#e0e0e0',
-    lineHeight: 1.2,
-  },
-  rarityBadge: {
-    fontSize: '10px',
-    textTransform: 'capitalize',
-    fontWeight: 'bold',
-  },
-
-  // Dino summary
-  dinoList: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '8px',
-    marginBottom: '10px',
-  },
-  dinoRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-    background: '#0a0a0a',
-    borderRadius: '8px',
-    padding: '10px 12px',
-    border: '1px solid #1a1a2e',
-  },
-  dinoRowInfo: {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '1px',
-  },
-  dinoRowName: {
-    fontSize: '14px',
-    fontWeight: 'bold',
-    color: '#e0e0e0',
-  },
-  dinoRowMeta: {
-    fontSize: '11px',
-    color: '#888',
-  },
-  dinoRowLevel: {
-    fontSize: '12px',
-    color: '#6366f1',
-    fontWeight: 'bold',
-  },
-  partnerBadge: {
-    fontSize: '10px',
-    background: '#166534',
-    color: '#4ade80',
-    borderRadius: '4px',
-    padding: '1px 6px',
-    fontWeight: 'bold',
-  },
-  linkBtn: {
-    background: 'none',
-    border: 'none',
-    color: '#6366f1',
-    fontSize: '13px',
-    cursor: 'pointer',
-    padding: 0,
-    marginTop: '2px',
-    textDecoration: 'underline',
-  },
 };

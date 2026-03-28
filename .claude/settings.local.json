@@ -9,7 +9,9 @@
       "Bash(aws logs describe-log-groups:*)",
       "Bash(MSYS_NO_PATHCONV=1 aws logs describe-log-groups:*)",
       "Bash(MSYS_NO_PATHCONV=1 aws logs tail:*)",
-      "Bash(file:*)"
+      "Bash(file:*)",
+      "Bash(ls:*)",
+      "Bash(python -m pytest:*)"
     ],
     "additionalDirectories": [
       "C:\\Users\\andje\\.claude\\projects\\a--Coding-AlexBirthdayDinos\\memory"

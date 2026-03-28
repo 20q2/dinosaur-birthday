@@ -3,6 +3,7 @@ import { api } from '../api.js';
 import { ws } from '../ws.js';
 import { store } from '../store.js';
 import { PlazaCanvas } from './PlazaCanvas.js';
+import { TitleBar } from './TitleBar.jsx';
 
 export function Plaza() {
   const canvasRef = useRef(null);
@@ -62,6 +63,7 @@ export function Plaza() {
 
   return (
     <div style={styles.container}>
+      <TitleBar title="Plaza" transparent />
       <canvas ref={canvasRef} style={styles.canvas} />
 
       {partners.length === 0 && (

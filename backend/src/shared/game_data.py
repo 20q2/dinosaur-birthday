@@ -32,6 +32,21 @@ HATS = [
 # Only common/uncommon hats drop randomly. Legendary are special rewards.
 DROPPABLE_HATS = [h for h in HATS if h["rarity"] in ("common", "uncommon")]
 
+PAINTS = [
+    {"id": "crimson", "name": "Crimson", "hue": 0},
+    {"id": "orange", "name": "Orange", "hue": 30},
+    {"id": "gold", "name": "Gold", "hue": 50},
+    {"id": "forest", "name": "Forest", "hue": 130},
+    {"id": "emerald", "name": "Emerald", "hue": 155},
+    {"id": "cyan", "name": "Cyan", "hue": 180},
+    {"id": "sky", "name": "Sky", "hue": 200},
+    {"id": "navy", "name": "Navy", "hue": 230},
+    {"id": "violet", "name": "Violet", "hue": 270},
+    {"id": "rose", "name": "Rose", "hue": 340},
+]
+
+PAINT_MAP = {p["id"]: p for p in PAINTS}
+
 NATURES = [
     "Bold", "Jolly", "Timid", "Brave", "Gentle", "Quirky",
     "Hasty", "Calm", "Sassy", "Naive", "Lonely", "Adamant",
@@ -139,6 +154,10 @@ def is_shiny():
 
 def random_hat():
     return random.choice(DROPPABLE_HATS)
+
+
+def random_paint():
+    return random.choice(PAINTS)
 
 
 def random_trivia():

@@ -26,6 +26,9 @@ export function AdminDashboard() {
   const [announceSending, setAnnounceSending] = useState(false);
   const [announceConfirm, setAnnounceConfirm] = useState(null);
 
+  // Give all items state
+  const [givingTo, setGivingTo] = useState(null); // player_id currently in-flight
+
   const intervalRef = useRef(null);
 
   // ── Fetch dashboard ──────────────────────────────────────────────────────
@@ -102,6 +105,21 @@ export function AdminDashboard() {
       setAnnounceConfirm(`Error: ${err.message}`);
     } finally {
       setAnnounceSending(false);
+    }
+  }
+
+  // ── Give all items handler ───────────────────────────────────────────────
+
+  async function handleGiveAllItems(playerId) {
+    if (givingTo) return;
+    setGivingTo(playerId);
+    try {
+      await api.adminGiveAllItems(playerId);
+      await fetchDashboard();
+    } catch (err) {
+      alert(`Give all items failed: ${err.message}`);
+    } finally {
+      setGivingTo(null);
     }
   }
 
@@ -301,9 +319,21 @@ export function AdminDashboard() {
             {dashboard.player_list.map(p => (
               <div key={p.id} style={styles.playerRow}>
                 <span style={styles.playerName}>{p.name}</span>
-                <span style={styles.playerDinos}>
-                  {p.dino_count} dino{p.dino_count !== 1 ? 's' : ''}
-                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={styles.playerDinos}>
+                    {p.dino_count} dino{p.dino_count !== 1 ? 's' : ''}
+                  </span>
+                  <button
+                    style={{
+                      ...styles.giveAllBtn,
+                      ...(givingTo === p.id ? styles.giveAllBtnBusy : {}),
+                    }}
+                    onClick={() => handleGiveAllItems(p.id)}
+                    disabled={!!givingTo}
+                  >
+                    {givingTo === p.id ? '...' : 'Give All'}
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -574,6 +604,23 @@ const styles = {
     color: '#6b7280',
   },
 
+  giveAllBtn: {
+    padding: '4px 10px',
+    fontSize: '11px',
+    fontWeight: '700',
+    background: '#1d4ed8',
+    border: '1px solid #2563eb',
+    borderRadius: '6px',
+    color: '#fff',
+    cursor: 'pointer',
+    whiteSpace: 'nowrap',
+  },
+  giveAllBtnBusy: {
+    background: '#1f2937',
+    border: '1px solid #374151',
+    color: '#6b7280',
+    cursor: 'not-allowed',
+  },
   muted: {
     color: '#6b7280',
     fontSize: '13px',

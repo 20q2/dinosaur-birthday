@@ -22,7 +22,7 @@ import { BossFight } from './components/BossFight.jsx';
 import { BossVictory } from './components/BossVictory.jsx';
 import { AdminPanel } from './components/AdminPanel.jsx';
 import { Profile } from './components/Profile.jsx';
-import { PartnerFloat } from './components/PartnerFloat.jsx';
+
 
 export function App() {
   const { loading, player, route } = useStore();
@@ -84,7 +84,7 @@ export function App() {
       <div style={styles.content}>
         <Screen route={route} />
       </div>
-      <PartnerFloat />
+
       {!route.startsWith('/scan/') && !isBossRoute && <BottomNav />}
     </div>
   );
