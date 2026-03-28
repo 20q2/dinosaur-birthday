@@ -4,6 +4,8 @@ import { ws } from '../ws.js';
 import { store } from '../store.js';
 import { PlazaCanvas } from './PlazaCanvas.js';
 import { TitleBar } from './TitleBar.jsx';
+import { FEED_ICONS } from '../data/icons.js';
+import { Leaf, Footprints } from 'lucide-preact';
 
 export function Plaza() {
   const canvasRef = useRef(null);
@@ -55,14 +57,12 @@ export function Plaza() {
 
   // Boss buildup — fetch persisted phase on mount, then listen for WS updates
   useEffect(() => {
-    // Check DB for current buildup phase (handles reconnect / new accounts)
     api.getBossState().then(data => {
       if (plazaRef.current && data.buildup_phase === 1) {
         plazaRef.current.setShadowPhase(true);
       }
     }).catch(() => {});
 
-    // Live updates — phase persists until admin triggers the next one
     const off = ws.on('plaza', 'buildup', (data) => {
       if (!plazaRef.current) return;
       plazaRef.current.setShadowPhase(data.phase === 1);
@@ -85,39 +85,30 @@ export function Plaza() {
 
       {partners.length === 0 && (
         <div style={styles.emptyHint}>
-          <span style={{ fontSize: '48px' }}>🦕</span>
+          <Footprints size={48} color="#4ade80" />
           <p style={{ color: '#4ade80', marginTop: '8px' }}>It's quiet in here...</p>
           <p style={{ color: '#86efac', fontSize: '13px' }}>Maybe there are some dinos hiding around the party that might want to join?</p>
         </div>
       )}
 
-      {/* Mini live feed overlay */}
       {feedEntries.length > 0 && (
         <div style={styles.feedOverlay}>
           <div style={styles.feedList}>
-            {feedEntries.map(entry => (
-              <div key={entry.id} style={styles.feedItem}>
-                <span style={styles.feedIcon}>{FEED_ICONS[entry.type] || '🌿'}</span>
-                <span style={styles.feedText}>{entry.message}</span>
-              </div>
-            ))}
+            {feedEntries.map(entry => {
+              const FeedIcon = FEED_ICONS[entry.type] || Leaf;
+              return (
+                <div key={entry.id} style={styles.feedItem}>
+                  <FeedIcon size={12} style={styles.feedIcon} />
+                  <span style={styles.feedText}>{entry.message}</span>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
-
     </div>
   );
 }
-
-const FEED_ICONS = {
-  encounter: '🦕',
-  tamed: '🎉',
-  play: '🤝',
-  levelup: '⬆️',
-  boss: '⚔️',
-  event: '🌿',
-  inspiration: '✨',
-};
 
 const styles = {
   container: {
@@ -176,7 +167,6 @@ const styles = {
     textShadow: '0 1px 3px rgba(0,0,0,0.8)',
   },
   feedIcon: {
-    fontSize: '12px',
     flexShrink: 0,
   },
   feedText: {

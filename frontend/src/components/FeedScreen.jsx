@@ -1,21 +1,13 @@
 import { useEffect, useState } from 'preact/hooks';
 import { api } from '../api.js';
 import { store } from '../store.js';
-
-const TYPE_ICONS = {
-  encounter: '🦕',
-  tamed: '🎉',
-  play: '🤝',
-  levelup: '⬆️',
-  boss: '⚔️',
-};
+import { FEED_ICONS } from '../data/icons.js';
+import { Leaf, Newspaper, Footprints } from 'lucide-preact';
 
 function relativeTime(timestamp) {
-  // timestamp is an ISO string like "2026-03-26T01:00:00"
   const now = Date.now();
   let then;
   try {
-    // Treat as UTC if no timezone suffix
     const str = timestamp.endsWith('Z') ? timestamp : timestamp + 'Z';
     then = new Date(str).getTime();
   } catch {
@@ -40,7 +32,6 @@ export function FeedScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch initial entries on mount
   useEffect(() => {
     api.getFeed()
       .then(data => {
@@ -53,19 +44,16 @@ export function FeedScreen() {
       });
   }, []);
 
-  // Merge live WebSocket entries from store
   useEffect(() => {
     const unsubscribe = store.subscribe(() => {
       const liveEntries = store.feedEntries;
       if (liveEntries.length === 0) return;
 
       setEntries(prev => {
-        // Build a set of existing ids
         const existingIds = new Set(prev.map(e => e.id));
         const newEntries = liveEntries.filter(e => e.id && !existingIds.has(e.id));
         if (newEntries.length === 0) return prev;
 
-        // Merge and sort newest first, keep top 100
         const merged = [...newEntries, ...prev];
         merged.sort((a, b) => {
           if (!a.timestamp) return 1;
@@ -83,7 +71,7 @@ export function FeedScreen() {
     return (
       <div style={styles.container}>
         <div style={styles.header}>
-          <span style={styles.headerIcon}>📰</span>
+          <Newspaper size={24} color="#4ade80" />
           <h2 style={styles.headerTitle}>Live Feed</h2>
         </div>
         <div style={styles.center}>
@@ -97,7 +85,7 @@ export function FeedScreen() {
     return (
       <div style={styles.container}>
         <div style={styles.header}>
-          <span style={styles.headerIcon}>📰</span>
+          <Newspaper size={24} color="#4ade80" />
           <h2 style={styles.headerTitle}>Live Feed</h2>
         </div>
         <div style={styles.center}>
@@ -110,29 +98,30 @@ export function FeedScreen() {
   return (
     <div style={styles.container}>
       <div style={styles.header}>
-        <span style={styles.headerIcon}>📰</span>
+        <Newspaper size={24} color="#4ade80" />
         <h2 style={styles.headerTitle}>Live Feed</h2>
       </div>
 
       {entries.length === 0 ? (
         <div style={styles.center}>
-          <span style={{ fontSize: '48px' }}>🦕</span>
+          <Footprints size={48} color="#4ade80" />
           <p style={styles.muted}>No activity yet!</p>
           <p style={{ ...styles.muted, fontSize: '13px' }}>Go scan some dinos to get things started.</p>
         </div>
       ) : (
         <ul style={styles.list}>
-          {entries.map(entry => (
-            <li key={entry.id} style={styles.item}>
-              <span style={styles.icon}>
-                {TYPE_ICONS[entry.type] || '🌿'}
-              </span>
-              <div style={styles.body}>
-                <p style={styles.message}>{entry.message}</p>
-                <p style={styles.timestamp}>{relativeTime(entry.timestamp)}</p>
-              </div>
-            </li>
-          ))}
+          {entries.map(entry => {
+            const EntryIcon = FEED_ICONS[entry.type] || Leaf;
+            return (
+              <li key={entry.id} style={styles.item}>
+                <EntryIcon size={22} style={styles.icon} />
+                <div style={styles.body}>
+                  <p style={styles.message}>{entry.message}</p>
+                  <p style={styles.timestamp}>{relativeTime(entry.timestamp)}</p>
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>
@@ -155,9 +144,6 @@ const styles = {
     borderBottom: '1px solid #1f3d1f',
     background: '#111f11',
     flexShrink: 0,
-  },
-  headerIcon: {
-    fontSize: '24px',
   },
   headerTitle: {
     margin: 0,
@@ -197,9 +183,9 @@ const styles = {
     borderBottom: '1px solid #1f3d1f',
   },
   icon: {
-    fontSize: '22px',
     flexShrink: 0,
-    lineHeight: '1.4',
+    marginTop: '2px',
+    color: '#4ade80',
   },
   body: {
     flex: 1,
