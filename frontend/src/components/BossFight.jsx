@@ -1,23 +1,30 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { api } from '../api.js';
+import { ws } from '../ws.js';
 import { store } from '../store.js';
 import { useStore } from '../router.jsx';
-import { Skull, Zap } from 'lucide-preact';
+import { Skull } from 'lucide-preact';
+import { BossFightCanvas } from './BossFightCanvas.js';
+import godzillaUrl from '../assets/sprites/godzilla.png';
 
 const TAP_THROTTLE_MS = 333; // ~3 taps/sec
 
 /**
  * BossFight — full-screen tap-to-attack boss fight screen.
- * Shows Godzilla, HP bar, player damage stat, and floating damage numbers.
+ * Shows Godzilla in a raid-style arena with all plaza dinos surrounding it.
+ * Player's tamed dinos occupy the front arc and lunge on every tap.
  */
 export function BossFight() {
   const { bossState, player, playerId } = useStore();
   const [localHp, setLocalHp] = useState(null);
   const [maxHp, setMaxHp] = useState(null);
   const [damageNumbers, setDamageNumbers] = useState([]);
-  const [shaking, setShaking] = useState(false);
+  const [plazaPartners, setPlazaPartners] = useState([]);
   const lastTapRef = useRef(0);
-  const idCounter = useRef(0);
+  const idCounter  = useRef(0);
+  const canvasRef  = useRef(null);
+  const arenaRef   = useRef(null);   // BossFightCanvas instance
+  const godzImgRef = useRef(null);   // preloaded Image
 
   // Sync HP from store
   useEffect(() => {
@@ -30,9 +37,88 @@ export function BossFight() {
   // Navigate to victory when boss is defeated
   useEffect(() => {
     if (bossState?.status === 'defeated') {
+      if (arenaRef.current) arenaRef.current.setDefeated(true);
       setTimeout(() => store.navigate('/boss/victory'), 800);
     }
   }, [bossState?.status]);
+
+  // Preload Godzilla image then mount the arena canvas
+  useEffect(() => {
+    const img = new Image();
+    img.src = godzillaUrl;
+    godzImgRef.current = img;
+
+    const init = () => {
+      if (!canvasRef.current) return;
+      const myDinos = (player?.dinos ?? [])
+        .filter(d => d.tamed)
+        .map(d => ({
+          ...d,
+          player_id:   playerId,
+          owner_name:  player?.name,
+          owner_photo: player?.photo_url,
+        }));
+
+      const arena = new BossFightCanvas(canvasRef.current, {
+        plazaDinos: [],
+        myDinos,
+        godzillaImg: img,
+      });
+      arenaRef.current = arena;
+      arena.start();
+    };
+
+    if (img.complete) {
+      init();
+    } else {
+      img.onload = init;
+    }
+
+    return () => {
+      if (arenaRef.current) { arenaRef.current.destroy(); arenaRef.current = null; }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Fetch plaza partners and listen for live updates
+  useEffect(() => {
+    api.getPlaza().then(data => {
+      const partners = data.partners || [];
+      setPlazaPartners(partners);
+      if (arenaRef.current) arenaRef.current.updatePlazaDinos(partners);
+    }).catch(() => {});
+
+    const offArrive = ws.on('plaza', 'dino_arrive', (data) => {
+      setPlazaPartners(prev => {
+        const updated = [...prev.filter(p => p.player_id !== data.player_id), data];
+        if (arenaRef.current) arenaRef.current.updatePlazaDinos(updated);
+        return updated;
+      });
+    });
+    const offLeave = ws.on('plaza', 'dino_leave', (data) => {
+      setPlazaPartners(prev => {
+        const updated = prev.filter(p => p.player_id !== data.player_id);
+        if (arenaRef.current) arenaRef.current.updatePlazaDinos(updated);
+        return updated;
+      });
+    });
+
+    return () => { offArrive(); offLeave(); };
+  }, []);
+
+  // Keep my dinos in sync when player data changes
+  useEffect(() => {
+    if (!arenaRef.current || !player) return;
+    const myDinos = (player.dinos ?? [])
+      .filter(d => d.tamed)
+      .map(d => ({
+        ...d,
+        player_id:   playerId,
+        owner_name:  player.name,
+        owner_photo: player.photo_url,
+      }));
+    arenaRef.current.updateMyDinos(myDinos);
+  }, [player, playerId]);
 
   const handleTap = async (e) => {
     const now = Date.now();
@@ -41,61 +127,55 @@ export function BossFight() {
 
     if (!playerId) return;
 
-    // Get tap coordinates for floating number
+    // Trigger attack animation immediately (before API resolves)
+    if (arenaRef.current) arenaRef.current.triggerAttack();
+
+    // Get tap coordinates for floating damage number
     const rect = e.currentTarget.getBoundingClientRect();
     const x = (e.clientX || e.touches?.[0]?.clientX || rect.width / 2) - rect.left;
     const y = (e.clientY || e.touches?.[0]?.clientY || rect.height / 2) - rect.top;
 
     try {
       const result = await api.bossTap(playerId);
-      const dmg = result.damage ?? 0;
-      const newHp = result.hp ?? 0;
+      const dmg    = result.damage ?? 0;
+      const newHp  = result.hp ?? 0;
 
-      // Update local HP immediately
       setLocalHp(newHp);
 
-      // Spawn floating damage number
       const id = ++idCounter.current;
       setDamageNumbers(prev => [...prev, { id, dmg, x, y }]);
       setTimeout(() => {
         setDamageNumbers(prev => prev.filter(n => n.id !== id));
       }, 1200);
 
-      // Screen shake on big hits (>= 20 damage)
       if (dmg >= 20) {
-        setShaking(true);
-        setTimeout(() => setShaking(false), 400);
+        if (arenaRef.current) arenaRef.current.setShaking(true);
+        setTimeout(() => {
+          if (arenaRef.current) arenaRef.current.setShaking(false);
+        }, 400);
       }
     } catch {
       // Tap failed (throttled by server or fight over), ignore
     }
   };
 
-  const hp = localHp ?? bossState?.hp ?? 0;
+  const hp  = localHp ?? bossState?.hp ?? 0;
   const max = maxHp ?? bossState?.max_hp ?? bossState?.maxHp ?? 1;
   const hpPct = Math.max(0, Math.min(100, (hp / max) * 100));
 
-  const playerDinos = player?.dinos?.filter(d => d.tamed) ?? [];
-  const totalLevels = playerDinos.reduce((sum, d) => sum + (d.level || 1), 0);
+  const playerDinos  = player?.dinos?.filter(d => d.tamed) ?? [];
+  const totalLevels  = playerDinos.reduce((sum, d) => sum + (d.level || 1), 0);
   const playerDamage = 5 + totalLevels;
 
   const isDefeated = hp <= 0 || bossState?.status === 'defeated';
 
   return (
     <div
-      style={{ ...styles.container, ...(shaking ? styles.shake : {}) }}
+      style={styles.container}
       onClick={!isDefeated ? handleTap : undefined}
       onTouchStart={!isDefeated ? handleTap : undefined}
     >
       <style>{`
-        @keyframes bossShake {
-          0%   { transform: translate(0, 0); }
-          20%  { transform: translate(-6px, -4px); }
-          40%  { transform: translate(6px, 4px); }
-          60%  { transform: translate(-6px, 4px); }
-          80%  { transform: translate(6px, -4px); }
-          100% { transform: translate(0, 0); }
-        }
         @keyframes floatUp {
           0%   { opacity: 1; transform: translateY(0) scale(1); }
           50%  { opacity: 1; transform: translateY(-40px) scale(1.2); }
@@ -106,72 +186,58 @@ export function BossFight() {
           50%  { filter: brightness(1.3); }
           100% { filter: brightness(1); }
         }
-        .boss-shake { animation: bossShake 0.4s ease-out; }
-        .dmg-float  { animation: floatUp 1.2s ease-out forwards; position: absolute; pointer-events: none; }
-        .hp-pulse   { animation: hpBarPulse 0.5s ease-in-out; }
+        .dmg-float { animation: floatUp 1.2s ease-out forwards; position: absolute; pointer-events: none; }
+        .hp-pulse  { animation: hpBarPulse 0.5s ease-in-out; }
       `}</style>
 
-      {/* Header */}
+      {/* Arena canvas — full screen */}
+      <canvas ref={canvasRef} style={styles.arenaCanvas} />
+
+      {/* Header — top overlay */}
       <div style={styles.header}>
         <div style={styles.bossTitle}>GODZILLA ATTACKS!</div>
         <div style={styles.bossSubtitle}>Tap anywhere to fight back!</div>
       </div>
 
-      {/* Boss sprite */}
-      <div style={styles.bossWrapper}>
-        <div style={styles.bossEmoji} class={shaking ? 'boss-shake' : ''}>
-          {isDefeated
-            ? <Skull style={{ width: 'clamp(80px, 25vw, 160px)', height: 'clamp(80px, 25vw, 160px)', color: '#4ade80' }} />
-            : <Zap style={{ width: 'clamp(80px, 25vw, 160px)', height: 'clamp(80px, 25vw, 160px)', color: '#ef4444' }} />
-          }
+      {/* UI overlay — HP bar, stats, tap hint at bottom */}
+      <div style={styles.uiOverlay}>
+        <div style={styles.hpSection}>
+          <div style={styles.hpLabel}>
+            <span>GODZILLA HP</span>
+            <span style={{ color: hpPct < 25 ? '#f87171' : '#4ade80' }}>
+              {hp} / {max}
+            </span>
+          </div>
+          <div style={styles.hpBarBg}>
+            <div
+              style={{
+                ...styles.hpBarFill,
+                width: `${hpPct}%`,
+                background: hpPct < 25
+                  ? 'linear-gradient(90deg, #ef4444, #f87171)'
+                  : hpPct < 50
+                    ? 'linear-gradient(90deg, #f59e0b, #fbbf24)'
+                    : 'linear-gradient(90deg, #16a34a, #4ade80)',
+              }}
+            />
+          </div>
         </div>
+        <div style={styles.statsRow}>
+          <div style={styles.statBox}>
+            <div style={styles.statValue}>{playerDamage}</div>
+            <div style={styles.statLabel}>Your DMG/tap</div>
+          </div>
+          <div style={styles.statBox}>
+            <div style={styles.statValue}>{playerDinos.length}</div>
+            <div style={styles.statLabel}>Tamed Dinos</div>
+          </div>
+          <div style={styles.statBox}>
+            <div style={styles.statValue}>{totalLevels}</div>
+            <div style={styles.statLabel}>Total Levels</div>
+          </div>
+        </div>
+        {!isDefeated && <div style={styles.tapHint}>TAP TO ATTACK!</div>}
       </div>
-
-      {/* HP Bar */}
-      <div style={styles.hpSection}>
-        <div style={styles.hpLabel}>
-          <span>GODZILLA HP</span>
-          <span style={{ color: hpPct < 25 ? '#f87171' : '#4ade80' }}>
-            {hp} / {max}
-          </span>
-        </div>
-        <div style={styles.hpBarBg}>
-          <div
-            style={{
-              ...styles.hpBarFill,
-              width: `${hpPct}%`,
-              background: hpPct < 25
-                ? 'linear-gradient(90deg, #ef4444, #f87171)'
-                : hpPct < 50
-                  ? 'linear-gradient(90deg, #f59e0b, #fbbf24)'
-                  : 'linear-gradient(90deg, #16a34a, #4ade80)',
-            }}
-          />
-        </div>
-      </div>
-
-      {/* Player stats */}
-      <div style={styles.statsRow}>
-        <div style={styles.statBox}>
-          <div style={styles.statValue}>{playerDamage}</div>
-          <div style={styles.statLabel}>Your DMG/tap</div>
-        </div>
-        <div style={styles.statBox}>
-          <div style={styles.statValue}>{playerDinos.length}</div>
-          <div style={styles.statLabel}>Tamed Dinos</div>
-        </div>
-        <div style={styles.statBox}>
-          <div style={styles.statValue}>{totalLevels}</div>
-          <div style={styles.statLabel}>Total Levels</div>
-        </div>
-      </div>
-
-      {/* Tap hint */}
-      {!isDefeated && (
-        <div style={styles.tapHint}>
-          TAP TO ATTACK!
-        </div>
-      )}
 
       {/* Defeated overlay */}
       {isDefeated && (
@@ -206,24 +272,29 @@ const styles = {
   container: {
     position: 'relative',
     width: '100%',
-    minHeight: '100dvh',
+    height: '100dvh',
     background: 'radial-gradient(ellipse at center, #1a0505 0%, #0d0d0d 100%)',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    padding: '20px 16px 100px',
-    boxSizing: 'border-box',
     userSelect: 'none',
     WebkitUserSelect: 'none',
     cursor: 'crosshair',
-    overflowX: 'hidden',
+    overflow: 'hidden',
   },
-  shake: {
-    animation: 'bossShake 0.4s ease-out',
+  arenaCanvas: {
+    position: 'absolute',
+    inset: 0,
+    width: '100%',
+    height: '100%',
+    display: 'block',
+    pointerEvents: 'none',
   },
   header: {
+    position: 'absolute',
+    top: '20px',
+    left: 0,
+    right: 0,
     textAlign: 'center',
-    marginBottom: '8px',
+    pointerEvents: 'none',
+    zIndex: 10,
   },
   bossTitle: {
     fontSize: '28px',
@@ -237,22 +308,23 @@ const styles = {
     color: '#fca5a5',
     marginTop: '4px',
   },
-  bossWrapper: {
+  uiOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: '12px 16px 24px',
     display: 'flex',
+    flexDirection: 'column',
     alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-    minHeight: '200px',
-  },
-  bossEmoji: {
-    lineHeight: 1,
-    filter: 'drop-shadow(0 0 30px rgba(255,50,50,0.6))',
-    transition: 'filter 0.2s',
+    gap: '12px',
+    background: 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 100%)',
+    pointerEvents: 'none',
+    zIndex: 10,
   },
   hpSection: {
     width: '100%',
     maxWidth: '400px',
-    marginBottom: '16px',
   },
   hpLabel: {
     display: 'flex',
@@ -278,7 +350,6 @@ const styles = {
   statsRow: {
     display: 'flex',
     gap: '12px',
-    marginBottom: '20px',
   },
   statBox: {
     background: 'rgba(255,255,255,0.07)',
