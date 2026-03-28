@@ -20,6 +20,7 @@ export function AdminDashboard() {
   // Boss start state
   const [bossStarted, setBossStarted]   = useState(false);
   const [bossStarting, setBossStarting] = useState(false);
+  const [bossStopping, setBossStopping] = useState(false);
 
   // Announce state
   const [announceMsg, setAnnounceMsg]     = useState('');
@@ -85,6 +86,21 @@ export function AdminDashboard() {
       alert(`Boss start failed: ${err.message}`);
     } finally {
       setBossStarting(false);
+    }
+  }
+
+  async function handleBossStop() {
+    if (bossStopping) return;
+    if (!confirm('Stop the boss fight? This will reset everything and send all players back to the plaza.')) return;
+    setBossStopping(true);
+    try {
+      await api.adminBossStop();
+      setBossStarted(false);
+      await fetchDashboard();
+    } catch (err) {
+      alert(`Stop boss failed: ${err.message}`);
+    } finally {
+      setBossStopping(false);
     }
   }
 
@@ -269,6 +285,19 @@ export function AdminDashboard() {
           <p style={{ ...styles.muted, color: '#4ade80', marginTop: '10px', fontWeight: 'bold' }}>
             Boss defeated!
           </p>
+        )}
+
+        {bossStarted && bossStatus === 'active' && (
+          <button
+            style={{
+              ...styles.bossStopBtn,
+              ...(bossStopping ? styles.bossStopBtnDisabled : {}),
+            }}
+            onClick={handleBossStop}
+            disabled={bossStopping}
+          >
+            {bossStopping ? 'STOPPING...' : 'STOP BOSS FIGHT'}
+          </button>
         )}
       </Section>
 
@@ -538,6 +567,26 @@ const styles = {
   },
   liveBossInfo: {
     marginTop: '14px',
+  },
+  bossStopBtn: {
+    width: '100%',
+    marginTop: '10px',
+    padding: '14px',
+    fontSize: '16px',
+    fontWeight: '700',
+    letterSpacing: '1px',
+    background: '#1a0000',
+    border: '2px solid #7f1d1d',
+    borderRadius: '12px',
+    color: '#f87171',
+    cursor: 'pointer',
+    transition: 'all 0.15s ease',
+  },
+  bossStopBtnDisabled: {
+    background: '#1f2937',
+    border: '2px solid #374151',
+    color: '#6b7280',
+    cursor: 'not-allowed',
   },
 
   // Announce
