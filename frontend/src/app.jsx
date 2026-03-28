@@ -24,7 +24,7 @@ import { Profile } from './components/Profile.jsx';
 import { PartnerFloat } from './components/PartnerFloat.jsx';
 
 export function App() {
-  const { loading, player, route } = useStore();
+  const { loading, player, route, bossState } = useStore();
 
   useEffect(() => {
     store.init();
@@ -52,7 +52,18 @@ export function App() {
       store.setBossState({ status: 'defeated', ...data });
       store.navigate('/boss/victory');
     });
+    ws.on('boss', 'boss_stopped', () => {
+      store.setBossState({ status: 'idle' });
+      store.navigate('/plaza');
+    });
   }, []);
+
+  // Hard-lock: redirect to /boss whenever a fight is active
+  useEffect(() => {
+    if (bossState?.status === 'active' && route !== '/boss' && route !== '/admin') {
+      store.navigate('/boss');
+    }
+  }, [bossState, route]);
 
   // Admin panel is a secret page — no player auth required, no nav
   if (route === '/admin') {

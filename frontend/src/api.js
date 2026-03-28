@@ -66,6 +66,9 @@ export const api = {
   adminBossStart: () =>
     request('POST', '/admin/boss/start'),
 
+  adminBossStop: () =>
+    request('POST', '/admin/boss/stop'),
+
   adminAnnounce: (message) =>
     request('POST', '/admin/announce', { message }),
 

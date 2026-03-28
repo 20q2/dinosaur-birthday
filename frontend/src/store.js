@@ -20,19 +20,19 @@ export const store = {
 
   // Initialize
   async init() {
-    if (this.playerId) {
-      try {
-        this.player = await api.getPlayer(this.playerId);
-        this.loading = false;
-        this.notify();
-      } catch {
-        this.loading = false;
-        this.notify();
-      }
-    } else {
-      this.loading = false;
-      this.notify();
+    const [playerResult, bossResult] = await Promise.allSettled([
+      this.playerId ? api.getPlayer(this.playerId) : Promise.resolve(null),
+      api.getBossState(),
+    ]);
+
+    if (playerResult.status === 'fulfilled' && playerResult.value) {
+      this.player = playerResult.value;
     }
+    if (bossResult.status === 'fulfilled' && bossResult.value) {
+      this.bossState = bossResult.value;
+    }
+    this.loading = false;
+    this.notify();
   },
 
   // Auth
