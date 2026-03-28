@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
 import { store } from '../store.js';
+import { Trophy, Crown } from 'lucide-preact';
 
 /**
  * BossVictory — victory celebration screen shown after Godzilla is defeated.
@@ -72,14 +73,14 @@ export function BossVictory() {
       {/* Content */}
       <div style={styles.content}>
         {/* Victory header */}
-        <div style={styles.victoryEmoji}>🏆</div>
+        <Trophy size={72} color="#4ade80" style={{ marginBottom: '8px' }} />
         <h1 class="victory-title fade-in-up" style={styles.victoryTitle}>
           GODZILLA<br />DEFEATED!
         </h1>
 
         {/* Hat award */}
         <div class="fade-in-up" style={{ ...styles.hatCard, animationDelay: '0.3s' }}>
-          <div class="hat-icon" style={styles.hatEmoji}>🎩</div>
+          <div class="hat-icon" style={styles.hatEmoji}><Crown size={48} color="#facc15" /></div>
           <div style={styles.hatTitle}>Hat Unlocked!</div>
           <div style={styles.hatName}>Kaiju Slayer</div>
           <div style={styles.hatDesc}>
@@ -127,10 +128,6 @@ const styles = {
     textAlign: 'center',
     maxWidth: '400px',
     width: '100%',
-  },
-  victoryEmoji: {
-    fontSize: '72px',
-    marginBottom: '8px',
   },
   victoryTitle: {
     fontSize: 'clamp(36px, 10vw, 56px)',

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { api } from '../api.js';
 import { store } from '../store.js';
 import { useStore } from '../router.jsx';
+import { Skull, Zap } from 'lucide-preact';
 
 const TAP_THROTTLE_MS = 333; // ~3 taps/sec
 
@@ -119,7 +120,10 @@ export function BossFight() {
       {/* Boss sprite */}
       <div style={styles.bossWrapper}>
         <div style={styles.bossEmoji} class={shaking ? 'boss-shake' : ''}>
-          {isDefeated ? '💀' : '🦎'}
+          {isDefeated
+            ? <Skull style={{ width: 'clamp(80px, 25vw, 160px)', height: 'clamp(80px, 25vw, 160px)', color: '#4ade80' }} />
+            : <Zap style={{ width: 'clamp(80px, 25vw, 160px)', height: 'clamp(80px, 25vw, 160px)', color: '#ef4444' }} />
+          }
         </div>
       </div>
 
@@ -241,7 +245,6 @@ const styles = {
     minHeight: '200px',
   },
   bossEmoji: {
-    fontSize: 'clamp(80px, 25vw, 160px)',
     lineHeight: 1,
     filter: 'drop-shadow(0 0 30px rgba(255,50,50,0.6))',
     transition: 'filter 0.2s',

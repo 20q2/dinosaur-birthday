@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
 import { ws } from '../ws.js';
+import { Flame, Zap } from 'lucide-preact';
 
 /**
  * BossBanner — global overlay that appears during boss buildup phases.
@@ -72,7 +73,7 @@ function TremorsOverlay() {
       `}</style>
       <div class="screen-shake" style={styles.tremorsInner}>
         <div style={styles.tremorsText}>The ground trembles...</div>
-        <div style={{ fontSize: '48px', marginTop: '16px' }}>💥</div>
+        <Flame size={48} color="#ffaa00" style={{ marginTop: '16px' }} />
       </div>
     </div>
   );
@@ -107,8 +108,8 @@ function RoarOverlay() {
       <div class="roar-bg" style={styles.roarBg} />
       <div style={styles.roarContent}>
         <div class="roar-text" style={styles.roarTextBig}>ROOOOAR!</div>
-        <div class="roar-text" style={{ ...styles.roarSubText, animationDelay: '0.3s' }}>
-          🦎 GODZILLA IS COMING! 🦎
+        <div class="roar-text" style={{ ...styles.roarSubText, animationDelay: '0.3s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+          <Zap size={28} color="#ffdd00" /> GODZILLA IS COMING! <Zap size={28} color="#ffdd00" />
         </div>
       </div>
     </div>
