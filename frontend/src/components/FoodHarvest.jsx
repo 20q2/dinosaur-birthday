@@ -68,7 +68,7 @@ export function FoodHarvest({ foodType }) {
       </div>
 
       <h2 style={styles.title}>
-        {FOOD_ICONS[foodType]} You collected {label}!
+        <img src={FOOD_IMGS[foodType]} style={{ width: '24px', height: '24px', imageRendering: 'pixelated', verticalAlign: 'middle' }} />{' '}You collected {label}!
       </h2>
 
       <p style={styles.inventoryNote}>Added to your inventory</p>

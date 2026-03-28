@@ -6,12 +6,16 @@ import bgRocks from '../assets/backgrounds/dino_find_rocks.png';
 import bgSwamp from '../assets/backgrounds/dino_find_swamp.png';
 import bgRiver from '../assets/backgrounds/dino_find_river.png';
 import bgGrass from '../assets/backgrounds/dino_find_tall_grass.png';
+import bgCave from '../assets/backgrounds/dino_find_cave.png';
+import bgCanyon from '../assets/backgrounds/dino_find_canyon.png';
 
 const BG_MAP = {
   rocks: bgRocks,
   swamp: bgSwamp,
   river: bgRiver,
   grass: bgGrass,
+  cave: bgCave,
+  canyon: bgCanyon,
 };
 
 /**
@@ -40,7 +44,7 @@ export function PartnerFloat() {
         species={partner.species}
         colors={partner.colors || {}}
         scale={1.5}
-        style={{ marginBottom: '-10px' }}
+        style={{ marginTop: '-50%', marginLeft: '15%', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.7))' }}
       />
     </div>
   );

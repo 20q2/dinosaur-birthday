@@ -12,7 +12,9 @@
       "Bash(file:*)",
       "Bash(ls:*)",
       "Bash(python -m pytest:*)",
-      "Bash(npx vite build:*)"
+      "Bash(npx vite build:*)",
+      "Bash(identify:*)",
+      "Bash(python3:*)"
     ],
     "additionalDirectories": [
       "C:\\Users\\andje\\.claude\\projects\\a--Coding-AlexBirthdayDinos\\memory"

@@ -42,7 +42,10 @@ function DinoCard({ dino }) {
           <span style={styles.dinoName}>{dino.name || speciesData.name || dino.species}</span>
           {dino.is_partner && <span style={styles.partnerBadge}>Partner</span>}
         </div>
-        <div style={styles.speciesName}>{speciesData.name || dino.species}</div>
+        <div style={styles.speciesName}>
+          {speciesData.name || dino.species}
+          {dino.gender && <span style={styles.genderIcon}>{dino.gender === 'male' ? ' ♂' : ' ♀'}</span>}
+        </div>
 
         {isTamed ? (
           <>
@@ -146,6 +149,7 @@ const styles = {
     borderRadius: '4px', padding: '1px 6px', fontWeight: 'bold',
   },
   speciesName: { fontSize: '12px', color: '#888', marginTop: '2px' },
+  genderIcon: { color: '#9ca3af' },
   levelRow: {
     display: 'flex', alignItems: 'center', gap: '8px',
     fontSize: '12px', color: '#aaa', marginTop: '4px',

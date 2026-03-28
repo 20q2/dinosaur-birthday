@@ -89,9 +89,13 @@ export function Inventory() {
   }
 
   function handlePaintRegionPick(region) {
+    setModal({ ...modal, step: 'confirm', region });
+  }
+
+  function handlePaintConfirm() {
     doAction(() =>
       api.customizeDino(store.playerId, modal.species, {
-        paint: { region, paint_id: modal.paintId },
+        paint: { region: modal.region, paint_id: modal.paintId },
       })
     );
   }
@@ -176,7 +180,7 @@ export function Inventory() {
                 onClick={() => handlePaintTap(paint.id)}
                 disabled={tamedDinos.length === 0}
               >
-                <PaintSprite hue={paint.hue} scale={2} />
+                <PaintSprite hue={paint.hue} scale={0.18} />
                 <span style={styles.paintItemName}>{paint.name}</span>
                 {paint.count > 1 && (
                   <span style={styles.paintItemCount}>x{paint.count}</span>
@@ -221,36 +225,83 @@ export function Inventory() {
             )}
 
             {/* Region picker (paint) */}
-            {modal.step === 'region' && (
-              <>
-                <div style={styles.modalTitle}>
-                  Apply {PAINT_MAP[modal.paintId]?.name} Paint
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'center' }}>
-                  <PaintSprite hue={PAINT_MAP[modal.paintId]?.hue ?? 120} scale={3} />
-                </div>
-                <div style={styles.modalDinoPreview}>
-                  <DinoSprite species={modal.species} colors={
-                    (tamedDinos.find(d => d.species === modal.species) || {}).colors || {}
-                  } scale={3} />
-                </div>
-                <div style={{ fontSize: '12px', color: '#888', textAlign: 'center' }}>
-                  Pick a region to paint
-                </div>
-                <div style={styles.regionRow}>
-                  {(SPECIES[modal.species]?.regions || []).map(r => (
+            {modal.step === 'region' && (() => {
+              const currentColors = (tamedDinos.find(d => d.species === modal.species) || {}).colors || {};
+              return (
+                <>
+                  <div style={styles.modalTitle}>
+                    Apply {PAINT_MAP[modal.paintId]?.name} Paint
+                  </div>
+                  <div style={styles.modalDinoPreview}>
+                    <DinoSprite species={modal.species} colors={currentColors} scale={3} />
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#888', textAlign: 'center' }}>
+                    Pick a region to paint
+                  </div>
+                  <div style={styles.regionRow}>
+                    {(SPECIES[modal.species]?.regions || []).map(r => (
+                      <button
+                        key={r}
+                        style={styles.regionBtn}
+                        onClick={() => handlePaintRegionPick(r)}
+                        disabled={busy}
+                      >
+                        <span style={{
+                          width: '14px', height: '14px', borderRadius: '3px',
+                          background: currentColors[r] != null
+                            ? `hsl(${currentColors[r]}, 70%, 50%)`
+                            : '#444',
+                          border: '1px solid rgba(255,255,255,0.2)',
+                          flexShrink: 0,
+                        }} />
+                        {r}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              );
+            })()}
+
+            {/* Paint preview + confirm */}
+            {modal.step === 'confirm' && (() => {
+              const currentColors = (tamedDinos.find(d => d.species === modal.species) || {}).colors || {};
+              const paintHue = PAINT_MAP[modal.paintId]?.hue ?? 120;
+              const previewColors = { ...currentColors, [modal.region]: paintHue };
+              return (
+                <>
+                  <div style={styles.modalTitle}>
+                    {PAINT_MAP[modal.paintId]?.name} on {modal.region}
+                  </div>
+                  <div style={styles.previewRow}>
+                    <div style={styles.previewCol}>
+                      <DinoSprite species={modal.species} colors={currentColors} scale={3} />
+                      <span style={styles.previewLabel}>Before</span>
+                    </div>
+                    <span style={styles.previewArrow}>→</span>
+                    <div style={styles.previewCol}>
+                      <DinoSprite species={modal.species} colors={previewColors} scale={3} />
+                      <span style={styles.previewLabel}>After</span>
+                    </div>
+                  </div>
+                  <div style={styles.regionRow}>
                     <button
-                      key={r}
-                      style={styles.regionBtn}
-                      onClick={() => handlePaintRegionPick(r)}
+                      style={{ ...styles.regionBtn, background: '#16a34a', borderColor: '#22c55e', color: '#fff' }}
+                      onClick={handlePaintConfirm}
                       disabled={busy}
                     >
-                      {r}
+                      Apply
                     </button>
-                  ))}
-                </div>
-              </>
-            )}
+                    <button
+                      style={styles.regionBtn}
+                      onClick={() => setModal({ ...modal, step: 'region' })}
+                      disabled={busy}
+                    >
+                      Back
+                    </button>
+                  </div>
+                </>
+              );
+            })()}
 
             <button style={styles.cancelBtn} onClick={() => setModal(null)} disabled={busy}>
               Cancel
@@ -343,6 +394,21 @@ const styles = {
     border: '2px solid #333', background: '#0d1117', color: '#e0e0e0',
     fontSize: '13px', cursor: 'pointer', fontWeight: 'bold', textTransform: 'capitalize',
     textAlign: 'center',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+  },
+
+  // Preview (paint confirm)
+  previewRow: {
+    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px',
+  },
+  previewCol: {
+    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
+  },
+  previewLabel: {
+    fontSize: '12px', color: '#888', fontWeight: '600',
+  },
+  previewArrow: {
+    fontSize: '24px', color: '#6366f1',
   },
 
   cancelBtn: {

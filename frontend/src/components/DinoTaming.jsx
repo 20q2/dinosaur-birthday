@@ -48,6 +48,17 @@ export function DinoTaming({ foodType, prefetchedResult }) {
     })();
   }, [foodType]);
 
+  // Default hat to party_hat (if owned) or first owned hat
+  useEffect(() => {
+    if (!tamed || selectedHat) return;
+    const ownedIds = new Set();
+    (player?.items || []).forEach(i => {
+      if (i.type === 'hat' && i.details?.hat_id) ownedIds.add(i.details.hat_id);
+    });
+    if (ownedIds.has('party_hat')) setSelectedHat('party_hat');
+    else if (ownedIds.size > 0) setSelectedHat([...ownedIds][0]);
+  }, [tamed, player]);
+
   const handleChooseSpecies = async (species) => {
     setLoading(true);
     const result = await api.scanFood(store.playerId, foodType, species);

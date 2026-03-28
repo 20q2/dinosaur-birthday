@@ -13,6 +13,8 @@ import bgRocks from '../assets/backgrounds/dino_find_rocks.png';
 import bgSwamp from '../assets/backgrounds/dino_find_swamp.png';
 import bgRiver from '../assets/backgrounds/dino_find_river.png';
 import bgGrass from '../assets/backgrounds/dino_find_tall_grass.png';
+import bgCave from '../assets/backgrounds/dino_find_cave.png';
+import bgCanyon from '../assets/backgrounds/dino_find_canyon.png';
 import meatImg from '../assets/items/meat.png';
 import berryImg from '../assets/items/berry.png';
 
@@ -32,6 +34,8 @@ const BG_OPTIONS = [
   { id: 'swamp', label: 'Swamp', color: null, img: bgSwamp },
   { id: 'river', label: 'River', color: null, img: bgRiver },
   { id: 'grass', label: 'Tall Grass', color: null, img: bgGrass },
+  { id: 'cave', label: 'Cave', color: null, img: bgCave },
+  { id: 'canyon', label: 'Canyon', color: null, img: bgCanyon },
 ];
 
 const XP_PER_LEVEL = 100;
@@ -66,6 +70,8 @@ export function DinoDetail({ species }) {
   const [renaming, setRenaming] = useState(false);
   const [nameInput, setNameInput] = useState('');
   const [showHats, setShowHats] = useState(false);
+  const [showBg, setShowBg] = useState(false);
+  const [hatPop, setHatPop] = useState(false);
   const [selectedPaint, setSelectedPaint] = useState(null); // paint_id
   const [paintRegion, setPaintRegion] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -143,6 +149,10 @@ export function DinoDetail({ species }) {
     doAction(async () => {
       await api.customizeDino(store.playerId, species, { hat: hatId });
       setShowHats(false);
+      if (hatId) {
+        setHatPop(true);
+        setTimeout(() => setHatPop(false), 400);
+      }
     });
   }
 
@@ -192,12 +202,25 @@ export function DinoDetail({ species }) {
         back="/dinos"
       />
       <div style={styles.content}>
+      <style>{`
+        @keyframes hat-pop {
+          0% { transform: scale(0) rotate(-20deg); }
+          60% { transform: scale(1.2) rotate(5deg); }
+          100% { transform: scale(1) rotate(0deg); }
+        }
+        @keyframes dino-wobble {
+          0% { transform: rotate(-2deg); }
+          50% { transform: rotate(2deg); }
+          100% { transform: rotate(-2deg); }
+        }
+      `}</style>
+
       {/* Dino portrait */}
       <div style={styles.portrait}>
-        <DinoSprite species={species} colors={previewColors} scale={4} hat={dino.tamed ? dino.hat : null} style={{ filter: 'drop-shadow(0 6px 12px rgba(0,0,0,0.6))' }} />
+        <DinoSprite species={species} colors={previewColors} scale={4} hat={dino.tamed ? dino.hat : null} style={{ filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.9)) drop-shadow(0 0 20px rgba(0,0,0,0.7))', animation: `dino-wobble 3s ease-in-out infinite${hatPop ? ', hat-pop 0.4s cubic-bezier(0.34,1.56,0.64,1)' : ''}`, transformOrigin: 'center bottom' }} />
         {dino.shiny && <div style={styles.shinyLabel}>✨ SHINY</div>}
         {!dino.tamed && <div style={styles.wildLabel}>WILD</div>}
-        {dino.is_partner && <div style={styles.partnerLabel}>Plaza Partner</div>}
+        {dino.is_partner && <div style={styles.partnerLabel}>{'\u2764\uFE0F'} Plaza Partner</div>}
       </div>
 
       {/* Name — with inline pencil to rename */}
@@ -222,24 +245,24 @@ export function DinoDetail({ species }) {
               {busy ? '...' : '\u2713'}
             </button>
             <button onClick={() => { setRenaming(false); setNameInput(''); }} style={styles.iconBtn}>
-              \u2715
+              {'\u2715'}
             </button>
           </div>
         ) : (
           <div style={styles.nameRow}>
-            <div style={styles.dinoName}>{dino.name || <em style={{ color: '#666' }}>Unnamed</em>}</div>
+            {dino.name && <div style={styles.dinoName}>{dino.name}</div>}
             {dino.tamed && (
               <button
                 onClick={() => { setRenaming(true); setNameInput(dino.name || ''); }}
                 style={styles.pencilBtn}
                 disabled={busy}
               >
-                \u270F\uFE0F
+                {'\u270F\uFE0F'}
               </button>
             )}
           </div>
         )}
-        <div style={styles.meta}>Nature: {dino.nature}</div>
+        {dino.tamed && <div style={styles.meta}>Nature: {dino.nature}</div>}
       </div>
 
       {/* Flavor text */}
@@ -278,22 +301,35 @@ export function DinoDetail({ species }) {
           {availableHats.length === 0 ? (
             <p style={{ color: '#666', fontSize: '13px' }}>No hats in inventory.</p>
           ) : (
-            availableHats.map(hat => (
+            <div style={styles.hatGrid}>
               <button
-                key={hat.id}
-                onClick={() => handleEquipHat(hat.id)}
+                onClick={() => handleEquipHat('')}
                 disabled={busy}
                 style={{
-                  ...styles.hatOption,
-                  borderColor: dino.hat === hat.id ? '#4ade80' : '#333',
+                  ...styles.hatGridItem,
+                  borderColor: !dino.hat ? '#4ade80' : '#333',
+                  background: !dino.hat ? '#0f2a1a' : '#0d1117',
                 }}
               >
-                <span>{'\uD83C\uDFA9'}</span>
-                <span style={{ flex: 1 }}>{hat.name}</span>
-                <span style={{ fontSize: '11px', color: '#888' }}>{hat.rarity}</span>
-                {dino.hat === hat.id && <span style={{ color: '#4ade80', fontSize: '12px' }}>Equipped</span>}
+                <span style={{ fontSize: '20px', color: '#666' }}>-</span>
+                <span style={styles.hatGridName}>None</span>
               </button>
-            ))
+              {availableHats.map(hat => (
+                <button
+                  key={hat.id}
+                  onClick={() => handleEquipHat(hat.id)}
+                  disabled={busy}
+                  style={{
+                    ...styles.hatGridItem,
+                    borderColor: dino.hat === hat.id ? '#4ade80' : '#333',
+                    background: dino.hat === hat.id ? '#0f2a1a' : '#0d1117',
+                  }}
+                >
+                  <span style={{ fontSize: '22px' }}>{'\uD83C\uDFA9'}</span>
+                  <span style={styles.hatGridName}>{hat.name}</span>
+                </button>
+              ))}
+            </div>
           )}
           <button onClick={() => setShowHats(false)} style={styles.ghostBtn}>Cancel</button>
         </div>
@@ -307,7 +343,7 @@ export function DinoDetail({ species }) {
       ))}
 
       {/* Background picker — tamed only */}
-      {dino.tamed && (
+      {dino.tamed && (showBg ? (
         <div style={styles.card}>
           <div style={styles.sectionTitle}>Backdrop</div>
           <div style={styles.bgRow}>
@@ -318,8 +354,9 @@ export function DinoDetail({ species }) {
                 <button
                   key={bg.id || '_default'}
                   onClick={() => {
-                    if (isSelected) return;
+                    if (isSelected) { setShowBg(false); return; }
                     doAction(() => api.customizeDino(store.playerId, species, { background: bg.id }));
+                    setShowBg(false);
                   }}
                   disabled={busy}
                   style={{
@@ -333,8 +370,18 @@ export function DinoDetail({ species }) {
               );
             })}
           </div>
+          <button onClick={() => setShowBg(false)} style={styles.ghostBtn}>Cancel</button>
         </div>
-      )}
+      ) : (
+        <div style={{ ...styles.card, cursor: 'pointer' }} onClick={() => setShowBg(true)}>
+          <div style={styles.statRow}>
+            <span style={styles.statLabel}>Backdrop</span>
+            <span style={styles.statValue}>
+              {BG_OPTIONS.find(b => b.id === (dino.background || ''))?.label || 'Default'} <span style={{ fontSize: '11px', color: '#666' }}>{'\u25B8'}</span>
+            </span>
+          </div>
+        </div>
+      ))}
 
       {/* Paint flow — tamed only */}
       {dino.tamed && hasPaints && (
@@ -344,7 +391,7 @@ export function DinoDetail({ species }) {
               Apply {PAINT_MAP[selectedPaint]?.name} Paint
             </div>
             <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <PaintSprite hue={PAINT_MAP[selectedPaint]?.hue ?? 120} scale={3} />
+              <PaintSprite hue={PAINT_MAP[selectedPaint]?.hue ?? 120} scale={1} style={{ maxWidth: '48px', maxHeight: '48px' }} />
             </div>
             <div style={{ fontSize: '12px', color: '#888', textAlign: 'center' }}>
               Pick a region to paint
@@ -401,7 +448,7 @@ export function DinoDetail({ species }) {
                     disabled={busy}
                     style={styles.paintItem}
                   >
-                    <PaintSprite hue={paintData.hue} scale={2} />
+                    <PaintSprite hue={paintData.hue} scale={1} style={{ maxWidth: '36px', maxHeight: '36px' }} />
                     <span style={styles.paintItemName}>{paintData.name}</span>
                     {count > 1 && (
                       <span style={styles.paintItemCount}>x{count}</span>
@@ -442,19 +489,29 @@ const styles = {
   center: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '70dvh', gap: '16px' },
   portrait: {
     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px',
-    padding: '24px',
+    padding: '16px 24px',
   },
-  shinyLabel: { color: '#f59e0b', fontSize: '13px', fontWeight: 'bold' },
+  shinyLabel: {
+    color: '#f59e0b', fontSize: '13px', fontWeight: 'bold',
+    background: 'rgba(0,0,0,0.5)', borderRadius: '6px', padding: '3px 10px',
+    backdropFilter: 'blur(4px)',
+  },
   wildLabel: {
     fontSize: '11px', fontWeight: '900', letterSpacing: '2px',
     color: '#f97316', background: 'rgba(0,0,0,0.5)',
     borderRadius: '6px', padding: '3px 10px',
+    backdropFilter: 'blur(4px)',
   },
   partnerLabel: {
-    fontSize: '12px', background: '#166534', color: '#4ade80',
+    fontSize: '12px', background: 'rgba(22,101,52,0.85)', color: '#4ade80',
     borderRadius: '6px', padding: '3px 10px', fontWeight: 'bold',
+    backdropFilter: 'blur(4px)',
   },
-  section: { textAlign: 'center' },
+  section: {
+    textAlign: 'center',
+    background: 'rgba(0,0,0,0.45)', borderRadius: '10px', padding: '8px 14px',
+    backdropFilter: 'blur(4px)',
+  },
   nameRow: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' },
   dinoName: { fontSize: '22px', fontWeight: 'bold', color: '#e0e0e0' },
   pencilBtn: {
@@ -465,16 +522,18 @@ const styles = {
     background: '#16213e', border: '1px solid #333', borderRadius: '8px',
     color: '#e0e0e0', fontSize: '16px', padding: '8px 12px', cursor: 'pointer',
   },
-  meta: { fontSize: '13px', color: '#888', marginTop: '4px' },
+  meta: { fontSize: '13px', color: '#9ca3af', marginTop: '4px' },
   flavor: {
-    color: '#a78bfa', fontSize: '13px', fontStyle: 'italic',
-    textAlign: 'center', padding: '0 8px',
+    color: '#c4b5fd', fontSize: '13px', fontStyle: 'italic',
+    textAlign: 'center', padding: '10px 16px',
+    background: 'rgba(0,0,0,0.55)', borderRadius: '10px',
+    backdropFilter: 'blur(4px)',
   },
   card: {
     background: '#16213e', borderRadius: '12px', padding: '14px',
     display: 'flex', flexDirection: 'column', gap: '8px',
   },
-  sectionTitle: { fontSize: '13px', color: '#888', fontWeight: 'bold', textTransform: 'uppercase' },
+  sectionTitle: { fontSize: '14px', color: '#e0e0e0', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' },
   statRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   statLabel: { fontSize: '13px', color: '#888' },
   statValue: { fontSize: '14px', color: '#e0e0e0', fontWeight: 'bold' },
@@ -502,11 +561,17 @@ const styles = {
     background: 'none', color: '#aaa', fontSize: '14px',
     cursor: 'pointer', width: '100%',
   },
-  hatOption: {
-    display: 'flex', alignItems: 'center', gap: '10px',
-    padding: '12px', borderRadius: '8px', border: '2px solid #333',
-    background: '#0d1117', color: '#e0e0e0', fontSize: '14px',
-    cursor: 'pointer', width: '100%',
+  hatGrid: {
+    display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px',
+  },
+  hatGridItem: {
+    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
+    padding: '12px 6px', borderRadius: '10px', border: '2px solid #333',
+    cursor: 'pointer', minWidth: 0,
+  },
+  hatGridName: {
+    fontSize: '11px', color: '#aaa', lineHeight: 1.2, textAlign: 'center',
+    wordBreak: 'break-word',
   },
   regionRow: { display: 'flex', gap: '6px' },
   regionBtn: {
@@ -543,11 +608,19 @@ const styles = {
     color: '#4ade80', fontSize: '18px', fontWeight: 'bold',
     textShadow: '0 1px 3px rgba(0,0,0,0.8)',
   },
-  partnerNote: { textAlign: 'center', color: '#4ade80', fontSize: '13px' },
+  partnerNote: {
+    textAlign: 'center', color: '#4ade80', fontSize: '13px',
+    background: 'rgba(0,0,0,0.45)', borderRadius: '10px', padding: '8px 14px',
+    backdropFilter: 'blur(4px)',
+  },
   untamedNote: {
     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-    background: '#1a1a2e', borderRadius: '10px', padding: '14px',
-    color: '#f59e0b', fontSize: '14px',
+    background: 'rgba(13,17,23,0.92)', borderRadius: '12px 12px 0 0',
+    padding: '16px 20px',
+    color: '#f59e0b', fontSize: '14px', fontWeight: '600',
+    position: 'fixed', bottom: '60px', left: 0, right: 0,
+    zIndex: 5, backdropFilter: 'blur(8px)',
+    borderBottom: '2px solid rgba(245,158,11,0.3)',
   },
   untamedFoodImg: { width: '24px', height: '24px', imageRendering: 'pixelated' },
 };

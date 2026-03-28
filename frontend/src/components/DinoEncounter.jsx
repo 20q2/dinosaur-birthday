@@ -153,7 +153,7 @@ const styles = {
   },
   container: {
     display: 'flex', flexDirection: 'column', alignItems: 'center',
-    padding: '20px 20px 32px', gap: '12px', minHeight: '100dvh',
+    padding: '24px 20px 80px', gap: '8px', minHeight: '100dvh',
     background: 'linear-gradient(180deg, #0f1a0f 0%, #111 40%)',
   },
 
@@ -172,9 +172,10 @@ const styles = {
   // Sprite
   spriteShowcase: {
     position: 'relative',
-    width: '160px', height: '160px',
+    width: '180px', height: '180px',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    margin: '8px 0',
+    margin: '0',
+    overflow: 'visible',
   },
   spriteGlow: {
     position: 'absolute', inset: '-20px',
@@ -189,10 +190,13 @@ const styles = {
 
   // Name
   nameSection: {
-    display: 'flex', alignItems: 'center', gap: '10px',
+    display: 'flex', alignItems: 'center', gap: '8px',
+    justifyContent: 'center', flexWrap: 'wrap',
+    maxWidth: '320px',
   },
   dinoName: {
-    margin: 0, fontSize: '28px', fontWeight: '800', color: '#f0fdf4',
+    margin: 0, fontSize: '24px', fontWeight: '800', color: '#f0fdf4',
+    textAlign: 'center', wordBreak: 'break-word',
   },
   genderIcon: {
     fontSize: '22px', color: '#9ca3af', fontWeight: '600',
@@ -231,7 +235,7 @@ const styles = {
     padding: '16px', borderRadius: '14px',
     background: 'rgba(255,255,255,0.04)',
     border: '1px solid',
-    marginTop: '4px',
+    marginTop: '2px',
   },
   questHeader: {
     display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px',
