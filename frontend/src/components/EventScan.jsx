@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'preact/hooks';
 import { store } from '../store.js';
 import { api } from '../api.js';
+import { EVENT_ICONS } from '../data/icons.js';
+import { PartyPopper, Crown } from 'lucide-preact';
 
 const EVENT_LABELS = {
   cooking_pot: 'Cooking Pot',
@@ -8,14 +10,6 @@ const EVENT_LABELS = {
   photo_booth: 'Photo Booth',
   cake_table: 'Cake Table',
   mystery_chest: 'Mystery Chest',
-};
-
-const EVENT_ICONS = {
-  cooking_pot: '🍲',
-  dance_floor: '💃',
-  photo_booth: '📸',
-  cake_table: '🎂',
-  mystery_chest: '🎁',
 };
 
 export function EventScan({ eventType }) {
@@ -44,7 +38,6 @@ export function EventScan({ eventType }) {
       await api.scanEvent(store.playerId, eventType, description.trim());
       setDescSent(true);
     } catch {
-      // already_claimed is fine — description was just a flavor note
       setDescSent(true);
     }
   };
@@ -63,12 +56,12 @@ export function EventScan({ eventType }) {
   }
 
   const label = EVENT_LABELS[eventType] || eventType;
-  const icon = EVENT_ICONS[eventType] || '🎉';
+  const EventIcon = EVENT_ICONS[eventType] || PartyPopper;
 
   if (result?.already_claimed) {
     return (
       <div style={styles.container}>
-        <div style={styles.iconBox}><span style={{ fontSize: '56px' }}>{icon}</span></div>
+        <div style={styles.iconBox}><EventIcon size={56} /></div>
         <h2 style={styles.title}>{label}</h2>
         <div style={styles.pill}>Already Claimed</div>
         <p style={{ color: '#888', textAlign: 'center', fontSize: '14px' }}>
@@ -82,7 +75,7 @@ export function EventScan({ eventType }) {
   return (
     <div style={styles.container}>
       <div style={styles.header}>PARTY EVENT!</div>
-      <div style={styles.iconBox}><span style={{ fontSize: '56px' }}>{icon}</span></div>
+      <div style={styles.iconBox}><EventIcon size={56} /></div>
       <h2 style={styles.title}>{label}</h2>
 
       <div style={styles.rewardBox}>
@@ -101,8 +94,8 @@ export function EventScan({ eventType }) {
         {result?.item && (
           <div style={styles.rewardRow}>
             <span>Item Found</span>
-            <span style={{ color: '#4ade80', fontSize: '13px' }}>
-              🎩 {result.item.name}
+            <span style={{ color: '#4ade80', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <Crown size={14} /> {result.item.name}
             </span>
           </div>
         )}
@@ -153,6 +146,7 @@ const styles = {
   iconBox: {
     width: '100px', height: '100px', background: '#1a2e1a', borderRadius: '16px',
     display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '4px 0',
+    color: '#4ade80',
   },
   title: { margin: 0, fontSize: '22px' },
   pill: {
