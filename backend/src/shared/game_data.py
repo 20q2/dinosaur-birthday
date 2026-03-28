@@ -126,16 +126,31 @@ def random_colors(regions, shiny=False):
             colors[region] = random.randint(chosen[0], chosen[1])
         return colors
     else:
-        # Normal: earthy natural tones
-        earthy_ranges = [
-            (75, 150),   # greens (forest, lime, olive)
-            (25, 50),    # browns / tans
-            (50, 80),    # olive / yellow-green
-            (150, 170),  # muted teal-green
+        # Natural colors per region role:
+        # Primary (body): greens, browns, grey-greens — typical lizard/reptile body
+        primary_ranges = [
+            (80, 135),   # greens (forest, olive, lime)
+            (80, 135),   # greens (double weight — most common)
+            (30, 55),    # browns / warm earth
+            (140, 160),  # muted teal-green
         ]
+        # Secondary (belly/sail/frill): yellowish to brownish underbelly tones
+        belly_ranges = [
+            (30, 55),    # tan / sandy brown
+            (40, 60),    # golden / warm yellow
+            (25, 45),    # warm brown / khaki
+        ]
+        # Tertiary (stripes/spots/details): varied but natural
+        accent_ranges = [
+            (75, 140),   # greens
+            (30, 60),    # browns / olive
+            (140, 160),  # teal-green
+        ]
+        pool = [primary_ranges, belly_ranges, accent_ranges]
         colors = {}
-        for region in regions:
-            chosen = random.choice(earthy_ranges)
+        for i, region in enumerate(regions):
+            ranges = pool[min(i, len(pool) - 1)]
+            chosen = random.choice(ranges)
             colors[region] = random.randint(chosen[0], chosen[1])
         return colors
 

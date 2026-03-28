@@ -1,5 +1,6 @@
 import { getRecolored, getPlazaBackground } from '../utils/spriteEngine.js';
 import { SPECIES } from '../data/species.js';
+import { getHatImage, getHatAnchor } from '../data/hatImages.js';
 
 const BASE_SPRITE_SCALE = 1.25;
 const SCALE_MIN = 1.0;
@@ -35,6 +36,7 @@ export class PlazaCanvas {
     this.partners = partners;
     this.onSelect = onSelect;
     this.dinos = [];
+    this.particles = [];
     this.rafId = null;
     this.startTime = performance.now();
     this.lastTs = this.startTime;
@@ -44,6 +46,13 @@ export class PlazaCanvas {
     this.camX = 0;
     this.camY = 0;
     this.zoom = 1;
+
+    // Shadow phase overlay (boss buildup phase 1) — pulses on/off
+    this.shadowAlpha = 0;
+    this.shadowTarget = 0;
+    this.shadowFadeSpeed = 1.5; // alpha per second
+    this.shadowActive = false;
+    this.shadowPulseTimer = 0;  // countdown to next pulse toggle
 
     this._initDinos();
     this._resize();
@@ -320,8 +329,57 @@ export class PlazaCanvas {
 
         // Face direction
         d.facingLeft = Math.cos(d.heading) < 0;
+
+        // Spawn dust particles behind the dino
+        const isSprint = d.state === 'sprinting';
+        const spawnRate = isSprint ? 0.55 : 0.3; // particles per frame chance
+        if (Math.random() < spawnRate) {
+          const footY = d.worldY + (d.spriteCanvas ? d.spriteCanvas.height * BASE_SPRITE_SCALE * d.scale * 0.35 : 10);
+          // Opposite of heading + some spread
+          const backAngle = d.heading + Math.PI + (Math.random() - 0.5) * 2.4;
+          const offsetDist = 8 + Math.random() * 14;
+          const ttl = 0.4 + Math.random() * 0.4;
+          this.particles.push({
+            x: d.worldX + Math.cos(backAngle) * offsetDist,
+            y: footY + Math.sin(backAngle) * offsetDist * 0.5,
+            vx: Math.cos(backAngle) * (18 + Math.random() * 25),
+            vy: -(2 + Math.random() * 10),
+            life: ttl,
+            maxLife: ttl,
+            size: isSprint ? 5 + Math.random() * 4 : 3 + Math.random() * 3,
+          });
+        }
         break;
       }
+    }
+  }
+
+  _updateParticles(dt) {
+    for (let i = this.particles.length - 1; i >= 0; i--) {
+      const p = this.particles[i];
+      p.life -= dt;
+      if (p.life <= 0) {
+        this.particles.splice(i, 1);
+        continue;
+      }
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vx *= 0.92; // drag
+      p.vy *= 0.92;
+    }
+  }
+
+  _drawParticles() {
+    const ctx = this.ctx;
+    for (const p of this.particles) {
+      const alpha = (p.life / p.maxLife) * 0.6;
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = '#b5b0a8';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
     }
   }
 
@@ -340,6 +398,19 @@ export class PlazaCanvas {
       const prev = partner.player_id && existing.get(partner.player_id);
       return this._buildDinoData(partner, i, maxLevel, prev || null);
     });
+  }
+
+  // ── Shadow phase (boss buildup) ─────────────────────────────────────────
+
+  setShadowPhase(active) {
+    this.shadowActive = active;
+    if (active) {
+      this.shadowTarget = 0.55;
+      this.shadowPulseTimer = 1.5 + Math.random() * 2;
+    } else {
+      this.shadowTarget = 0;
+      this.shadowPulseTimer = 0;
+    }
   }
 
   // ── Start / Stop ──────────────────────────────────────────────────────────
@@ -419,9 +490,34 @@ export class PlazaCanvas {
       ctx.fillRect(0, 0, WORLD_W, WORLD_H);
     }
 
+    // ── Shadow overlay (boss phase 1: pulses darkness over bg, dinos stay bright)
+    if (this.shadowActive) {
+      this.shadowPulseTimer -= dt;
+      if (this.shadowPulseTimer <= 0) {
+        // Toggle between dark and dim
+        this.shadowTarget = this.shadowTarget > 0.3 ? (0.1 + Math.random() * 0.15) : (0.45 + Math.random() * 0.15);
+        this.shadowPulseTimer = 1.0 + Math.random() * 2.5;
+      }
+    }
+    if (this.shadowAlpha !== this.shadowTarget) {
+      const dir = this.shadowTarget > this.shadowAlpha ? 1 : -1;
+      this.shadowAlpha += dir * this.shadowFadeSpeed * dt;
+      if (dir > 0 && this.shadowAlpha > this.shadowTarget) this.shadowAlpha = this.shadowTarget;
+      if (dir < 0 && this.shadowAlpha < this.shadowTarget) this.shadowAlpha = this.shadowTarget;
+    }
+    if (this.shadowAlpha > 0.001) {
+      ctx.save();
+      ctx.globalAlpha = this.shadowAlpha;
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, WORLD_W, WORLD_H);
+      ctx.restore();
+    }
+
     // ── Update & Draw Dinos (Y-sorted for depth) ──────────────────────────
     this.dinos.forEach(d => this._updateDino(d, dt, elapsed));
+    this._updateParticles(dt);
     this.dinos.sort((a, b) => a.worldY - b.worldY);
+    this._drawParticles();
     this.dinos.forEach(d => this._drawDino(d, elapsed));
 
     ctx.restore();
@@ -479,18 +575,46 @@ export class PlazaCanvas {
     ctx.imageSmoothingEnabled = true;
     ctx.restore();
 
-    // Hat label above dino
+    // Hat image above dino
     if (d.partner.hat) {
-      const hatY = y - halfH + hopY - 6;
-      ctx.fillStyle = 'rgba(0,0,0,0.55)';
-      ctx.beginPath();
-      ctx.roundRect(x - 16, hatY - 5, 32, 10, 3);
-      ctx.fill();
-      ctx.fillStyle = '#e9d5ff';
-      ctx.font = 'bold 5px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(d.partner.hat.replace('_', ' '), x, hatY);
+      const hatInfo = getHatImage(d.partner.hat);
+      const hatAnchor = getHatAnchor(d.partner.species);
+
+      if (hatInfo?.loaded) {
+        const hatW = hatInfo.img.naturalWidth * drawScale;
+        const hatH = hatInfo.img.naturalHeight * drawScale;
+        const anchorDrawX = hatAnchor.x * drawScale;
+        const anchorDrawY = (hatAnchor.y + hatInfo.offsetY) * drawScale;
+
+        ctx.save();
+        ctx.imageSmoothingEnabled = false;
+        if (!d.facingLeft) {
+          ctx.translate(x, y + hopY);
+          ctx.scale(-1, 1);
+          ctx.drawImage(hatInfo.img,
+            -halfW + anchorDrawX - hatW / 2,
+            -halfH + anchorDrawY - hatH,
+            hatW, hatH);
+        } else {
+          ctx.drawImage(hatInfo.img,
+            x - halfW + anchorDrawX - hatW / 2,
+            y - halfH + hopY + anchorDrawY - hatH,
+            hatW, hatH);
+        }
+        ctx.restore();
+      } else {
+        // Fallback text label for hats without artwork
+        const labelY = y - halfH + hopY - 6;
+        ctx.fillStyle = 'rgba(0,0,0,0.55)';
+        ctx.beginPath();
+        ctx.roundRect(x - 16, labelY - 5, 32, 10, 3);
+        ctx.fill();
+        ctx.fillStyle = '#e9d5ff';
+        ctx.font = 'bold 5px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(d.partner.hat.replace('_', ' '), x, labelY);
+      }
     }
 
     // Champion crown

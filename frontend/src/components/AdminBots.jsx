@@ -1,6 +1,7 @@
 import { useState } from 'preact/hooks';
 import { api } from '../api.js';
 import { generateId } from '../utils/uuid.js';
+import { HATS } from '../data/hats.js';
 import samplePhoto from '../assets/sample/sample_profile_pic.PNG';
 
 const BOT_NAMES = ['Rex', 'Stego', 'Trike', 'Spino', 'Pachy', 'Para', 'Dilo'];
@@ -19,6 +20,10 @@ const DINO_NAMES = [
 
 function randomDinoName() {
   return DINO_NAMES[Math.floor(Math.random() * DINO_NAMES.length)];
+}
+
+function randomHat() {
+  return HATS[Math.floor(Math.random() * HATS.length)].id;
 }
 
 export function AdminBots() {
@@ -50,9 +55,10 @@ export function AdminBots() {
       await api.scanDino(id, species);
       await api.scanFood(id, food, species);
       const dinoName = randomDinoName();
-      await api.customizeDino(id, species, { name: dinoName });
+      const hat = randomHat();
+      await api.customizeDino(id, species, { name: dinoName, hat });
       await api.setPartner(id, species);
-      addLog(`${name} auto-collected ${SPECIES_NAMES[species]} and set as partner`);
+      addLog(`${name} auto-collected ${SPECIES_NAMES[species]} with ${hat} and set as partner`);
       updateBot(id, { state: 'idle', dinos: 1 });
     } catch (err) {
       addLog(`Failed to spawn bot: ${err.message}`);
@@ -75,9 +81,10 @@ export function AdminBots() {
       addLog(`${bot.name} tamed ${SPECIES_NAMES[species]}`);
 
       const dinoName = randomDinoName();
-      await api.customizeDino(bot.id, species, { name: dinoName });
+      const hat = randomHat();
+      await api.customizeDino(bot.id, species, { name: dinoName, hat });
       await api.setPartner(bot.id, species);
-      addLog(`${bot.name} set ${dinoName} as partner`);
+      addLog(`${bot.name} set ${dinoName} (${hat}) as partner`);
 
       updateBot(bot.id, { state: 'idle', dinos: (bot.dinos || 0) + 1 });
     } catch (err) {

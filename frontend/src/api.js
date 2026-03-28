@@ -57,6 +57,9 @@ export const api = {
   bossTap: (playerId) =>
     request('POST', '/boss/tap', { player_id: playerId }),
 
+  getBossState: () =>
+    request('GET', '/boss/state'),
+
   adminBossBuildup: (phase) =>
     request('POST', '/admin/boss/buildup', { phase }),
 
@@ -68,6 +71,9 @@ export const api = {
 
   adminGiveAllItems: (playerId) =>
     request('POST', '/admin/give-all-items', { player_id: playerId }),
+
+  adminGiveItem: (playerId, type, itemId) =>
+    request('POST', '/admin/give-item', { player_id: playerId, type, item_id: itemId }),
 
   adminDashboard: () =>
     request('GET', '/admin/dashboard'),

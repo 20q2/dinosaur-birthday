@@ -194,15 +194,51 @@ export function DinoDetail({ species }) {
       <div style={styles.content}>
       {/* Dino portrait */}
       <div style={styles.portrait}>
-        <DinoSprite species={species} colors={previewColors} scale={4} style={{ filter: 'drop-shadow(0 6px 12px rgba(0,0,0,0.6))' }} />
+        <DinoSprite species={species} colors={previewColors} scale={4} hat={dino.tamed ? dino.hat : null} style={{ filter: 'drop-shadow(0 6px 12px rgba(0,0,0,0.6))' }} />
         {dino.shiny && <div style={styles.shinyLabel}>✨ SHINY</div>}
         {!dino.tamed && <div style={styles.wildLabel}>WILD</div>}
         {dino.is_partner && <div style={styles.partnerLabel}>Plaza Partner</div>}
       </div>
 
-      {/* Name */}
+      {/* Name — with inline pencil to rename */}
       <div style={styles.section}>
-        <div style={styles.dinoName}>{dino.name || <em style={{ color: '#666' }}>Unnamed</em>}</div>
+        {dino.tamed && renaming ? (
+          <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+            <input
+              type="text"
+              placeholder="New name..."
+              value={nameInput}
+              onInput={e => setNameInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleRenameSubmit()}
+              maxLength={16}
+              style={{ ...styles.input, width: 'auto', flex: 1, maxWidth: '200px', textAlign: 'center' }}
+              autoFocus
+            />
+            <button
+              onClick={handleRenameSubmit}
+              disabled={busy || !nameInput.trim()}
+              style={{ ...styles.iconBtn, opacity: nameInput.trim() ? 1 : 0.5 }}
+            >
+              {busy ? '...' : '\u2713'}
+            </button>
+            <button onClick={() => { setRenaming(false); setNameInput(''); }} style={styles.iconBtn}>
+              \u2715
+            </button>
+          </div>
+        ) : (
+          <div style={styles.nameRow}>
+            <div style={styles.dinoName}>{dino.name || <em style={{ color: '#666' }}>Unnamed</em>}</div>
+            {dino.tamed && (
+              <button
+                onClick={() => { setRenaming(true); setNameInput(dino.name || ''); }}
+                style={styles.pencilBtn}
+                disabled={busy}
+              >
+                \u270F\uFE0F
+              </button>
+            )}
+          </div>
+        )}
         <div style={styles.meta}>Nature: {dino.nature}</div>
       </div>
 
@@ -225,16 +261,6 @@ export function DinoDetail({ species }) {
         </div>
       )}
 
-      {/* Hat — tamed only */}
-      {dino.tamed && (
-        <div style={styles.card}>
-          <div style={styles.statRow}>
-            <span style={styles.statLabel}>Hat</span>
-            <span style={styles.statValue}>{hatData ? hatData.name : 'None'}</span>
-          </div>
-        </div>
-      )}
-
       {/* Feedback message */}
       {feedback && (
         <div style={{
@@ -245,38 +271,7 @@ export function DinoDetail({ species }) {
         </div>
       )}
 
-      {/* Rename flow — tamed only */}
-      {dino.tamed && (renaming ? (
-        <div style={styles.card}>
-          <input
-            type="text"
-            placeholder="New name..."
-            value={nameInput}
-            onInput={e => setNameInput(e.target.value)}
-            maxLength={16}
-            style={styles.input}
-            autoFocus
-          />
-          <div style={styles.btnRow}>
-            <button
-              onClick={handleRenameSubmit}
-              disabled={busy || !nameInput.trim()}
-              style={{ ...styles.btn, opacity: nameInput.trim() ? 1 : 0.5 }}
-            >
-              {busy ? '...' : 'Save Name'}
-            </button>
-            <button onClick={() => { setRenaming(false); setNameInput(''); }} style={styles.ghostBtn}>
-              Cancel
-            </button>
-          </div>
-        </div>
-      ) : (
-        <button onClick={() => { setRenaming(true); setNameInput(dino.name || ''); }} style={styles.btn} disabled={busy}>
-          Rename
-        </button>
-      ))}
-
-      {/* Hat picker flow — tamed only */}
+      {/* Hat — tamed only, tap to open picker */}
       {dino.tamed && (showHats ? (
         <div style={styles.card}>
           <div style={styles.sectionTitle}>Choose a Hat</div>
@@ -293,7 +288,7 @@ export function DinoDetail({ species }) {
                   borderColor: dino.hat === hat.id ? '#4ade80' : '#333',
                 }}
               >
-                <span>🎩</span>
+                <span>{'\uD83C\uDFA9'}</span>
                 <span style={{ flex: 1 }}>{hat.name}</span>
                 <span style={{ fontSize: '11px', color: '#888' }}>{hat.rarity}</span>
                 {dino.hat === hat.id && <span style={{ color: '#4ade80', fontSize: '12px' }}>Equipped</span>}
@@ -303,9 +298,12 @@ export function DinoDetail({ species }) {
           <button onClick={() => setShowHats(false)} style={styles.ghostBtn}>Cancel</button>
         </div>
       ) : (
-        <button onClick={() => setShowHats(true)} style={styles.btn} disabled={busy}>
-          Change Hat
-        </button>
+        <div style={{ ...styles.card, cursor: 'pointer' }} onClick={() => setShowHats(true)}>
+          <div style={styles.statRow}>
+            <span style={styles.statLabel}>Hat</span>
+            <span style={styles.statValue}>{hatData ? hatData.name : 'None'} <span style={{ fontSize: '11px', color: '#666' }}>{'\u25B8'}</span></span>
+          </div>
+        </div>
       ))}
 
       {/* Background picker — tamed only */}
@@ -313,25 +311,27 @@ export function DinoDetail({ species }) {
         <div style={styles.card}>
           <div style={styles.sectionTitle}>Backdrop</div>
           <div style={styles.bgRow}>
-            {BG_OPTIONS.map(bg => (
-              <button
-                key={bg.id}
-                onClick={() => {
-                  if (dino.background === bg.id || (!dino.background && !bg.id)) return;
-                  doAction(() => api.customizeDino(store.playerId, species, { background: bg.id }));
-                }}
-                disabled={busy}
-                style={{
-                  ...styles.bgThumb,
-                  background: bg.img ? `url(${bg.img}) center/cover` : bg.color,
-                  borderColor: (dino.background || '') === bg.id ? '#4ade80' : '#333',
-                }}
-              >
-                {(dino.background || '') === bg.id && (
-                  <span style={styles.bgCheck}>✓</span>
-                )}
-              </button>
-            ))}
+            {BG_OPTIONS.map(bg => {
+              const current = dino.background || '';
+              const isSelected = current === bg.id;
+              return (
+                <button
+                  key={bg.id || '_default'}
+                  onClick={() => {
+                    if (isSelected) return;
+                    doAction(() => api.customizeDino(store.playerId, species, { background: bg.id }));
+                  }}
+                  disabled={busy}
+                  style={{
+                    ...styles.bgThumb,
+                    background: bg.img ? `url(${bg.img}) center/cover` : bg.color,
+                    borderColor: isSelected ? '#4ade80' : '#333',
+                  }}
+                >
+                  {isSelected && <span style={styles.bgCheck}>{'\u2713'}</span>}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
@@ -455,7 +455,16 @@ const styles = {
     borderRadius: '6px', padding: '3px 10px', fontWeight: 'bold',
   },
   section: { textAlign: 'center' },
+  nameRow: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' },
   dinoName: { fontSize: '22px', fontWeight: 'bold', color: '#e0e0e0' },
+  pencilBtn: {
+    background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px',
+    padding: '4px', lineHeight: 1, opacity: 0.6,
+  },
+  iconBtn: {
+    background: '#16213e', border: '1px solid #333', borderRadius: '8px',
+    color: '#e0e0e0', fontSize: '16px', padding: '8px 12px', cursor: 'pointer',
+  },
   meta: { fontSize: '13px', color: '#888', marginTop: '4px' },
   flavor: {
     color: '#a78bfa', fontSize: '13px', fontStyle: 'italic',

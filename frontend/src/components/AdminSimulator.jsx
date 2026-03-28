@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'preact/hooks';
 import { api } from '../api.js';
 import { HATS } from '../data/hats.js';
+import { PAINTS } from '../data/paints.js';
 import { generateId } from '../utils/uuid.js';
 
 const SPECIES = ['trex', 'spinosaurus', 'dilophosaurus', 'pachycephalosaurus', 'parasaurolophus', 'triceratops', 'ankylosaurus'];
@@ -28,6 +29,8 @@ export function AdminSimulator() {
   const [triviaState, setTriviaState] = useState(null);
   const [eventType, setEventType] = useState(EVENT_TYPES[0]);
   const [noteId, setNoteId] = useState('1');
+  const [giveItemType, setGiveItemType] = useState('hat');
+  const [giveItemId, setGiveItemId] = useState(HATS[0].id);
 
   useEffect(() => { loadPlayers(); }, []);
 
@@ -225,6 +228,27 @@ export function AdminSimulator() {
           <div style={styles.section}>
             <h3 style={styles.sectionTitle}>Boss Tap</h3>
             <button style={styles.btn} onClick={() => run(() => api.bossTap(pid))} disabled={loading}>Tap Boss</button>
+          </div>
+
+          {/* Give Item */}
+          <div style={styles.section}>
+            <h3 style={styles.sectionTitle}>Give Item</h3>
+            <div style={styles.row}>
+              <select style={styles.select} value={giveItemType} onChange={e => {
+                setGiveItemType(e.target.value);
+                setGiveItemId(e.target.value === 'hat' ? HATS[0].id : PAINTS[0].id);
+              }}>
+                <option value="hat">Hat</option>
+                <option value="paint">Paint</option>
+              </select>
+              <select style={{ ...styles.select, flex: '2 1 180px' }} value={giveItemId} onChange={e => setGiveItemId(e.target.value)}>
+                {giveItemType === 'hat'
+                  ? HATS.map(h => <option key={h.id} value={h.id}>{h.name} ({h.rarity})</option>)
+                  : PAINTS.map(p => <option key={p.id} value={p.id}>{p.name}</option>)
+                }
+              </select>
+              <button style={styles.btn} onClick={() => run(() => api.adminGiveItem(pid, giveItemType, giveItemId))} disabled={loading}>Give</button>
+            </div>
           </div>
         </>
       )}

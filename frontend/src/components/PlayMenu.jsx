@@ -57,6 +57,7 @@ export function PlayMenu() {
   }, []);
 
   const recentPlays = getCooldowns().filter(p => p.expiresAt > Date.now());
+  const hasPartner = player?.dinos?.some(d => d.is_partner && d.tamed);
 
   async function handleHost() {
     setBusy(true);
@@ -102,31 +103,41 @@ export function PlayMenu() {
       <TitleBar title="Play Together" subtitle="Team up with another dino tamer!" />
 
       <div style={styles.content}>
+      {/* No partner warning */}
+      {!hasPartner && (
+        <div style={styles.hint}>
+          <span style={{ fontSize: '20px' }}>💡</span>
+          <span>Set a tamed dino as your Plaza Partner before you can play!</span>
+        </div>
+      )}
+
       {/* Host button */}
       <button
         onClick={handleHost}
-        disabled={busy}
-        style={{ ...styles.bigBtn, background: '#166534', borderColor: '#4ade80' }}
+        disabled={busy || !hasPartner}
+        style={{ ...styles.hostBtn, opacity: hasPartner ? 1 : 0.4 }}
       >
-        <span style={styles.bigBtnIcon}>🎮</span>
-        <div>
+        <div style={styles.bigBtnIconWrap}>🎮</div>
+        <div style={styles.bigBtnText}>
           <div style={styles.bigBtnLabel}>Host a Lobby</div>
           <div style={styles.bigBtnSub}>Get a code, share with a friend</div>
         </div>
+        <span style={styles.bigBtnArrow}>›</span>
       </button>
 
       {/* Join button / picker */}
       {!showJoin ? (
         <button
           onClick={() => { setShowJoin(true); setError(''); }}
-          disabled={busy}
-          style={{ ...styles.bigBtn, background: '#1e3a5f', borderColor: '#60a5fa' }}
+          disabled={busy || !hasPartner}
+          style={{ ...styles.joinBtn, opacity: hasPartner ? 1 : 0.4 }}
         >
-          <span style={styles.bigBtnIcon}>🤝</span>
-          <div>
+          <div style={styles.bigBtnIconWrap}>🤝</div>
+          <div style={styles.bigBtnText}>
             <div style={styles.bigBtnLabel}>Join a Lobby</div>
             <div style={styles.bigBtnSub}>Enter a 3-symbol code</div>
           </div>
+          <span style={styles.bigBtnArrow}>›</span>
         </button>
       ) : (
         <div style={styles.joinCard}>
@@ -137,10 +148,11 @@ export function PlayMenu() {
                 <div style={{
                   ...styles.slot,
                   borderColor: selectedSymbols[i] ? '#60a5fa' : '#333',
+                  background: selectedSymbols[i] ? '#1e293b' : '#1f2937',
                 }}>
                   {selectedSymbols[i]
                     ? <SymbolIcon sym={selectedSymbols[i]} size="28px" />
-                    : <span style={{ color: '#444' }}>?</span>}
+                    : <span style={{ color: '#444', fontSize: '20px' }}>?</span>}
                 </div>
                 <div style={styles.symbolGrid}>
                   {ALL_SYMBOLS.map(sym => (
@@ -198,13 +210,36 @@ export function PlayMenu() {
         </div>
       )}
 
-      {/* Partner dino reminder */}
-      {player && !player.dinos?.some(d => d.is_partner && d.tamed) && (
-        <div style={styles.hint}>
-          <span style={{ fontSize: '20px' }}>💡</span>
-          <span>Set a tamed dino as your Plaza Partner to earn XP from play!</span>
+      {/* How it works */}
+      <div style={styles.howSection}>
+        <div style={styles.howTitle}>How It Works</div>
+        <div style={styles.stepsContainer}>
+          <div style={styles.step}>
+            <div style={styles.stepNum}>1</div>
+            <div style={styles.stepText}>
+              <strong style={styles.stepLabel}>Pair up</strong>
+              <span style={styles.stepDesc}>One player hosts, the other joins with the symbol code</span>
+            </div>
+          </div>
+          <div style={styles.stepDivider} />
+          <div style={styles.step}>
+            <div style={styles.stepNum}>2</div>
+            <div style={styles.stepText}>
+              <strong style={styles.stepLabel}>Answer trivia</strong>
+              <span style={styles.stepDesc}>While your dinos are off playing, you both get a dino trivia question — work together to answer correctly!</span>
+            </div>
+          </div>
+          <div style={styles.stepDivider} />
+          <div style={styles.step}>
+            <div style={styles.stepNum}>3</div>
+            <div style={styles.stepText}>
+              <strong style={styles.stepLabel}>Earn rewards</strong>
+              <span style={styles.stepDesc}>Your Plaza Partner earns XP and you might get a hat drop</span>
+            </div>
+          </div>
         </div>
-      )}
+      </div>
+
       </div>
     </div>
   );
@@ -214,19 +249,39 @@ const styles = {
   page: {
     display: 'flex', flexDirection: 'column',
     paddingBottom: '80px',
+    background: 'linear-gradient(180deg, #0f1a2e 0%, #0a0f1a 40%, #0d1117 100%)',
+    minHeight: '100vh',
   },
   content: {
-    display: 'flex', flexDirection: 'column', gap: '14px',
+    display: 'flex', flexDirection: 'column', gap: '12px',
     padding: '16px',
   },
-  bigBtn: {
-    display: 'flex', alignItems: 'center', gap: '16px',
-    padding: '18px 20px', borderRadius: '14px', border: '2px solid',
+  hostBtn: {
+    display: 'flex', alignItems: 'center', gap: '14px',
+    padding: '18px 20px', borderRadius: '14px',
+    border: '1.5px solid #22633480',
+    background: 'linear-gradient(135deg, #14532d 0%, #166534 100%)',
     cursor: 'pointer', textAlign: 'left', width: '100%',
+    boxShadow: '0 2px 12px rgba(34, 197, 94, 0.08)',
   },
-  bigBtnIcon: { fontSize: '36px', flexShrink: 0 },
-  bigBtnLabel: { fontSize: '16px', fontWeight: 'bold', color: '#e0e0e0' },
-  bigBtnSub: { fontSize: '12px', color: '#888', marginTop: '2px' },
+  joinBtn: {
+    display: 'flex', alignItems: 'center', gap: '14px',
+    padding: '18px 20px', borderRadius: '14px',
+    border: '1.5px solid #1e3a5f80',
+    background: 'linear-gradient(135deg, #172554 0%, #1e3a5f 100%)',
+    cursor: 'pointer', textAlign: 'left', width: '100%',
+    boxShadow: '0 2px 12px rgba(96, 165, 250, 0.06)',
+  },
+  bigBtnIconWrap: {
+    fontSize: '32px', flexShrink: 0,
+    width: '48px', height: '48px',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    background: 'rgba(255,255,255,0.06)', borderRadius: '12px',
+  },
+  bigBtnText: { flex: 1 },
+  bigBtnLabel: { fontSize: '16px', fontWeight: 'bold', color: '#e5e7eb' },
+  bigBtnSub: { fontSize: '12px', color: '#9ca3af', marginTop: '3px' },
+  bigBtnArrow: { fontSize: '22px', color: '#4b5563', flexShrink: 0 },
   joinCard: {
     background: '#111827', border: '1.5px solid #374151', borderRadius: '14px',
     padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px',
@@ -236,8 +291,8 @@ const styles = {
   slotWrapper: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', flex: 1 },
   slot: {
     width: '52px', height: '52px', borderRadius: '10px', border: '2px solid',
-    background: '#1f2937', display: 'flex', alignItems: 'center', justifyContent: 'center',
-    fontSize: '28px',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    fontSize: '28px', transition: 'border-color 0.2s, background 0.2s',
   },
   symbolGrid: {
     display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px', width: '100%',
@@ -275,6 +330,39 @@ const styles = {
   },
   cooldownLabel: { color: '#e0e0e0' },
   cooldownTimer: { color: '#f59e0b', fontSize: '12px' },
+  howSection: {
+    background: '#0d1117', border: '1px solid #1e293b', borderRadius: '14px',
+    padding: '18px', marginTop: '4px',
+  },
+  howTitle: {
+    color: '#9ca3af', fontSize: '11px', fontWeight: 'bold',
+    textTransform: 'uppercase', letterSpacing: '1px',
+    marginBottom: '14px',
+  },
+  stepsContainer: {
+    display: 'flex', flexDirection: 'column', gap: '0',
+  },
+  step: {
+    display: 'flex', alignItems: 'flex-start', gap: '14px',
+    padding: '2px 0',
+  },
+  stepNum: {
+    width: '28px', height: '28px', borderRadius: '50%',
+    background: '#1e293b', border: '1.5px solid #334155',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    fontSize: '13px', fontWeight: 'bold', color: '#94a3b8',
+    flexShrink: 0,
+  },
+  stepText: {
+    display: 'flex', flexDirection: 'column', gap: '2px',
+    paddingTop: '3px',
+  },
+  stepLabel: { color: '#e2e8f0', fontSize: '14px' },
+  stepDesc: { color: '#64748b', fontSize: '12px', lineHeight: '1.4' },
+  stepDivider: {
+    width: '1.5px', height: '16px', background: '#1e293b',
+    marginLeft: '13px',
+  },
   hint: {
     display: 'flex', alignItems: 'center', gap: '10px',
     background: '#1a1a2e', borderRadius: '10px', padding: '14px',

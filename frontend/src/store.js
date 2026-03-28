@@ -76,6 +76,7 @@ export const store = {
 
   // Feed
   addFeedEntry(entry) {
+    if (this.feedEntries.some(e => e.id === entry.id)) return;
     this.feedEntries = [entry, ...this.feedEntries].slice(0, 100);
     this.notify();
   },

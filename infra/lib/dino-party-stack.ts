@@ -220,6 +220,7 @@ export class DinoPartyStack extends Stack {
     const bossFn = makeFn(this, 'BossFn', 'src.handlers.boss.handler');
     grantBroadcast(bossFn);
     addRoute(bossFn, 'POST', '/boss/tap');
+    addRoute(bossFn, 'GET', '/boss/state');
 
     // Plaza
     const plazaFn = makeFn(this, 'PlazaFn', 'src.handlers.plaza.handler');
@@ -238,6 +239,7 @@ export class DinoPartyStack extends Stack {
     addRoute(adminFn, 'POST', '/admin/boss/start');
     addRoute(adminFn, 'POST', '/admin/announce');
     addRoute(adminFn, 'POST', '/admin/give-all-items');
+    addRoute(adminFn, 'POST', '/admin/give-item');
     addRoute(adminFn, 'GET', '/admin/dashboard');
     addRoute(adminFn, 'DELETE', '/admin/reset');
     addRoute(adminFn, 'DELETE', '/admin/reset-all');

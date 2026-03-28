@@ -146,6 +146,20 @@ def _post_feed_entry(entry_type, message, player_id=""):
         pass
 
 
+def state_handler(event, context):
+    """GET /boss/state — Return current boss state (public)."""
+    boss = get_item("BOSS", "STATE")
+    if not boss:
+        return success({"status": "idle", "buildup_phase": 0})
+
+    return success({
+        "status": boss.get("status", "idle"),
+        "hp": _to_int(boss.get("hp", 0)),
+        "max_hp": _to_int(boss.get("max_hp", 0)),
+        "buildup_phase": _to_int(boss.get("buildup_phase", 0)),
+    })
+
+
 def handler(event, context):
     """Route boss endpoints."""
     path = event.get("resource", event.get("path", ""))
@@ -153,5 +167,8 @@ def handler(event, context):
 
     if method == "POST" and path.endswith("/tap"):
         return tap_handler(event, context)
+
+    if method == "GET" and path.endswith("/state"):
+        return state_handler(event, context)
 
     return error("Not found", 404)

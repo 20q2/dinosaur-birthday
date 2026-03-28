@@ -6,7 +6,7 @@ from decimal import Decimal
 from ..shared.db import get_item, put_item, query_pk, delete_item, get_table, get_connections_table
 from ..shared.response import success, error
 from ..shared.ws_broadcast import broadcast
-from ..shared.game_data import HATS
+from ..shared.game_data import HATS, PAINTS, PAINT_MAP
 
 
 def _to_int(val):
@@ -73,6 +73,22 @@ def buildup_handler(event, context):
         return error("phase must be 1, 2, or 3")
 
     cfg = phase_config[phase]
+
+    # Persist buildup phase in BOSS#STATE so late-joiners see the right state
+    boss = get_item("BOSS", "STATE")
+    if boss:
+        get_table().update_item(
+            Key={"PK": "BOSS", "SK": "STATE"},
+            UpdateExpression="SET buildup_phase = :bp",
+            ExpressionAttributeValues={":bp": phase},
+        )
+    else:
+        put_item({
+            "PK": "BOSS",
+            "SK": "STATE",
+            "status": "buildup",
+            "buildup_phase": phase,
+        })
 
     # Broadcast buildup event on plaza channel (global overlay)
     broadcast("plaza", "buildup", {
@@ -200,6 +216,7 @@ def dashboard_handler(event, context):
                 "hp": _to_int(boss.get("hp", 0)),
                 "max_hp": _to_int(boss.get("max_hp", 0)),
                 "status": boss.get("status", "waiting"),
+                "buildup_phase": _to_int(boss.get("buildup_phase", 0)),
             }
 
         # Build player list with dino counts
@@ -357,6 +374,53 @@ def give_all_items_handler(event, context):
     return success({"created": created, "player_id": player_id})
 
 
+def give_item_handler(event, context):
+    """POST /admin/give-item — give a player a specific hat or paint."""
+    body = json.loads(event.get("body") or "{}")
+    player_id = body.get("player_id", "").strip()
+    item_type = body.get("type", "").strip()       # "hat" or "paint"
+    item_id = body.get("item_id", "").strip()       # e.g. "cowboy_hat" or "crimson"
+
+    if not player_id:
+        return error("player_id is required")
+    if item_type not in ("hat", "paint"):
+        return error("type must be 'hat' or 'paint'")
+    if not item_id:
+        return error("item_id is required")
+
+    profile = get_item(f"PLAYER#{player_id}", "PROFILE")
+    if not profile:
+        return error("Player not found", 404)
+
+    uid = str(uuid.uuid4())[:8]
+
+    if item_type == "hat":
+        hat = next((h for h in HATS if h["id"] == item_id), None)
+        if not hat:
+            return error(f"Unknown hat: {item_id}")
+        put_item({
+            "PK": f"PLAYER#{player_id}",
+            "SK": f"ITEM#{uid}",
+            "type": "hat",
+            "name": hat["name"],
+            "details": {"hat_id": hat["id"], "rarity": hat["rarity"]},
+        })
+    else:
+        paint = PAINT_MAP.get(item_id)
+        if not paint:
+            return error(f"Unknown paint: {item_id}")
+        put_item({
+            "PK": f"PLAYER#{player_id}",
+            "SK": f"ITEM#{uid}",
+            "type": "paint",
+            "name": f"{paint['name']} Paint",
+            "details": {"paint_id": paint["id"], "hue": paint["hue"]},
+        })
+
+    player_name = profile.get("name", "Unknown")
+    return success({"item_type": item_type, "item_id": item_id, "player": player_name})
+
+
 def handler(event, context):
     """Route admin endpoints."""
     path = event.get("resource", event.get("path", ""))
@@ -371,6 +435,8 @@ def handler(event, context):
             return announce_handler(event, context)
         if path.endswith("/give-all-items"):
             return give_all_items_handler(event, context)
+        if path.endswith("/give-item"):
+            return give_item_handler(event, context)
 
     if method == "GET":
         if path.endswith("/dashboard"):

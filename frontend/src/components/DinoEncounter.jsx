@@ -76,9 +76,9 @@ export function DinoEncounter({ species }) {
 
   return (
     <div style={styles.container}>
-      {/* Dramatic header */}
+      {/* Header */}
       <div style={styles.encounterBanner}>
-        <div style={styles.encounterLabel}>WILD ENCOUNTER</div>
+        <div style={styles.encounterLabel}>DINO DISCOVERED!</div>
       </div>
 
       {/* Sprite showcase */}
@@ -89,14 +89,23 @@ export function DinoEncounter({ species }) {
         transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
       }}>
         <div style={styles.spriteGlow} />
-        <DinoSprite species={species} colors={dino.colors || {}} scale={4} />
+        <DinoSprite species={species} colors={dino.colors || {}} scale={4} style={{ marginTop: '-5px' }} />
       </div>
 
-      {/* Name + tags */}
+      {/* Name + gender icon */}
       <div style={styles.nameSection}>
         <h2 style={styles.dinoName}>{speciesData?.name || species}</h2>
-        {dino.shiny && <div style={styles.shinyBadge}>SHINY</div>}
+        <span style={styles.genderIcon}>{dino.gender === 'male' ? '♂' : '♀'}</span>
       </div>
+
+      {/* Shiny callout */}
+      {dino.shiny && (
+        <div style={styles.shinyCallout}>
+          <span style={styles.shinyStars}>✨</span>
+          <span style={styles.shinyText}>It's Shiny!</span>
+          <span style={styles.shinyStars}>✨</span>
+        </div>
+      )}
 
       <div style={styles.tagRow}>
         <span style={{
@@ -108,8 +117,6 @@ export function DinoEncounter({ species }) {
           <img src={isCarnivore ? meatImg : berryImg} style={styles.foodIcon} />
           {isCarnivore ? ' Carnivore' : ' Herbivore'}
         </span>
-        <span style={styles.traitTag}>{dino.gender}</span>
-        <span style={styles.traitTag}>{dino.nature}</span>
       </div>
 
       {/* Quest card — what to do next */}
@@ -127,6 +134,9 @@ export function DinoEncounter({ species }) {
             : 'This dino eats Mejoberries. Look for the Mejoberry QR code near the veggie platters!'}
         </p>
       </div>
+
+      {/* Hint */}
+      <p style={styles.hintText}>You can revisit this dino from your "My Dinos" tab.</p>
 
       {/* Actions */}
       <button onClick={() => store.navigate('/plaza')} style={styles.backBtn}>
@@ -184,12 +194,20 @@ const styles = {
   dinoName: {
     margin: 0, fontSize: '28px', fontWeight: '800', color: '#f0fdf4',
   },
-  shinyBadge: {
-    padding: '3px 10px', borderRadius: '10px',
-    background: 'linear-gradient(135deg, #f59e0b, #eab308)',
-    color: '#1a1a00', fontSize: '10px', fontWeight: '800',
-    letterSpacing: '1px',
+  genderIcon: {
+    fontSize: '22px', color: '#9ca3af', fontWeight: '600',
   },
+  shinyCallout: {
+    display: 'flex', alignItems: 'center', gap: '8px',
+    padding: '6px 18px', borderRadius: '14px',
+    background: 'linear-gradient(135deg, rgba(245,158,11,0.15), rgba(234,179,8,0.1))',
+    border: '1px solid rgba(245,158,11,0.3)',
+  },
+  shinyText: {
+    fontSize: '16px', fontWeight: '800', color: '#fbbf24',
+    letterSpacing: '0.5px',
+  },
+  shinyStars: { fontSize: '16px' },
 
   // Tags
   tagRow: {
@@ -225,6 +243,11 @@ const styles = {
   },
   questDesc: {
     margin: 0, fontSize: '13px', color: '#9ca3af', lineHeight: '1.5',
+  },
+
+  hintText: {
+    margin: 0, fontSize: '12px', color: '#6b7280', fontStyle: 'italic',
+    textAlign: 'center',
   },
 
   // Buttons

@@ -8,6 +8,8 @@ import { PAINT_MAP } from '../data/paints.js';
 import { DinoSprite } from './DinoSprite.jsx';
 import { PaintSprite } from './PaintSprite.jsx';
 import { TitleBar } from './TitleBar.jsx';
+import meatImg from '../assets/items/meat.png';
+import berryImg from '../assets/items/berry.png';
 
 const RARITY_COLORS = {
   common: '#9ca3af',
@@ -107,30 +109,29 @@ export function Inventory() {
         </div>
       )}
 
-      {/* My Dinos */}
+      {/* Food */}
       <div style={styles.section}>
-        <div style={styles.sectionHeader}>My Dinos</div>
-        {dinos.length === 0 ? (
-          <p style={styles.empty}>No dinos yet! Scan QR codes to find them.</p>
-        ) : (
-          <div style={styles.dinoGrid}>
-            {dinos.map(d => {
-              const sp = SPECIES[d.species] || {};
-              return (
-                <button
-                  key={d.species}
-                  style={styles.dinoCard}
-                  onClick={() => store.navigate(`/dinos/${d.species}`)}
-                >
-                  <DinoSprite species={d.species} colors={d.colors || {}} scale={2} />
-                  <span style={styles.dinoCardName}>{d.name || sp.name || d.species}</span>
-                  {!d.tamed && <span style={styles.wildBadge}>WILD</span>}
-                  {d.is_partner && <span style={styles.partnerBadge}>Partner</span>}
-                </button>
-              );
-            })}
+        <div style={styles.sectionHeader}>Food</div>
+        <div style={styles.foodRow}>
+          <div style={styles.foodCard}>
+            <img src={meatImg} style={styles.foodImg} />
+            <div style={styles.foodInfo}>
+              <span style={styles.foodName}>Meat</span>
+              <span style={styles.foodCount}>
+                {tamedDinos.filter(d => SPECIES[d.species]?.diet === 'carnivore').length} collected
+              </span>
+            </div>
           </div>
-        )}
+          <div style={styles.foodCard}>
+            <img src={berryImg} style={styles.foodImg} />
+            <div style={styles.foodInfo}>
+              <span style={styles.foodName}>Mejoberries</span>
+              <span style={styles.foodCount}>
+                {tamedDinos.filter(d => SPECIES[d.species]?.diet === 'herbivore').length} collected
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Hats */}
@@ -272,27 +273,26 @@ const styles = {
   },
   empty: { color: '#555', fontSize: '13px', margin: 0 },
 
-  // Dino grid
-  dinoGrid: {
-    display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))',
-    gap: '8px',
+  // Food
+  foodRow: {
+    display: 'flex', gap: '8px',
   },
-  dinoCard: {
-    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
-    padding: '10px 4px', borderRadius: '10px', border: '1px solid #222',
-    background: '#111', cursor: 'pointer', position: 'relative',
+  foodCard: {
+    flex: 1, display: 'flex', alignItems: 'center', gap: '10px',
+    padding: '12px', borderRadius: '10px', border: '1px solid #222',
+    background: '#111',
   },
-  dinoCardName: { fontSize: '11px', color: '#ccc', textAlign: 'center', wordBreak: 'break-word' },
-  wildBadge: {
-    position: 'absolute', top: '4px', right: '4px',
-    fontSize: '8px', fontWeight: '900', color: '#f97316',
-    background: 'rgba(0,0,0,0.6)', borderRadius: '3px', padding: '1px 4px',
-    letterSpacing: '1px',
+  foodImg: {
+    width: '32px', height: '32px', imageRendering: 'pixelated',
   },
-  partnerBadge: {
-    position: 'absolute', top: '4px', right: '4px',
-    fontSize: '8px', fontWeight: '700', color: '#4ade80',
-    background: 'rgba(0,0,0,0.6)', borderRadius: '3px', padding: '1px 4px',
+  foodInfo: {
+    display: 'flex', flexDirection: 'column', gap: '2px',
+  },
+  foodName: {
+    fontSize: '14px', color: '#e0e0e0', fontWeight: '600',
+  },
+  foodCount: {
+    fontSize: '11px', color: '#888',
   },
 
   // Item rows

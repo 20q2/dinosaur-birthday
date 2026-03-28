@@ -1,5 +1,6 @@
 import { useState, useRef } from 'preact/hooks';
 import { store } from '../store.js';
+import splashImg from '../assets/splash/splash.png';
 
 function resizeImage(file, maxSize = 200) {
   return new Promise((resolve) => {
@@ -63,108 +64,122 @@ export function Onboarding() {
 
   return (
     <div style={styles.container}>
-      <div style={styles.logo}>🦕</div>
-      <h1 style={styles.title}>DINO PARTY</h1>
-      <p style={styles.subtitle}>Alex's Birthday Bash</p>
+      {/* Splash background */}
+      <img src={splashImg} alt="" style={styles.splash} />
+      <div style={styles.overlay} />
 
-      <form onSubmit={handleSubmit} style={styles.form}>
-        {/* Photo upload — prominent and encouraged */}
-        <div style={styles.photoSection}>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            capture="user"
-            onChange={handlePhoto}
-            style={{ display: 'none' }}
-          />
-          <div
-            style={styles.photoCircle}
-            onClick={() => fileRef.current?.click()}
-          >
-            {photo ? (
-              <img src={photo} alt="Your selfie" style={styles.photoImg} />
-            ) : (
-              <div style={styles.photoPlaceholder}>
-                <span style={styles.cameraIcon}>📸</span>
-                <span style={styles.tapText}>Tap to add selfie</span>
-              </div>
+      {/* Content pinned to bottom */}
+      <div style={styles.content}>
+        <h1 style={styles.title}>Alex's Birthday Bash</h1>
+
+        <form onSubmit={handleSubmit} style={styles.form}>
+          {/* Photo upload */}
+          <div style={styles.photoSection}>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              capture="user"
+              onChange={handlePhoto}
+              style={{ display: 'none' }}
+            />
+            <div
+              style={styles.photoCircle}
+              onClick={() => fileRef.current?.click()}
+            >
+              {photo ? (
+                <img src={photo} alt="Your selfie" style={styles.photoImg} />
+              ) : (
+                <div style={styles.photoPlaceholder}>
+                  <span style={styles.cameraIcon}>📸</span>
+                  <span style={styles.tapText}>Add selfie</span>
+                </div>
+              )}
+            </div>
+            {photo && (
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                style={styles.retakeBtn}
+              >
+                Retake photo
+              </button>
             )}
           </div>
-          {!photo && (
-            <div style={styles.encourageBox}>
-              <p style={styles.encourageText}>
-                Add a selfie so other players can find you at the party!
-              </p>
-              <p style={styles.encourageSubtext}>
-                Highly recommended — it helps everyone recognize each other
-              </p>
-            </div>
+
+          <input
+            type="text"
+            placeholder="Enter your name"
+            value={name}
+            onInput={(e) => setName(e.target.value)}
+            maxLength={20}
+            style={styles.input}
+            autoFocus
+          />
+
+          {error && <p style={styles.error}>{error}</p>}
+
+          <button
+            type="submit"
+            disabled={loading || !name.trim()}
+            style={{
+              ...styles.button,
+              opacity: loading || !name.trim() ? 0.5 : 1,
+            }}
+          >
+            {loading ? 'Joining...' : 'JOIN THE PARTY'}
+          </button>
+
+          {!photo && name.trim() && (
+            <p style={styles.photoReminder}>
+              Don't forget to add your selfie above!
+            </p>
           )}
-          {photo && (
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              style={styles.retakeBtn}
-            >
-              Retake photo
-            </button>
-          )}
-        </div>
-
-        <input
-          type="text"
-          placeholder="Enter your name"
-          value={name}
-          onInput={(e) => setName(e.target.value)}
-          maxLength={20}
-          style={styles.input}
-          autoFocus
-        />
-
-        {error && <p style={styles.error}>{error}</p>}
-
-        <button
-          type="submit"
-          disabled={loading || !name.trim()}
-          style={{
-            ...styles.button,
-            opacity: loading || !name.trim() ? 0.5 : 1,
-          }}
-        >
-          {loading ? 'Joining...' : 'JOIN THE PARTY'}
-        </button>
-
-        {!photo && name.trim() && (
-          <p style={styles.photoReminder}>
-            Don't forget to add your selfie above!
-          </p>
-        )}
-      </form>
+        </form>
+      </div>
     </div>
   );
 }
 
 const styles = {
   container: {
-    display: 'flex', flexDirection: 'column', alignItems: 'center',
-    justifyContent: 'center', minHeight: '100dvh', padding: '20px',
+    position: 'relative',
+    minHeight: '100dvh',
+    display: 'flex', flexDirection: 'column',
+    overflow: 'hidden',
   },
-  logo: { fontSize: '64px', marginBottom: '16px' },
-  title: { fontSize: '24px', fontWeight: 'bold', marginBottom: '6px' },
-  subtitle: { color: '#888', fontSize: '14px', marginBottom: '32px' },
-  form: { width: '100%', maxWidth: '300px', display: 'flex', flexDirection: 'column', gap: '16px' },
+  splash: {
+    position: 'absolute', top: 0, left: 0,
+    width: '100%', height: '100%',
+    objectFit: 'cover', objectPosition: 'center top',
+  },
+  overlay: {
+    position: 'absolute', top: 0, left: 0,
+    width: '100%', height: '100%',
+    background: 'linear-gradient(to bottom, transparent 30%, rgba(0,0,0,0.7) 65%, rgba(0,0,0,0.92) 100%)',
+  },
+  content: {
+    position: 'relative', zIndex: 1,
+    marginTop: 'auto',
+    padding: '20px 20px 32px',
+    display: 'flex', flexDirection: 'column', alignItems: 'center',
+  },
+  title: {
+    fontSize: '20px', fontWeight: 'bold', marginBottom: '16px',
+    color: '#fff', textShadow: '0 2px 8px rgba(0,0,0,0.6)',
+  },
+  form: { width: '100%', maxWidth: '300px', display: 'flex', flexDirection: 'column', gap: '14px' },
 
   // Photo section
   photoSection: {
-    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px',
+    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px',
   },
   photoCircle: {
-    width: '120px', height: '120px', borderRadius: '50%',
-    border: '3px dashed #6366f1', overflow: 'hidden',
+    width: '100px', height: '100px', borderRadius: '50%',
+    border: '3px dashed rgba(255,255,255,0.5)', overflow: 'hidden',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    cursor: 'pointer', background: '#1a1a2e',
-    transition: 'border-color 0.2s, transform 0.15s',
+    cursor: 'pointer', background: 'rgba(0,0,0,0.4)',
+    backdropFilter: 'blur(4px)',
   },
   photoImg: {
     width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%',
@@ -172,35 +187,25 @@ const styles = {
   photoPlaceholder: {
     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
   },
-  cameraIcon: { fontSize: '32px' },
-  tapText: { fontSize: '11px', color: '#6366f1', fontWeight: 'bold' },
-  encourageBox: {
-    background: '#1a1a2e', borderRadius: '8px', padding: '10px 14px',
-    border: '1px solid #6366f1', textAlign: 'center',
-  },
-  encourageText: {
-    margin: '0 0 4px', fontSize: '13px', color: '#e0e0e0', fontWeight: '600',
-  },
-  encourageSubtext: {
-    margin: 0, fontSize: '11px', color: '#888', fontStyle: 'italic',
-  },
+  cameraIcon: { fontSize: '28px' },
+  tapText: { fontSize: '11px', color: '#ccc', fontWeight: 'bold' },
   retakeBtn: {
-    background: 'none', border: 'none', color: '#6366f1',
+    background: 'none', border: 'none', color: '#a5b4fc',
     fontSize: '12px', cursor: 'pointer', textDecoration: 'underline',
   },
   photoReminder: {
     color: '#f59e0b', fontSize: '12px', textAlign: 'center',
     margin: '0', fontWeight: '600',
-    animation: 'pulse 2s ease-in-out infinite',
   },
 
   input: {
-    padding: '14px', borderRadius: '8px', border: '1px solid #333',
-    background: '#1a1a2e', color: '#e0e0e0', fontSize: '16px',
+    padding: '14px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.15)',
+    background: 'rgba(0,0,0,0.4)', color: '#e0e0e0', fontSize: '16px',
     outline: 'none', textAlign: 'center',
+    backdropFilter: 'blur(4px)',
   },
   button: {
-    padding: '14px', borderRadius: '8px', border: 'none',
+    padding: '14px', borderRadius: '10px', border: 'none',
     background: '#6366f1', color: 'white', fontSize: '16px',
     fontWeight: 'bold', cursor: 'pointer',
   },

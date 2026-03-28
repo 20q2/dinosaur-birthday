@@ -53,6 +53,23 @@ export function Plaza() {
     return () => { offArrive(); offLeave(); };
   }, []);
 
+  // Boss buildup — fetch persisted phase on mount, then listen for WS updates
+  useEffect(() => {
+    // Check DB for current buildup phase (handles reconnect / new accounts)
+    api.getBossState().then(data => {
+      if (plazaRef.current && data.buildup_phase === 1) {
+        plazaRef.current.setShadowPhase(true);
+      }
+    }).catch(() => {});
+
+    // Live updates — phase persists until admin triggers the next one
+    const off = ws.on('plaza', 'buildup', (data) => {
+      if (!plazaRef.current) return;
+      plazaRef.current.setShadowPhase(data.phase === 1);
+    });
+    return () => off();
+  }, []);
+
   // Subscribe to live feed entries from store
   useEffect(() => {
     const unsub = store.subscribe(() => {
@@ -69,8 +86,8 @@ export function Plaza() {
       {partners.length === 0 && (
         <div style={styles.emptyHint}>
           <span style={{ fontSize: '48px' }}>🦕</span>
-          <p style={{ color: '#4ade80', marginTop: '8px' }}>No dinos here yet!</p>
-          <p style={{ color: '#86efac', fontSize: '13px' }}>Set a partner dino to appear in the plaza.</p>
+          <p style={{ color: '#4ade80', marginTop: '8px' }}>It's quiet in here...</p>
+          <p style={{ color: '#86efac', fontSize: '13px' }}>Maybe there are some dinos hiding around the party that might want to join?</p>
         </div>
       )}
 
@@ -125,6 +142,12 @@ const styles = {
     transform: 'translate(-50%, -50%)',
     textAlign: 'center',
     pointerEvents: 'none',
+    background: 'rgba(0,0,0,0.65)',
+    backdropFilter: 'blur(4px)',
+    borderRadius: '16px',
+    padding: '20px 24px',
+    maxWidth: '320px',
+    width: '85%',
   },
   feedOverlay: {
     position: 'absolute',

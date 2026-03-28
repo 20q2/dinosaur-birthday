@@ -39,7 +39,8 @@ export function PartnerFloat() {
       <DinoSprite
         species={partner.species}
         colors={partner.colors || {}}
-        scale={2}
+        scale={1.5}
+        style={{ marginBottom: '-10px' }}
       />
     </div>
   );
@@ -51,8 +52,8 @@ const styles = {
     bottom: '76px',
     right: '12px',
     zIndex: 20,
-    width: '72px',
-    height: '72px',
+    width: '88px',
+    height: '88px',
     borderRadius: '14px',
     border: '2px solid #333',
     display: 'flex',

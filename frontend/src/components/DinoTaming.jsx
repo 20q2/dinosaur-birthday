@@ -1,21 +1,35 @@
 import { useState, useEffect } from 'preact/hooks';
 import { store } from '../store.js';
+import { useStore } from '../router.jsx';
 import { api } from '../api.js';
 import { SPECIES } from '../data/species.js';
-import { STARTER_HATS } from '../data/hats.js';
+import { HAT_MAP } from '../data/hats.js';
 import { DinoSprite } from './DinoSprite.jsx';
 import meatImg from '../assets/items/meat.png';
 import berryImg from '../assets/items/berry.png';
 
-export function DinoTaming({ foodType }) {
+export function DinoTaming({ foodType, prefetchedResult }) {
+  const { player } = useStore();
   const [untamed, setUntamed] = useState([]);
   const [selectedSpecies, setSelectedSpecies] = useState(null);
   const [tamed, setTamed] = useState(false);
   const [name, setName] = useState('');
-  const [selectedHat, setSelectedHat] = useState(STARTER_HATS[0]?.id || '');
-  const [loading, setLoading] = useState(true);
+  const [selectedHat, setSelectedHat] = useState('');
+  const [loading, setLoading] = useState(!prefetchedResult);
 
   useEffect(() => {
+    // If we got pre-fetched data from FoodHarvest, use it directly
+    if (prefetchedResult) {
+      if (prefetchedResult.choose_species) {
+        setUntamed(prefetchedResult.untamed);
+      } else if (prefetchedResult.tamed) {
+        setTamed(true);
+        setSelectedSpecies(prefetchedResult.species);
+      } else if (prefetchedResult.already_tamed) {
+        store.navigate('/dinos');
+      }
+      return;
+    }
     (async () => {
       try {
         const result = await api.scanFood(store.playerId, foodType, null);
@@ -77,12 +91,28 @@ export function DinoTaming({ foodType }) {
   // Name and hat selection
   if (tamed) {
     const speciesData = SPECIES[selectedSpecies];
+    const dino = player?.dinos?.find(d => d.species === selectedSpecies);
+    const dinoColors = dino?.colors || {};
+
+    // Deduplicate owned hats from inventory
+    const ownedHatIds = new Set();
+    (player?.items || []).forEach(i => {
+      if (i.type === 'hat' && i.details?.hat_id) ownedHatIds.add(i.details.hat_id);
+    });
+    const ownedHats = [...ownedHatIds].map(id => HAT_MAP[id]).filter(Boolean);
+
     return (
       <div style={styles.page}>
         <div style={styles.banner}>TAMING TIME</div>
 
         <div style={styles.spriteArea}>
-          <DinoSprite species={selectedSpecies} colors={{}} scale={4} />
+          <div style={styles.spriteGlow} />
+          <DinoSprite
+            species={selectedSpecies}
+            colors={dinoColors}
+            scale={4}
+            hat={selectedHat || null}
+          />
         </div>
 
         <h2 style={styles.dinoName}>{speciesData?.name}</h2>
@@ -90,6 +120,10 @@ export function DinoTaming({ foodType }) {
           <img src={foodType === 'meat' ? meatImg : berryImg} style={styles.munchFoodImg} />
           {' '}Munching on {foodType === 'meat' ? 'Meat' : 'Mejoberries'}...
         </div>
+
+        {speciesData?.flavor && (
+          <p style={styles.flavorText}>"{speciesData.flavor}"</p>
+        )}
 
         <div style={styles.card}>
           <input
@@ -102,26 +136,39 @@ export function DinoTaming({ foodType }) {
             autoFocus
           />
 
-          <div style={styles.hatSection}>
-            <div style={styles.hatLabel}>Pick a starter hat:</div>
-            <div style={styles.hatRow}>
-              {STARTER_HATS.map(hat => (
+          {ownedHats.length > 0 && (
+            <div style={styles.hatSection}>
+              <div style={styles.hatLabel}>Pick a hat:</div>
+              <div style={styles.hatRow}>
                 <button
-                  key={hat.id}
-                  onClick={() => setSelectedHat(hat.id)}
+                  onClick={() => setSelectedHat('')}
                   style={{
                     ...styles.hatBtn,
-                    borderColor: selectedHat === hat.id ? '#4ade80' : '#333',
-                    background: selectedHat === hat.id ? '#0f2a1a' : '#1a1a2e',
+                    borderColor: selectedHat === '' ? '#4ade80' : '#333',
+                    background: selectedHat === '' ? '#0f2a1a' : '#1a1a2e',
                   }}
-                  title={hat.name}
                 >
-                  <span style={{ fontSize: '22px' }}>🎩</span>
-                  <span style={styles.hatName}>{hat.name}</span>
+                  <span style={{ fontSize: '18px', color: '#666' }}>-</span>
+                  <span style={styles.hatName}>None</span>
                 </button>
-              ))}
+                {ownedHats.map(hat => (
+                  <button
+                    key={hat.id}
+                    onClick={() => setSelectedHat(hat.id)}
+                    style={{
+                      ...styles.hatBtn,
+                      borderColor: selectedHat === hat.id ? '#4ade80' : '#333',
+                      background: selectedHat === hat.id ? '#0f2a1a' : '#1a1a2e',
+                    }}
+                    title={hat.name}
+                  >
+                    <span style={{ fontSize: '22px' }}>🎩</span>
+                    <span style={styles.hatName}>{hat.name}</span>
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           <button
             onClick={handleFinish}
@@ -153,8 +200,15 @@ const styles = {
     letterSpacing: '3px', textAlign: 'center',
   },
   spriteArea: {
+    position: 'relative',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     padding: '16px',
+  },
+  spriteGlow: {
+    position: 'absolute', inset: '-10px',
+    borderRadius: '50%',
+    background: 'radial-gradient(circle, rgba(74,222,128,0.18) 0%, rgba(99,102,241,0.08) 50%, transparent 75%)',
+    pointerEvents: 'none',
   },
   dinoName: {
     margin: 0, fontSize: '24px', fontWeight: 'bold', color: '#e0e0e0',
@@ -165,6 +219,10 @@ const styles = {
     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
   },
   munchFoodImg: { width: '20px', height: '20px', imageRendering: 'pixelated' },
+  flavorText: {
+    margin: 0, fontSize: '13px', color: '#9ca3af', fontStyle: 'italic',
+    textAlign: 'center', maxWidth: '320px', lineHeight: '1.4',
+  },
   card: {
     width: '100%', maxWidth: '340px',
     display: 'flex', flexDirection: 'column', gap: '16px',
@@ -180,12 +238,13 @@ const styles = {
   },
   hatLabel: { color: '#888', fontSize: '12px', textAlign: 'center' },
   hatRow: {
-    display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px',
+    display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center',
   },
   hatBtn: {
     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
-    padding: '10px 4px', borderRadius: '10px',
+    padding: '10px 8px', borderRadius: '10px',
     border: '2px solid #333', cursor: 'pointer',
+    minWidth: '68px',
   },
   hatName: {
     fontSize: '10px', color: '#aaa', lineHeight: 1.2, textAlign: 'center',

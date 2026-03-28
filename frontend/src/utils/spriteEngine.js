@@ -103,6 +103,16 @@ function recolorImage(img, targetHues) {
 
   for (let i = 0; i < data.length; i += 4) {
     const r = data[i], g = data[i + 1], b = data[i + 2], a = data[i + 3];
+
+    // Pure red pixel = hat anchor marker → recolor as primary body color
+    if (r === 255 && g === 0 && b === 0 && a > 0) {
+      const [nr, ng, nb] = hsvToRgb(targetHues[0] ?? 120, 0.65, 0.55);
+      data[i] = nr;
+      data[i + 1] = ng;
+      data[i + 2] = nb;
+      continue;
+    }
+
     const region = classifyPixel(r, g, b, a);
 
     if (region === -1) continue;
@@ -220,4 +230,38 @@ export function clearCache(species) {
 export function getRecoloredDataUrl(species, colors, regions) {
   const canvas = getRecolored(species, colors, regions);
   return canvas ? canvas.toDataURL() : null;
+}
+
+// ── Hat anchor detection ────────────────────────────────────────────────────
+
+const _anchorCache = {};
+
+/**
+ * Scan a species' raw sprite for a pure-red (255,0,0) pixel.
+ * Returns {x, y} in sprite-pixel coords, or null if not found.
+ */
+export function getRedPixelAnchor(species) {
+  if (species in _anchorCache) return _anchorCache[species];
+  const img = rawImages[species];
+  if (!img) return null;
+
+  const w = img.naturalWidth || img.width;
+  const h = img.naturalHeight || img.height;
+  const tmp = document.createElement('canvas');
+  tmp.width = w;
+  tmp.height = h;
+  const ctx = tmp.getContext('2d');
+  ctx.drawImage(img, 0, 0);
+  const data = ctx.getImageData(0, 0, w, h).data;
+
+  for (let i = 0; i < data.length; i += 4) {
+    if (data[i] === 255 && data[i + 1] === 0 && data[i + 2] === 0 && data[i + 3] >= 128) {
+      const px = (i / 4) % w;
+      const py = Math.floor((i / 4) / w);
+      _anchorCache[species] = { x: px, y: py };
+      return _anchorCache[species];
+    }
+  }
+  _anchorCache[species] = null;
+  return null;
 }

@@ -7,6 +7,7 @@ import { Onboarding } from './components/Onboarding.jsx';
 import { BottomNav } from './components/BottomNav.jsx';
 import { DinoEncounter } from './components/DinoEncounter.jsx';
 import { DinoTaming } from './components/DinoTaming.jsx';
+import { FoodHarvest } from './components/FoodHarvest.jsx';
 import { MyDinos } from './components/MyDinos.jsx';
 import { DinoDetail } from './components/DinoDetail.jsx';
 import { Plaza } from './components/Plaza.jsx';
@@ -22,7 +23,7 @@ import { BossFight } from './components/BossFight.jsx';
 import { BossVictory } from './components/BossVictory.jsx';
 import { AdminPanel } from './components/AdminPanel.jsx';
 import { Profile } from './components/Profile.jsx';
-
+import { PartnerFloat } from './components/PartnerFloat.jsx';
 
 export function App() {
   const { loading, player, route } = useStore();
@@ -84,7 +85,7 @@ export function App() {
       <div style={styles.content}>
         <Screen route={route} />
       </div>
-
+      {(route === '/plaza' || route === '/' || route === '/play') && <PartnerFloat />}
       {!route.startsWith('/scan/') && !isBossRoute && <BottomNav />}
     </div>
   );
@@ -96,7 +97,7 @@ function Screen({ route }) {
   if (scanDino) return <DinoEncounter species={scanDino[1]} />;
 
   const scanFood = route.match(/^\/scan\/food\/(\w+)/);
-  if (scanFood) return <DinoTaming foodType={scanFood[1]} />;
+  if (scanFood) return <FoodHarvest foodType={scanFood[1]} />;
 
   const scanEvent = route.match(/^\/scan\/event\/(\w+)/);
   if (scanEvent) return <EventScan eventType={scanEvent[1]} />;
