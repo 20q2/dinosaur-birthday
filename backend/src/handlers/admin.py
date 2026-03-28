@@ -173,6 +173,25 @@ def announce_handler(event, context):
     return success({"message": message, "feed_id": feed_id})
 
 
+def stop_handler(event, context):
+    """POST /admin/boss/stop — Reset boss fight to idle."""
+    put_item({
+        "PK": "BOSS",
+        "SK": "STATE",
+        "status": "idle",
+        "buildup_phase": 0,
+        "hp": 0,
+        "max_hp": 0,
+    })
+
+    broadcast("all", "boss_stopped", {"status": "idle"})
+    broadcast("boss", "boss_stopped", {"status": "idle"})
+
+    _post_feed_entry("boss_stop", "The boss fight has been called off. The city is safe... for now.")
+
+    return success({"status": "idle"})
+
+
 def dashboard_handler(event, context):
     """GET /admin/dashboard — Get stats including player list."""
     try:
@@ -431,6 +450,8 @@ def handler(event, context):
             return buildup_handler(event, context)
         if path.endswith("/boss/start"):
             return start_handler(event, context)
+        if path.endswith("/boss/stop"):
+            return stop_handler(event, context)
         if path.endswith("/announce"):
             return announce_handler(event, context)
         if path.endswith("/give-all-items"):

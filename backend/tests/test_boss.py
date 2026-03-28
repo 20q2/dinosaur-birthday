@@ -1,7 +1,7 @@
 import json
 import pytest
 from src.handlers.boss import tap_handler
-from src.handlers.admin import buildup_handler, start_handler, announce_handler, dashboard_handler
+from src.handlers.admin import buildup_handler, start_handler, announce_handler, dashboard_handler, stop_handler
 from src.shared.db import get_item, put_item, query_pk
 
 
@@ -279,3 +279,44 @@ def test_boss_defeat_awards_hat_to_all_players():
     dino2 = get_item("PLAYER#defeat2", "DINO#triceratops")
     assert dino1["hat"] == "kaiju_slayer"
     assert dino2["hat"] == "kaiju_slayer"
+
+
+# ── test 11: admin boss stop resets to idle ────────────────────────────────────
+
+def _stop_event():
+    return {
+        "httpMethod": "POST",
+        "resource": "/admin/boss/stop",
+        "body": "{}",
+    }
+
+
+def test_admin_boss_stop_resets_to_idle():
+    """Stop handler overwrites BOSS#STATE with idle status."""
+    put_item({
+        "PK": "BOSS",
+        "SK": "STATE",
+        "status": "active",
+        "hp": 500,
+        "max_hp": 1000,
+        "buildup_phase": 3,
+    })
+
+    resp = stop_handler(_stop_event(), None)
+    assert resp["statusCode"] == 200
+    body = json.loads(resp["body"])
+    assert body["status"] == "idle"
+
+    boss = get_item("BOSS", "STATE")
+    assert boss["status"] == "idle"
+    assert int(boss["hp"]) == 0
+    assert int(boss["buildup_phase"]) == 0
+
+
+def test_admin_boss_stop_is_idempotent_when_already_idle():
+    """Stop handler succeeds even when no active boss exists."""
+    # No BOSS#STATE in DB at all
+    resp = stop_handler(_stop_event(), None)
+    assert resp["statusCode"] == 200
+    body = json.loads(resp["body"])
+    assert body["status"] == "idle"
