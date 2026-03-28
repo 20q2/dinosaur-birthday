@@ -11,9 +11,7 @@ import { FoodHarvest } from './components/FoodHarvest.jsx';
 import { MyDinos } from './components/MyDinos.jsx';
 import { DinoDetail } from './components/DinoDetail.jsx';
 import { Plaza } from './components/Plaza.jsx';
-import { PlayMenu } from './components/PlayMenu.jsx';
-import { PlayLobby } from './components/PlayLobby.jsx';
-import { PlayTrivia } from './components/PlayTrivia.jsx';
+import { PlayTogether } from './components/PlayTogether.jsx';
 import { Inventory } from './components/Inventory.jsx';
 import { EventScan } from './components/EventScan.jsx';
 import { InspirationScan } from './components/InspirationScan.jsx';
@@ -111,12 +109,8 @@ function Screen({ route }) {
   const dinoDetail = route.match(/^\/dinos\/(\w+)/);
   if (dinoDetail) return <DinoDetail species={dinoDetail[1]} />;
 
-  // Play routes
-  const playLobby = route.match(/^\/play\/lobby\/([^/]+)$/);
-  if (playLobby) return <PlayLobby code={playLobby[1]} />;
-
-  const playTrivia = route.match(/^\/play\/trivia\/([^/]+)$/);
-  if (playTrivia) return <PlayTrivia code={playTrivia[1]} />;
+  // Play routes — all handled by PlayTogether
+  if (route.startsWith('/play')) return <PlayTogether />;
 
   // Boss routes
   if (route === '/boss') return <BossFight />;
@@ -126,7 +120,6 @@ function Screen({ route }) {
   switch (route) {
     case '/plaza': return <Plaza />;
     case '/dinos': return <MyDinos />;
-    case '/play': return <PlayMenu />;
     case '/inventory': return <Inventory />;
     case '/profile': return <Profile />;
     case '/admin': return <AdminPanel />;
