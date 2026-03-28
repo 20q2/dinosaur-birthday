@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'preact/hooks';
 import { store } from '../store.js';
+import { Crown } from 'lucide-preact';
 import { useStore } from '../router.jsx';
 import { api } from '../api.js';
 import { SPECIES } from '../data/species.js';
 import { HAT_MAP } from '../data/hats.js';
 import { DinoSprite } from './DinoSprite.jsx';
+import { getHatImage } from '../data/hatImages.js';
+import { getQuirk } from '../data/natureQuirks.js';
 import meatImg from '../assets/items/meat.png';
 import berryImg from '../assets/items/berry.png';
 
@@ -48,16 +51,7 @@ export function DinoTaming({ foodType, prefetchedResult }) {
     })();
   }, [foodType]);
 
-  // Default hat to party_hat (if owned) or first owned hat
-  useEffect(() => {
-    if (!tamed || selectedHat) return;
-    const ownedIds = new Set();
-    (player?.items || []).forEach(i => {
-      if (i.type === 'hat' && i.details?.hat_id) ownedIds.add(i.details.hat_id);
-    });
-    if (ownedIds.has('party_hat')) setSelectedHat('party_hat');
-    else if (ownedIds.size > 0) setSelectedHat([...ownedIds][0]);
-  }, [tamed, player]);
+  // No auto-select — default is None
 
   const handleChooseSpecies = async (species) => {
     setLoading(true);
@@ -114,6 +108,13 @@ export function DinoTaming({ foodType, prefetchedResult }) {
 
     return (
       <div style={styles.page}>
+        <style>{`
+          @keyframes dino-wobble {
+            0% { transform: rotate(-2deg); }
+            50% { transform: rotate(2deg); }
+            100% { transform: rotate(-2deg); }
+          }
+        `}</style>
         <div style={styles.banner}>TAMING TIME</div>
 
         <div style={styles.spriteArea}>
@@ -123,17 +124,21 @@ export function DinoTaming({ foodType, prefetchedResult }) {
             colors={dinoColors}
             scale={4}
             hat={selectedHat || null}
+            style={{ animation: 'dino-wobble 3s ease-in-out infinite', transformOrigin: 'center bottom' }}
           />
         </div>
 
-        <h2 style={styles.dinoName}>{speciesData?.name}</h2>
+        <h2 style={styles.dinoName}>{speciesData?.name} {dino?.gender === 'male' ? '\u2642' : '\u2640'}</h2>
         <div style={styles.munchLabel}>
           <img src={foodType === 'meat' ? meatImg : berryImg} style={styles.munchFoodImg} />
           {' '}Munching on {foodType === 'meat' ? 'Meat' : 'Mejoberries'}...
         </div>
+        {dino?.nature && (
+          <div style={{ color: '#9ca3af', fontSize: '13px', textAlign: 'center' }}>Nature: {dino.nature}</div>
+        )}
 
         {speciesData?.flavor && (
-          <p style={styles.flavorText}>"{speciesData.flavor}"</p>
+          <p style={styles.flavorText}>"{speciesData.flavor}{dino?.nature ? ` ${getQuirk(dino.nature, selectedSpecies)}` : ''}"</p>
         )}
 
         <div style={styles.card}>
@@ -162,21 +167,26 @@ export function DinoTaming({ foodType, prefetchedResult }) {
                   <span style={{ fontSize: '18px', color: '#666' }}>-</span>
                   <span style={styles.hatName}>None</span>
                 </button>
-                {ownedHats.map(hat => (
-                  <button
-                    key={hat.id}
-                    onClick={() => setSelectedHat(hat.id)}
-                    style={{
-                      ...styles.hatBtn,
-                      borderColor: selectedHat === hat.id ? '#4ade80' : '#333',
-                      background: selectedHat === hat.id ? '#0f2a1a' : '#1a1a2e',
-                    }}
-                    title={hat.name}
-                  >
-                    <span style={{ fontSize: '22px' }}>🎩</span>
-                    <span style={styles.hatName}>{hat.name}</span>
-                  </button>
-                ))}
+                {ownedHats.map(hat => {
+                  const hatImg = getHatImage(hat.id);
+                  return (
+                    <button
+                      key={hat.id}
+                      onClick={() => setSelectedHat(hat.id)}
+                      style={{
+                        ...styles.hatBtn,
+                        borderColor: selectedHat === hat.id ? '#4ade80' : '#333',
+                        background: selectedHat === hat.id ? '#0f2a1a' : '#1a1a2e',
+                      }}
+                      title={hat.name}
+                    >
+                      {hatImg && hatImg.loaded
+                        ? <img src={hatImg.img.src} style={{ width: '32px', height: '32px', imageRendering: 'pixelated', objectFit: 'contain' }} />
+                        : <Crown size={22} color="#aaa" />}
+                      <span style={styles.hatName}>{hat.name}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}

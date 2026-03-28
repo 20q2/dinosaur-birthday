@@ -2,6 +2,7 @@ import { useState, useEffect } from 'preact/hooks';
 import { store } from '../store.js';
 import { api } from '../api.js';
 import { getHatImage } from '../data/hatImages.js';
+import { Sparkles, Crown } from 'lucide-preact';
 
 export function InspirationScan() {
   const [result, setResult] = useState(null);
@@ -37,19 +38,24 @@ export function InspirationScan() {
   if (result?.already_received) {
     return (
       <div style={styles.container}>
-        <div style={{ fontSize: '64px' }}>✨</div>
+        <Sparkles size={64} color="#f59e0b" />
         <h2 style={styles.title}>Alex's Inspiration</h2>
         <div style={styles.pill}>Already Received</div>
         <p style={{ color: '#888', textAlign: 'center', fontSize: '14px', maxWidth: '280px' }}>
           You've already received Alex's blessing. The Birthday Girl smiles upon you still.
         </p>
-        {result?.item && (
-          <div style={styles.hatBadge}>
-            <span style={{ fontSize: '20px' }}>🎩</span>
-            <span style={{ color: '#f59e0b', fontWeight: 'bold' }}>{result.item.name}</span>
-            <span style={{ color: '#888', fontSize: '12px' }}>legendary</span>
-          </div>
-        )}
+        {result?.item && (() => {
+          const hatImg = getHatImage(result.item.id || 'birthday_blessing');
+          return (
+            <div style={styles.hatBadge}>
+              {hatImg && hatImg.loaded
+                ? <img src={hatImg.img.src} style={{ width: '28px', height: '28px', imageRendering: 'pixelated', objectFit: 'contain' }} />
+                : <Crown size={20} color="#f59e0b" />}
+              <span style={{ color: '#f59e0b', fontWeight: 'bold' }}>{result.item.name}</span>
+              <span style={{ color: '#888', fontSize: '12px' }}>legendary</span>
+            </div>
+          );
+        })()}
         <button onClick={() => store.navigate('/plaza')} style={styles.button}>Back to Plaza</button>
       </div>
     );
@@ -57,10 +63,12 @@ export function InspirationScan() {
 
   return (
     <div style={styles.container}>
-      <div style={styles.sparkle}>✨ ALEX'S INSPIRATION ✨</div>
+      <div style={styles.sparkle}>
+        <Sparkles size={14} style={{ verticalAlign: 'middle' }} /> ALEX'S INSPIRATION <Sparkles size={14} style={{ verticalAlign: 'middle' }} />
+      </div>
 
       <div style={styles.portraitBox}>
-        <span style={{ fontSize: '72px' }}>👑</span>
+        <Crown size={72} color="#c084fc" />
       </div>
 
       <h2 style={styles.title}>You've been blessed!</h2>
@@ -81,16 +89,21 @@ export function InspirationScan() {
             </span>
           </div>
         )}
-        {result?.item && (
-          <div style={{ ...styles.rewardRow, flexDirection: 'column', alignItems: 'flex-start', gap: '4px' }}>
-            <span>Legendary Item</span>
-            <div style={styles.hatBadge}>
-              <span style={{ fontSize: '18px' }}>🎩</span>
-              <span style={{ color: '#f59e0b', fontWeight: 'bold', fontSize: '14px' }}>{result.item.name}</span>
-              <span style={styles.legendaryTag}>LEGENDARY</span>
+        {result?.item && (() => {
+          const hatImg = getHatImage(result.item.id || 'birthday_blessing');
+          return (
+            <div style={{ ...styles.rewardRow, flexDirection: 'column', alignItems: 'flex-start', gap: '4px' }}>
+              <span>Legendary Item</span>
+              <div style={styles.hatBadge}>
+                {hatImg && hatImg.loaded
+                  ? <img src={hatImg.img.src} style={{ width: '24px', height: '24px', imageRendering: 'pixelated', objectFit: 'contain' }} />
+                  : <Crown size={18} color="#f59e0b" />}
+                <span style={{ color: '#f59e0b', fontWeight: 'bold', fontSize: '14px' }}>{result.item.name}</span>
+                <span style={styles.legendaryTag}>LEGENDARY</span>
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
       </div>
 
       <button onClick={() => store.navigate('/plaza')} style={styles.button}>Back to Plaza</button>
