@@ -14,10 +14,17 @@
       "Bash(python -m pytest:*)",
       "Bash(npx vite build:*)",
       "Bash(identify:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Read(//c/Users/andje/.claude/plugins/cache/superpowers-marketplace/superpowers/5.0.6/skills/subagent-driven-development/**)",
+      "Bash(python -m pylint:*)",
+      "Bash(python:*)",
+      "Bash(git log:*)"
     ],
     "additionalDirectories": [
-      "C:\\Users\\andje\\.claude\\projects\\a--Coding-AlexBirthdayDinos\\memory"
+      "C:\\Users\\andje\\.claude\\projects\\a--Coding-AlexBirthdayDinos\\memory",
+      "a:\\Coding\\AlexBirthdayDinos\\docs\\superpowers\\specs"
     ]
   }
 }

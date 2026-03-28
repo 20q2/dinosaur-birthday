@@ -32,7 +32,7 @@ function DinoCard({ dino }) {
     >
       {/* Sprite — clipped to box */}
       <div style={styles.spriteBox}>
-        <DinoSprite species={dino.species} colors={dino.colors || {}} scale={2} style={{ width: '100%', height: '100%' }} />
+        <DinoSprite species={dino.species} colors={dino.colors || {}} scale={2} hat={dino.hat || null} style={{ width: '100%', height: '100%' }} />
         {dino.shiny && <span style={styles.shinyBadge}>✨</span>}
       </div>
 

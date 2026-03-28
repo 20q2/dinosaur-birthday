@@ -83,7 +83,7 @@ export function App() {
       <div style={styles.content}>
         <Screen route={route} />
       </div>
-      {(route === '/plaza' || route === '/' || route === '/play') && <PartnerFloat />}
+      {(route === '/plaza' || route === '/') && <PartnerFloat />}
       {!route.startsWith('/scan/') && !isBossRoute && <BottomNav />}
     </div>
   );

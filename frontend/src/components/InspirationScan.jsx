@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'preact/hooks';
 import { store } from '../store.js';
 import { api } from '../api.js';
+import { getHatImage } from '../data/hatImages.js';
 
 export function InspirationScan() {
   const [result, setResult] = useState(null);

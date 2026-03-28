@@ -95,6 +95,7 @@ export function PlayTogether() {
         species: partner.species,
         colors: partner.colors || {},
         hat: partner.hat || '',
+        background: partner.background || '',
       });
     }
   }, [player]);

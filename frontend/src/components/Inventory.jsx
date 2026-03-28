@@ -8,6 +8,7 @@ import { PAINT_MAP } from '../data/paints.js';
 import { DinoSprite } from './DinoSprite.jsx';
 import { PaintSprite } from './PaintSprite.jsx';
 import { TitleBar } from './TitleBar.jsx';
+import { getHatImage } from '../data/hatImages.js';
 import meatImg from '../assets/items/meat.png';
 import berryImg from '../assets/items/berry.png';
 
@@ -144,24 +145,25 @@ export function Inventory() {
         {ownedHats.length === 0 ? (
           <p style={styles.empty}>No hats yet! Visit events and play trivia to earn some.</p>
         ) : (
-          <div style={styles.itemList}>
-            {ownedHats.map(hat => (
-              <button
-                key={hat.id}
-                style={styles.hatRow}
-                onClick={() => handleHatTap(hat.id)}
-                disabled={tamedDinos.length === 0}
-              >
-                <span style={{ fontSize: '18px' }}>🎩</span>
-                <div style={{ flex: 1 }}>
-                  <div style={styles.hatName}>{hat.name}</div>
-                  <div style={{ fontSize: '11px', color: RARITY_COLORS[hat.rarity] || '#888' }}>
-                    {hat.rarity}{hat.count > 1 ? ` x${hat.count}` : ''}
-                  </div>
-                </div>
-                {tamedDinos.length > 0 && <span style={styles.applyHint}>Apply</span>}
-              </button>
-            ))}
+          <div style={styles.hatGrid}>
+            {ownedHats.map(hat => {
+              const hatImg = getHatImage(hat.id);
+              return (
+                <button
+                  key={hat.id}
+                  style={styles.hatItem}
+                  onClick={() => handleHatTap(hat.id)}
+                  disabled={tamedDinos.length === 0}
+                >
+                  {hatImg
+                    ? <img src={hatImg.img.src} style={styles.hatSprite} />
+                    : <span style={{ fontSize: '24px' }}>{'\uD83C\uDFA9'}</span>
+                  }
+                  <span style={styles.hatItemName}>{hat.name}</span>
+                  {hat.count > 1 && <span style={styles.hatItemCount}>x{hat.count}</span>}
+                </button>
+              );
+            })}
           </div>
         )}
       </div>
@@ -196,6 +198,7 @@ export function Inventory() {
       {modal && (
         <div style={styles.overlay} onClick={() => !busy && setModal(null)}>
           <div style={styles.modal} onClick={e => e.stopPropagation()}>
+            <button style={styles.closeBtn} onClick={() => setModal(null)} disabled={busy}>{'\u2715'}</button>
             {/* Dino picker (hat or paint) */}
             {modal.step === 'dino' && (
               <>
@@ -215,7 +218,7 @@ export function Inventory() {
                         }
                         disabled={busy}
                       >
-                        <DinoSprite species={d.species} colors={d.colors || {}} scale={2} />
+                        <DinoSprite species={d.species} colors={d.colors || {}} scale={2} hat={modal.type === 'hat' ? modal.hatId : null} />
                         <span style={styles.dinoCardName}>{d.name || sp.name || d.species}</span>
                       </button>
                     );
@@ -274,12 +277,12 @@ export function Inventory() {
                   </div>
                   <div style={styles.previewRow}>
                     <div style={styles.previewCol}>
-                      <DinoSprite species={modal.species} colors={currentColors} scale={3} />
+                      <DinoSprite species={modal.species} colors={currentColors} scale={2} />
                       <span style={styles.previewLabel}>Before</span>
                     </div>
                     <span style={styles.previewArrow}>→</span>
                     <div style={styles.previewCol}>
-                      <DinoSprite species={modal.species} colors={previewColors} scale={3} />
+                      <DinoSprite species={modal.species} colors={previewColors} scale={2} />
                       <span style={styles.previewLabel}>After</span>
                     </div>
                   </div>
@@ -303,9 +306,6 @@ export function Inventory() {
               );
             })()}
 
-            <button style={styles.cancelBtn} onClick={() => setModal(null)} disabled={busy}>
-              Cancel
-            </button>
           </div>
         </div>
       )}
@@ -346,15 +346,25 @@ const styles = {
     fontSize: '11px', color: '#888',
   },
 
-  // Item rows
-  itemList: { display: 'flex', flexDirection: 'column', gap: '4px' },
-  hatRow: {
-    display: 'flex', alignItems: 'center', gap: '10px',
-    padding: '12px', borderRadius: '10px', border: '1px solid #222',
-    background: '#111', cursor: 'pointer', width: '100%',
+  // Hat grid
+  hatGrid: {
+    display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px',
   },
-  hatName: { fontSize: '14px', color: '#e0e0e0', fontWeight: '600' },
-  applyHint: { fontSize: '12px', color: '#6366f1', fontWeight: '600' },
+  hatItem: {
+    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px',
+    padding: '8px 4px', borderRadius: '10px', border: '2px solid #222',
+    background: '#111', cursor: 'pointer', position: 'relative',
+  },
+  hatSprite: {
+    width: '32px', height: '32px', imageRendering: 'pixelated', objectFit: 'contain',
+  },
+  hatItemName: {
+    fontSize: '10px', color: '#ccc', textAlign: 'center',
+  },
+  hatItemCount: {
+    position: 'absolute', top: '2px', right: '4px',
+    fontSize: '10px', color: '#888', fontWeight: 'bold',
+  },
 
   // Paint grid
   paintGrid: {
@@ -381,8 +391,8 @@ const styles = {
   },
   modal: {
     background: '#1a1a2e', borderRadius: '16px', padding: '20px',
-    maxWidth: '360px', width: '100%', maxHeight: '80vh', overflow: 'auto',
-    display: 'flex', flexDirection: 'column', gap: '12px',
+    maxWidth: '360px', width: '100%', maxHeight: '80vh', overflowX: 'hidden', overflowY: 'auto',
+    display: 'flex', flexDirection: 'column', gap: '12px', position: 'relative',
   },
   modalTitle: { fontSize: '16px', color: '#e0e0e0', fontWeight: 'bold', textAlign: 'center' },
   modalDinoPreview: { display: 'flex', justifyContent: 'center' },
@@ -399,10 +409,11 @@ const styles = {
 
   // Preview (paint confirm)
   previewRow: {
-    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px',
   },
   previewCol: {
     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
+    flex: 1, minWidth: 0, overflow: 'hidden',
   },
   previewLabel: {
     fontSize: '12px', color: '#888', fontWeight: '600',
@@ -411,9 +422,23 @@ const styles = {
     fontSize: '24px', color: '#6366f1',
   },
 
-  cancelBtn: {
-    padding: '12px', borderRadius: '10px', border: '1px solid #333',
-    background: 'none', color: '#aaa', fontSize: '14px',
-    cursor: 'pointer', width: '100%',
+  closeBtn: {
+    position: 'absolute', top: '10px', right: '10px',
+    background: 'none', border: 'none', color: '#888',
+    fontSize: '18px', cursor: 'pointer', padding: '4px 8px',
+    lineHeight: 1,
+  },
+
+  // Dino picker grid
+  dinoGrid: {
+    display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px',
+  },
+  dinoCard: {
+    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px',
+    padding: '14px 8px', borderRadius: '12px', border: '2px solid #2a2a3e',
+    background: '#0d1117', cursor: 'pointer', color: '#e0e0e0',
+  },
+  dinoCardName: {
+    fontSize: '13px', fontWeight: '600', color: '#e0e0e0', textAlign: 'center',
   },
 };

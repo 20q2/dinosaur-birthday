@@ -6,6 +6,14 @@ import sunglassesSrc from '../assets/hats/sunglasses.png';
 import chefHatSrc from '../assets/hats/chefhat.png';
 import headbandSrc from '../assets/hats/headband.png';
 import beanieSrc from '../assets/hats/beanie.png';
+import vikingHelmetSrc from '../assets/hats/vikinghelmet.png';
+import wizardHatSrc from '../assets/hats/wizardhat.png';
+import pirateHatSrc from '../assets/hats/piratehat.png';
+import crownSrc from '../assets/hats/crown.png';
+import haloSrc from '../assets/hats/halo.png';
+import bowSrc from '../assets/hats/bow.png';
+import birthdayBlessingSrc from '../assets/hats/birthdayblessing.png';
+import kaijuSlayerSrc from '../assets/hats/kaijuslayer.png';
 import { getRedPixelAnchor } from '../utils/spriteEngine.js';
 
 /**
@@ -20,7 +28,15 @@ const HAT_META = {
   sunglasses:   { src: sunglassesSrc,  offsetY: 8 },
   chef_hat:     { src: chefHatSrc,     offsetY: 0 },
   headband:     { src: headbandSrc,    offsetY: 4 },
-  beanie:       { src: beanieSrc,      offsetY: 2 },
+  beanie:           { src: beanieSrc,           offsetY: 2 },
+  viking_helmet:    { src: vikingHelmetSrc,    offsetY: 1 },
+  wizard_hat:       { src: wizardHatSrc,       offsetY: 0 },
+  pirate_hat:       { src: pirateHatSrc,       offsetY: 1 },
+  crown:            { src: crownSrc,           offsetY: 1 },
+  halo:             { src: haloSrc,            offsetY: -2 },
+  bow:              { src: bowSrc,             offsetY: 2 },
+  birthday_blessing: { src: birthdayBlessingSrc, offsetY: 0 },
+  kaiju_slayer:     { src: kaijuSlayerSrc,     offsetY: 0 },
 };
 
 /**

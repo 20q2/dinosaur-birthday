@@ -6,7 +6,7 @@ from ..shared.response import success, error
 from ..shared.xp import award_xp
 from ..shared.ws_broadcast import broadcast
 
-BLESSING_HAT = {"id": "birthday_blessing", "name": "Birthday Girl's Blessing", "rarity": "legendary"}
+BLESSING_HAT = {"id": "birthday_blessing", "name": "Birthday Balloons", "rarity": "legendary"}
 
 
 def handler(event, context):

@@ -8,6 +8,8 @@ import { PAINT_MAP } from '../data/paints.js';
 import { DinoSprite } from './DinoSprite.jsx';
 import { PaintSprite } from './PaintSprite.jsx';
 import { TitleBar } from './TitleBar.jsx';
+import { getQuirk } from '../data/natureQuirks.js';
+import { getHatImage } from '../data/hatImages.js';
 
 import bgRocks from '../assets/backgrounds/dino_find_rocks.png';
 import bgSwamp from '../assets/backgrounds/dino_find_swamp.png';
@@ -72,6 +74,7 @@ export function DinoDetail({ species }) {
   const [showHats, setShowHats] = useState(false);
   const [showBg, setShowBg] = useState(false);
   const [hatPop, setHatPop] = useState(false);
+  const [showPaints, setShowPaints] = useState(false);
   const [selectedPaint, setSelectedPaint] = useState(null); // paint_id
   const [paintRegion, setPaintRegion] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -165,6 +168,7 @@ export function DinoDetail({ species }) {
   function handleSelectPaint(paintId) {
     setSelectedPaint(paintId);
     setPaintRegion(null);
+    setShowPaints(false);
   }
 
   function handleApplyPaint() {
@@ -267,20 +271,8 @@ export function DinoDetail({ species }) {
 
       {/* Flavor text */}
       {speciesData.flavor && (
-        <div style={styles.flavor}>"{speciesData.flavor}"</div>
-      )}
-
-      {/* Level / XP — tamed only */}
-      {dino.tamed && (
-        <div style={styles.card}>
-          <div style={styles.statRow}>
-            <span style={styles.statLabel}>Level</span>
-            <span style={styles.statValue}>{dino.level || 1}{dino.level >= MAX_LEVEL ? ' (MAX)' : ''}</span>
-          </div>
-          <div style={styles.xpBarBg}>
-            <div style={{ ...styles.xpBarFill, width: `${progress}%` }} />
-          </div>
-          <div style={styles.xpText}>{dino.xp || 0} XP</div>
+        <div style={styles.flavor}>
+          "{speciesData.flavor}{dino.tamed && dino.nature ? ` ${getQuirk(dino.nature, species)}` : ''}"
         </div>
       )}
 
@@ -294,8 +286,34 @@ export function DinoDetail({ species }) {
         </div>
       )}
 
-      {/* Hat — tamed only, tap to open picker */}
-      {dino.tamed && (showHats ? (
+      {/* Hat & Paints row — tamed only */}
+      {dino.tamed && !selectedPaint && (
+        <div style={styles.dualRow}>
+          <div
+            style={{ ...styles.card, flex: 1, cursor: 'pointer' }}
+            onClick={() => { setShowHats(!showHats); setShowPaints(false); }}
+          >
+            <div style={styles.statRow}>
+              <span style={styles.statLabel}>Hat</span>
+              <span style={styles.statValue}>{hatData ? hatData.name : 'None'} <span style={{ fontSize: '11px', color: '#666' }}>{showHats ? '\u25BE' : '\u25B8'}</span></span>
+            </div>
+          </div>
+          {hasPaints && (
+            <div
+              style={{ ...styles.card, flex: 1, cursor: 'pointer' }}
+              onClick={() => { setShowPaints(!showPaints); setShowHats(false); }}
+            >
+              <div style={styles.statRow}>
+                <span style={styles.statLabel}>Paints</span>
+                <span style={styles.statValue}><span style={{ fontSize: '11px', color: '#666' }}>{showPaints ? '\u25BE' : '\u25B8'}</span></span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Expanded hat picker */}
+      {dino.tamed && showHats && !selectedPaint && (
         <div style={styles.card}>
           <div style={styles.sectionTitle}>Choose a Hat</div>
           {availableHats.length === 0 ? (
@@ -314,33 +332,122 @@ export function DinoDetail({ species }) {
                 <span style={{ fontSize: '20px', color: '#666' }}>-</span>
                 <span style={styles.hatGridName}>None</span>
               </button>
-              {availableHats.map(hat => (
-                <button
-                  key={hat.id}
-                  onClick={() => handleEquipHat(hat.id)}
-                  disabled={busy}
-                  style={{
-                    ...styles.hatGridItem,
-                    borderColor: dino.hat === hat.id ? '#4ade80' : '#333',
-                    background: dino.hat === hat.id ? '#0f2a1a' : '#0d1117',
-                  }}
-                >
-                  <span style={{ fontSize: '22px' }}>{'\uD83C\uDFA9'}</span>
-                  <span style={styles.hatGridName}>{hat.name}</span>
-                </button>
-              ))}
+              {availableHats.map(hat => {
+                const hatImg = getHatImage(hat.id);
+                return (
+                  <button
+                    key={hat.id}
+                    onClick={() => handleEquipHat(hat.id)}
+                    disabled={busy}
+                    style={{
+                      ...styles.hatGridItem,
+                      borderColor: dino.hat === hat.id ? '#4ade80' : '#333',
+                      background: dino.hat === hat.id ? '#0f2a1a' : '#0d1117',
+                    }}
+                  >
+                    {hatImg && hatImg.loaded
+                      ? <img src={hatImg.img.src} style={{ width: '36px', height: '36px', imageRendering: 'pixelated', objectFit: 'contain' }} />
+                      : <span style={{ fontSize: '22px' }}>{'\uD83C\uDFA9'}</span>}
+                    <span style={styles.hatGridName}>{hat.name}</span>
+                  </button>
+                );
+              })}
             </div>
           )}
-          <button onClick={() => setShowHats(false)} style={styles.ghostBtn}>Cancel</button>
         </div>
-      ) : (
-        <div style={{ ...styles.card, cursor: 'pointer' }} onClick={() => setShowHats(true)}>
-          <div style={styles.statRow}>
-            <span style={styles.statLabel}>Hat</span>
-            <span style={styles.statValue}>{hatData ? hatData.name : 'None'} <span style={{ fontSize: '11px', color: '#666' }}>{'\u25B8'}</span></span>
+      )}
+
+      {/* Expanded paint picker */}
+      {dino.tamed && showPaints && !selectedPaint && (
+        <div style={styles.card}>
+          <div style={styles.sectionTitle}>Choose a Paint</div>
+          <div style={styles.paintGrid}>
+            {Object.entries(paintCounts).map(([paintId, count]) => {
+              const paintData = PAINT_MAP[paintId];
+              if (!paintData) return null;
+              return (
+                <button
+                  key={paintId}
+                  onClick={() => handleSelectPaint(paintId)}
+                  disabled={busy}
+                  style={styles.paintItem}
+                >
+                  <PaintSprite hue={paintData.hue} scale={1} style={{ maxWidth: '36px', maxHeight: '36px' }} />
+                  <span style={styles.paintItemName}>{paintData.name}</span>
+                  {count > 1 && (
+                    <span style={styles.paintItemCount}>x{count}</span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
-      ))}
+      )}
+
+      {/* Paint apply flow */}
+      {dino.tamed && selectedPaint && (
+        <div style={styles.card}>
+          <div style={styles.sectionTitle}>
+            Apply {PAINT_MAP[selectedPaint]?.name} Paint
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <PaintSprite hue={PAINT_MAP[selectedPaint]?.hue ?? 120} scale={1} style={{ maxWidth: '48px', maxHeight: '48px' }} />
+          </div>
+          <div style={{ fontSize: '12px', color: '#888', textAlign: 'center' }}>
+            Pick a region to paint
+          </div>
+          <div style={styles.regionRow}>
+            {regions.map(r => (
+              <button
+                key={r}
+                onClick={() => setPaintRegion(r)}
+                disabled={busy}
+                style={{
+                  ...styles.regionBtn,
+                  borderColor: paintRegion === r ? '#a78bfa' : '#333',
+                  background: paintRegion === r ? '#2d1b69' : '#0d1117',
+                }}
+              >
+                <div style={{
+                  width: '14px', height: '14px', borderRadius: '4px',
+                  background: colors[r] != null ? `hsl(${colors[r]}, 70%, 50%)` : '#555',
+                  flexShrink: 0,
+                }} />
+                <span style={{ textTransform: 'capitalize' }}>{r}</span>
+              </button>
+            ))}
+          </div>
+          <div style={styles.btnRow}>
+            <button
+              onClick={handleApplyPaint}
+              disabled={busy || !paintRegion}
+              style={{
+                ...styles.btn,
+                background: '#7c3aed',
+                opacity: paintRegion ? 1 : 0.5,
+              }}
+            >
+              {busy ? '...' : 'Apply Paint'}
+            </button>
+            <button onClick={handleCancelPaint} style={styles.ghostBtn}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Level / XP — tamed only */}
+      {dino.tamed && (
+        <div style={styles.card}>
+          <div style={styles.statRow}>
+            <span style={styles.statLabel}>Level {dino.level || 1}{dino.level >= MAX_LEVEL ? ' (MAX)' : ''}</span>
+            <span style={styles.xpText}>{dino.xp || 0} XP</span>
+          </div>
+          <div style={styles.xpBarBg}>
+            <div style={{ ...styles.xpBarFill, width: `${progress}%` }} />
+          </div>
+        </div>
+      )}
 
       {/* Background picker — tamed only */}
       {dino.tamed && (showBg ? (
@@ -382,84 +489,6 @@ export function DinoDetail({ species }) {
           </div>
         </div>
       ))}
-
-      {/* Paint flow — tamed only */}
-      {dino.tamed && hasPaints && (
-        selectedPaint ? (
-          <div style={styles.card}>
-            <div style={styles.sectionTitle}>
-              Apply {PAINT_MAP[selectedPaint]?.name} Paint
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <PaintSprite hue={PAINT_MAP[selectedPaint]?.hue ?? 120} scale={1} style={{ maxWidth: '48px', maxHeight: '48px' }} />
-            </div>
-            <div style={{ fontSize: '12px', color: '#888', textAlign: 'center' }}>
-              Pick a region to paint
-            </div>
-            <div style={styles.regionRow}>
-              {regions.map(r => (
-                <button
-                  key={r}
-                  onClick={() => setPaintRegion(r)}
-                  disabled={busy}
-                  style={{
-                    ...styles.regionBtn,
-                    borderColor: paintRegion === r ? '#a78bfa' : '#333',
-                    background: paintRegion === r ? '#2d1b69' : '#0d1117',
-                  }}
-                >
-                  <div style={{
-                    width: '14px', height: '14px', borderRadius: '4px',
-                    background: colors[r] != null ? `hsl(${colors[r]}, 70%, 50%)` : '#555',
-                    flexShrink: 0,
-                  }} />
-                  <span style={{ textTransform: 'capitalize' }}>{r}</span>
-                </button>
-              ))}
-            </div>
-            <div style={styles.btnRow}>
-              <button
-                onClick={handleApplyPaint}
-                disabled={busy || !paintRegion}
-                style={{
-                  ...styles.btn,
-                  background: '#7c3aed',
-                  opacity: paintRegion ? 1 : 0.5,
-                }}
-              >
-                {busy ? '...' : 'Apply Paint'}
-              </button>
-              <button onClick={handleCancelPaint} style={styles.ghostBtn}>
-                Cancel
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div style={styles.card}>
-            <div style={styles.sectionTitle}>Paints</div>
-            <div style={styles.paintGrid}>
-              {Object.entries(paintCounts).map(([paintId, count]) => {
-                const paintData = PAINT_MAP[paintId];
-                if (!paintData) return null;
-                return (
-                  <button
-                    key={paintId}
-                    onClick={() => handleSelectPaint(paintId)}
-                    disabled={busy}
-                    style={styles.paintItem}
-                  >
-                    <PaintSprite hue={paintData.hue} scale={1} style={{ maxWidth: '36px', maxHeight: '36px' }} />
-                    <span style={styles.paintItemName}>{paintData.name}</span>
-                    {count > 1 && (
-                      <span style={styles.paintItemCount}>x{count}</span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )
-      )}
 
       {/* Set Partner */}
       {dino.tamed && !dino.is_partner && (
@@ -560,6 +589,9 @@ const styles = {
     padding: '12px', borderRadius: '10px', border: '1px solid #333',
     background: 'none', color: '#aaa', fontSize: '14px',
     cursor: 'pointer', width: '100%',
+  },
+  dualRow: {
+    display: 'flex', gap: '10px',
   },
   hatGrid: {
     display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px',

@@ -4,6 +4,18 @@ import { getRecolored } from '../utils/spriteEngine.js';
 import { getHatImage, getHatAnchor } from '../data/hatImages.js';
 import { SPECIES } from '../data/species.js';
 
+import bgRocks from '../assets/backgrounds/dino_find_rocks.png';
+import bgSwamp from '../assets/backgrounds/dino_find_swamp.png';
+import bgRiver from '../assets/backgrounds/dino_find_river.png';
+import bgGrass from '../assets/backgrounds/dino_find_tall_grass.png';
+import bgCave from '../assets/backgrounds/dino_find_cave.png';
+import bgCanyon from '../assets/backgrounds/dino_find_canyon.png';
+
+const BG_MAP = {
+  rocks: bgRocks, swamp: bgSwamp, river: bgRiver,
+  grass: bgGrass, cave: bgCave, canyon: bgCanyon,
+};
+
 const SCALE = 3;
 const DRIFT_RANGE = 40;
 const DRIFT_SPEED = 15;  // px/sec
@@ -33,12 +45,15 @@ function makeDino(data, homeX, homeY) {
   };
 }
 
-function pickDriftTarget(dino) {
-  dino.targetX = dino.homeX + (Math.random() - 0.5) * 2 * DRIFT_RANGE;
+function pickDriftTarget(dino, canvasW) {
+  const margin = 30;
+  let tx = dino.homeX + (Math.random() - 0.5) * 2 * DRIFT_RANGE;
+  tx = Math.max(margin, Math.min(canvasW - margin, tx));
+  dino.targetX = tx;
   dino.moving = true;
 }
 
-function updateDino(dino, dt) {
+function updateDino(dino, dt, canvasW) {
   // Handle entrance walk-in
   if (dino.entering) {
     const dx = dino.homeX - dino.x;
@@ -77,7 +92,7 @@ function updateDino(dino, dt) {
   if (!dino.moving) {
     dino.idleTimer -= dt;
     if (dino.idleTimer <= 0) {
-      pickDriftTarget(dino);
+      pickDriftTarget(dino, canvasW);
     }
   } else {
     const dx = dino.targetX - dino.x;
@@ -121,7 +136,7 @@ function drawDino(ctx, dino, elapsed, canvasW) {
   // Draw sprite
   ctx.save();
   ctx.imageSmoothingEnabled = false;
-  if (!dino.facingRight) {
+  if (dino.facingRight) {
     ctx.translate(dino.x, 0);
     ctx.scale(-1, 1);
     ctx.translate(-dino.x, 0);
@@ -190,32 +205,52 @@ export const DinoPlayScene = forwardRef(function DinoPlayScene(props, ref) {
     particles: [],
     animId: 0,
     lastTime: 0,
+    bgImage: null,
   });
 
   useImperativeHandle(ref, () => ({
     setMyDino(data) {
       const canvas = canvasRef.current;
       if (!canvas) return;
-      const homeX = canvas.width / 2 - 40;
-      const homeY = canvas.height - 20;
+      const w = canvas.getBoundingClientRect().width;
+      const homeX = w / 2;
+      const homeY = canvas.getBoundingClientRect().height - 20;
       stateRef.current.myDino = makeDino(data, homeX, homeY);
+      // Load background image from partner dino's backdrop setting
+      if (data.background && BG_MAP[data.background]) {
+        const img = new Image();
+        img.onload = () => { stateRef.current.bgImage = img; };
+        img.src = BG_MAP[data.background];
+      }
     },
     setPartnerDino(data) {
       const canvas = canvasRef.current;
       if (!canvas) return;
-      const homeX = canvas.width / 2 + 40;
-      const homeY = canvas.height - 20;
+      const w = canvas.getBoundingClientRect().width;
+      const h = canvas.getBoundingClientRect().height;
+      // Shift my dino left to make room
+      const s = stateRef.current;
+      if (s.myDino) {
+        s.myDino.homeX = w / 2 - 40;
+      }
+      const homeX = w / 2 + 40;
+      const homeY = h - 20;
       const dino = makeDino(data, homeX, homeY);
       // Start off-screen right and walk in
-      dino.x = canvas.width + 60;
+      dino.x = w + 60;
       dino.entering = true;
-      stateRef.current.partnerDino = dino;
+      s.partnerDino = dino;
     },
     clearPartnerDino() {
-      const pd = stateRef.current.partnerDino;
-      if (pd) {
+      const s = stateRef.current;
+      if (s.partnerDino) {
         const canvas = canvasRef.current;
-        pd.exitTarget = (canvas?.width || 400) + 80;
+        const w = canvas?.getBoundingClientRect().width || 400;
+        s.partnerDino.exitTarget = w + 80;
+        // Move my dino back to center
+        if (s.myDino) {
+          s.myDino.homeX = w / 2;
+        }
       }
     },
   }));
@@ -237,7 +272,7 @@ export const DinoPlayScene = forwardRef(function DinoPlayScene(props, ref) {
       const w = rect.width;
       const h = rect.height;
       if (s.myDino) {
-        s.myDino.homeX = w / 2 - 40;
+        s.myDino.homeX = s.partnerDino ? w / 2 - 40 : w / 2;
         s.myDino.y = h - 20;
         s.myDino.homeY = h - 20;
       }
@@ -258,21 +293,34 @@ export const DinoPlayScene = forwardRef(function DinoPlayScene(props, ref) {
       const w = canvas.getBoundingClientRect().width;
       const h = canvas.getBoundingClientRect().height;
 
-      // Clear with gradient
+      // Clear and draw background
       ctx.clearRect(0, 0, w, h);
-      const grad = ctx.createLinearGradient(0, 0, 0, h);
-      grad.addColorStop(0, '#0f1a2e');
-      grad.addColorStop(1, '#0d1117');
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, w, h);
+      if (s.bgImage) {
+        // Cover-fit the background image
+        const imgW = s.bgImage.naturalWidth;
+        const imgH = s.bgImage.naturalHeight;
+        const scale = Math.max(w / imgW, h / imgH);
+        const sw = imgW * scale;
+        const sh = imgH * scale;
+        ctx.drawImage(s.bgImage, (w - sw) / 2, (h - sh) / 2, sw, sh);
+        // Darken overlay so dinos are visible
+        ctx.fillStyle = 'rgba(0,0,0,0.35)';
+        ctx.fillRect(0, 0, w, h);
+      } else {
+        const grad = ctx.createLinearGradient(0, 0, 0, h);
+        grad.addColorStop(0, '#0f1a2e');
+        grad.addColorStop(1, '#0d1117');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, w, h);
+      }
 
       // Update and draw
       if (s.myDino) {
-        updateDino(s.myDino, dt);
+        updateDino(s.myDino, dt, w);
         spawnDust(s.particles, s.myDino);
       }
       if (s.partnerDino) {
-        updateDino(s.partnerDino, dt);
+        updateDino(s.partnerDino, dt, w);
         spawnDust(s.particles, s.partnerDino);
         // Remove partner if exited off-screen
         if (s.partnerDino.exitTarget !== null && s.partnerDino.x >= s.partnerDino.exitTarget) {

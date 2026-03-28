@@ -13,7 +13,7 @@ export const HATS = [
   { id: 'headband', name: 'Headband', rarity: 'common' },
   { id: 'beanie', name: 'Beanie', rarity: 'common' },
   { id: 'bow', name: 'Bow', rarity: 'common' },
-  { id: 'birthday_blessing', name: "Birthday Girl's Blessing", rarity: 'legendary' },
+  { id: 'birthday_blessing', name: 'Birthday Balloons', rarity: 'legendary' },
   { id: 'kaiju_slayer', name: 'Kaiju Slayer', rarity: 'legendary' },
 ];
 
