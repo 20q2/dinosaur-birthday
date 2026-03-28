@@ -188,6 +188,43 @@ def test_join_lobby_rejects_already_active_lobby():
     assert "not available" in body["error"]
 
 
+def test_join_lobby_returns_partner_dino_data():
+    """Join response should include host_dino and guest_dino with species/colors/hat/name."""
+    _make_profile("host_pd", "Alice")
+    _make_profile("guest_pd", "Bob")
+    _make_partner_dino("host_pd", "trex", xp=10, level=1)
+    _make_partner_dino("guest_pd", "spinosaurus", xp=5, level=1)
+
+    _make_lobby("meat_bone_hat", "host_pd")
+
+    with patch("src.handlers.lobby.broadcast"):
+        resp = join_lobby_handler(
+            _join_event("meat_bone_hat", {"player_id": "guest_pd"}),
+            None,
+        )
+
+    assert resp["statusCode"] == 200
+    body = json.loads(resp["body"])
+
+    # Both dino objects should be present
+    assert "host_dino" in body
+    assert "guest_dino" in body
+
+    # Host dino should have the right shape
+    hd = body["host_dino"]
+    assert hd["species"] == "trex"
+    assert "colors" in hd
+    assert "hat" in hd
+    assert "name" in hd
+
+    # Guest dino should have the right shape
+    gd = body["guest_dino"]
+    assert gd["species"] == "spinosaurus"
+    assert "colors" in gd
+    assert "hat" in gd
+    assert "name" in gd
+
+
 # ── Test 3: Answer correctly awards 50 XP + hat to both ──────────────────────
 
 def test_answer_correct_awards_50xp_and_hat():

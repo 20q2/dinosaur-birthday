@@ -114,12 +114,30 @@ def join_lobby_handler(event, context):
 
     trivia = lobby["trivia_question"]
 
+    # Fetch both players' partner dinos for canvas rendering
+    def _get_partner_dino(pid):
+        dinos = query_pk(f"PLAYER#{pid}", "DINO#")
+        partner = next((d for d in dinos if d.get("is_partner") and d.get("tamed")), None)
+        if not partner:
+            return {"species": "", "colors": {}, "hat": "", "name": ""}
+        return {
+            "species": partner["SK"].replace("DINO#", ""),
+            "colors": partner.get("colors", {}),
+            "hat": partner.get("hat", ""),
+            "name": partner.get("name", ""),
+        }
+
+    host_dino = _get_partner_dino(host_id)
+    guest_dino = _get_partner_dino(player_id)
+
     # Broadcast trivia to the lobby channel so both players receive it
     try:
         broadcast(f"lobby:{code}", "trivia_start", {
             "code": code,
             "question": trivia["question"],
             "options": trivia["options"],
+            "host_dino": host_dino,
+            "guest_dino": guest_dino,
         })
     except Exception:
         pass
@@ -130,6 +148,8 @@ def join_lobby_handler(event, context):
             "question": trivia["question"],
             "options": trivia["options"],
         },
+        "host_dino": host_dino,
+        "guest_dino": guest_dino,
     })
 
 
