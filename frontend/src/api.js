@@ -21,6 +21,9 @@ export const api = {
   getPlayer: (id) =>
     request('GET', `/player/${id}`),
 
+  updatePhoto: (id, photoUrl) =>
+    request('PUT', `/player/${id}`, { photo_url: photoUrl }),
+
   scanDino: (playerId, species) =>
     request('POST', `/scan/dino/${species}`, { player_id: playerId }),
 

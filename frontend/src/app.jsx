@@ -13,7 +13,7 @@ import { Plaza } from './components/Plaza.jsx';
 import { PlayMenu } from './components/PlayMenu.jsx';
 import { PlayLobby } from './components/PlayLobby.jsx';
 import { PlayTrivia } from './components/PlayTrivia.jsx';
-import { FeedScreen } from './components/FeedScreen.jsx';
+import { Inventory } from './components/Inventory.jsx';
 import { EventScan } from './components/EventScan.jsx';
 import { InspirationScan } from './components/InspirationScan.jsx';
 import { NoteScan } from './components/NoteScan.jsx';
@@ -22,6 +22,7 @@ import { BossFight } from './components/BossFight.jsx';
 import { BossVictory } from './components/BossVictory.jsx';
 import { AdminPanel } from './components/AdminPanel.jsx';
 import { Profile } from './components/Profile.jsx';
+import { PartnerFloat } from './components/PartnerFloat.jsx';
 
 export function App() {
   const { loading, player, route } = useStore();
@@ -83,6 +84,7 @@ export function App() {
       <div style={styles.content}>
         <Screen route={route} />
       </div>
+      <PartnerFloat />
       {!route.startsWith('/scan/') && !isBossRoute && <BottomNav />}
     </div>
   );
@@ -124,7 +126,7 @@ function Screen({ route }) {
     case '/plaza': return <Plaza />;
     case '/dinos': return <MyDinos />;
     case '/play': return <PlayMenu />;
-    case '/feed': return <FeedScreen />;
+    case '/inventory': return <Inventory />;
     case '/profile': return <Profile />;
     case '/admin': return <AdminPanel />;
     default: return <Plaza />;

@@ -176,6 +176,7 @@ export class DinoPartyStack extends Stack {
     photoBucket.grantReadWrite(playerFn);
     addRoute(playerFn, 'POST', '/player');
     addRoute(playerFn, 'GET', '/player/{id}');
+    addRoute(playerFn, 'PUT', '/player/{id}');
 
     // Scan Dino
     const scanDinoFn = makeFn(this, 'ScanDinoFn', 'src.handlers.scan_dino.handler');

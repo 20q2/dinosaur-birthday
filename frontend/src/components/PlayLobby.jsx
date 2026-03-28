@@ -6,7 +6,7 @@ import { ws } from '../ws.js';
 
 const SYMBOL_EMOJI = {
   meat: '🥩', mejoberry: '🫐', party_hat: '🎉', cowboy_hat: '🤠',
-  top_hat: '🎩', sunglasses: '😎', paint: '🎨', bone: '🦴', egg: '🥚', leaf: '🍃',
+  top_hat: '🎩', sunglasses: '😎', paint: '🎨', bone: '🦴', egg: '🥚',
 };
 
 const ALL_SYMBOLS = Object.keys(SYMBOL_EMOJI);
@@ -260,7 +260,7 @@ const styles = {
     fontSize: '28px',
   },
   symbolGrid: {
-    display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '4px', width: '100%',
+    display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px', width: '100%',
   },
   symbolBtn: {
     fontSize: '18px', padding: '4px', borderRadius: '6px', border: '1px solid',

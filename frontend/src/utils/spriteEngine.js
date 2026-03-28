@@ -103,13 +103,6 @@ function recolorImage(img, targetHues) {
 
   for (let i = 0; i < data.length; i += 4) {
     const r = data[i], g = data[i + 1], b = data[i + 2], a = data[i + 3];
-
-    // Pure white → transparent
-    if (r === 255 && g === 255 && b === 255 && a > 0) {
-      data[i + 3] = 0;
-      continue;
-    }
-
     const region = classifyPixel(r, g, b, a);
 
     if (region === -1) continue;

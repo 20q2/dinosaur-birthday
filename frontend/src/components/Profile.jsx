@@ -1,8 +1,36 @@
+import { useState, useRef } from 'preact/hooks';
 import { useStore } from '../router.jsx';
 import { store } from '../store.js';
+import { api } from '../api.js';
 import { HAT_MAP } from '../data/hats.js';
 import { SPECIES } from '../data/species.js';
 import { getSpeciesEmoji } from '../utils/sprites.js';
+
+function resizeImage(file, maxSize = 200) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let w = img.width;
+        let h = img.height;
+        if (w > h) {
+          if (w > maxSize) { h = (h * maxSize) / w; w = maxSize; }
+        } else {
+          if (h > maxSize) { w = (w * maxSize) / h; h = maxSize; }
+        }
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', 0.7));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
 
 const TOTAL_NOTES = 5;
 
@@ -165,6 +193,8 @@ function DinoSummary({ dinos }) {
 
 export function Profile() {
   const { player } = useStore();
+  const fileRef = useRef(null);
+  const [uploading, setUploading] = useState(false);
 
   if (!player) {
     return (
@@ -174,15 +204,42 @@ export function Profile() {
     );
   }
 
+  async function handlePhotoChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const dataUrl = await resizeImage(file);
+      await api.updatePhoto(store.playerId, dataUrl);
+      await store.refresh();
+    } catch {
+      // silently fail
+    }
+    setUploading(false);
+  }
+
   const tamedCount = (player.dinos || []).filter(d => d.tamed).length;
   const notesCount = (player.notes || []).length;
   const itemsCount = (player.items || []).length;
 
   return (
     <div style={styles.page}>
+      {/* Hidden file input */}
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        capture="user"
+        onChange={handlePhotoChange}
+        style={{ display: 'none' }}
+      />
+
       {/* Header */}
       <div style={styles.header}>
-        <Avatar photoUrl={player.photo_url} name={player.name} />
+        <div style={styles.avatarWrapper} onClick={() => fileRef.current?.click()}>
+          <Avatar photoUrl={player.photo_url} name={player.name} />
+          <div style={styles.avatarEditBadge}>{uploading ? '...' : '📷'}</div>
+        </div>
         <h2 style={styles.playerName}>{player.name}</h2>
         <p style={styles.playerSub}>Dino Tamer</p>
       </div>
@@ -229,13 +286,31 @@ const styles = {
     textAlign: 'center',
     marginBottom: '20px',
   },
+  avatarWrapper: {
+    position: 'relative',
+    cursor: 'pointer',
+    marginBottom: '12px',
+  },
+  avatarEditBadge: {
+    position: 'absolute',
+    bottom: '0',
+    right: '0',
+    width: '26px',
+    height: '26px',
+    borderRadius: '50%',
+    background: '#6366f1',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '14px',
+    border: '2px solid #0a0a0a',
+  },
   avatarImg: {
     width: '80px',
     height: '80px',
     borderRadius: '50%',
     objectFit: 'cover',
     border: '3px solid #6366f1',
-    marginBottom: '12px',
   },
   avatarPlaceholder: {
     width: '80px',
@@ -246,7 +321,6 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: '12px',
   },
   avatarInitial: {
     fontSize: '32px',

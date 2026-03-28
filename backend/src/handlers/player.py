@@ -1,6 +1,6 @@
 import json
 from datetime import datetime, timezone
-from ..shared.db import put_item, get_item, query_pk
+from ..shared.db import put_item, get_item, query_pk, update_item
 from ..shared.response import success, error
 
 
@@ -10,6 +10,8 @@ def handler(event, context):
         return create_player(event)
     elif method == "GET":
         return get_player(event)
+    elif method == "PUT":
+        return update_player(event)
     return error("Method not allowed", 405)
 
 
@@ -36,6 +38,22 @@ def create_player(event):
     put_item(item)
 
     return success({"id": player_id, "name": name, "photo_url": photo_url})
+
+
+def update_player(event):
+    player_id = event["pathParameters"]["id"]
+    body = json.loads(event.get("body") or "{}")
+    photo_url = body.get("photo_url")
+
+    if photo_url is None:
+        return error("photo_url is required")
+
+    profile = get_item(f"PLAYER#{player_id}", "PROFILE")
+    if not profile:
+        return error("Player not found", 404)
+
+    update_item(f"PLAYER#{player_id}", "PROFILE", {"photo_url": photo_url})
+    return success({"id": player_id, "photo_url": photo_url})
 
 
 def get_player(event):
@@ -66,6 +84,7 @@ def get_player(event):
                 "is_partner": item.get("is_partner", False),
                 "tamed": item.get("tamed", False),
                 "shiny": item.get("shiny", False),
+                "background": item.get("background", ""),
             })
         elif sk.startswith("ITEM#"):
             items.append({

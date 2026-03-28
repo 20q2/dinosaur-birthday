@@ -1,11 +1,25 @@
 import { useState } from 'preact/hooks';
 import { api } from '../api.js';
 import { generateId } from '../utils/uuid.js';
+import samplePhoto from '../assets/sample/sample_profile_pic.PNG';
 
 const BOT_NAMES = ['Rex', 'Stego', 'Trike', 'Spino', 'Pachy', 'Para', 'Dilo'];
 const SPECIES = ['trex', 'spinosaurus', 'dilophosaurus', 'pachycephalosaurus', 'parasaurolophus', 'triceratops', 'ankylosaurus'];
 const FOOD_MAP = { trex: 'meat', spinosaurus: 'meat', dilophosaurus: 'meat', pachycephalosaurus: 'mejoberries', parasaurolophus: 'mejoberries', triceratops: 'mejoberries', ankylosaurus: 'mejoberries' };
 const SPECIES_NAMES = { trex: 'T-Rex', spinosaurus: 'Spinosaurus', dilophosaurus: 'Dilophosaurus', pachycephalosaurus: 'Pachycephalosaurus', parasaurolophus: 'Parasaurolophus', triceratops: 'Triceratops', ankylosaurus: 'Ankylosaurus' };
+const DINO_NAMES = [
+  'Chompers', 'Tiny', 'Bigfoot', 'Nugget', 'Thunder', 'Pickles', 'Biscuit',
+  'Waffles', 'Sprout', 'Gizmo', 'Pebbles', 'Crunchy', 'Bubbles', 'Snaggletooth',
+  'Turbo', 'Mochi', 'Pancake', 'Zipper', 'Noodle', 'Fern', 'Boulder', 'Tater Tot',
+  'Mango', 'Cheddar', 'Pixel', 'Dusty', 'Snickers', 'Maple', 'Orbit', 'Bean',
+  'Sparky', 'Clover', 'Pepper', 'Goober', 'Stardust', 'Tangerine', 'Ripley',
+  'Blitz', 'Pretzel', 'Cosmo', 'Jellybean', 'Sage', 'Rascal', 'Juniper', 'Rumble',
+  'Tofu', 'Patches', 'Willow', 'Crouton', 'Bandit',
+];
+
+function randomDinoName() {
+  return DINO_NAMES[Math.floor(Math.random() * DINO_NAMES.length)];
+}
 
 export function AdminBots() {
   const [bots, setBots] = useState([]);
@@ -25,7 +39,7 @@ export function AdminBots() {
     const nameBase = BOT_NAMES[bots.length % BOT_NAMES.length];
     const name = `Bot-${nameBase}-${bots.length + 1}`;
     try {
-      await api.createPlayer(id, name, '');
+      await api.createPlayer(id, name, samplePhoto);
       const bot = { id, name, state: 'collecting', dinos: 0 };
       setBots(prev => [...prev, bot]);
       addLog(`Spawned ${name}`);
@@ -35,7 +49,7 @@ export function AdminBots() {
       const food = FOOD_MAP[species];
       await api.scanDino(id, species);
       await api.scanFood(id, food, species);
-      const dinoName = `${name}'s ${SPECIES_NAMES[species]}`;
+      const dinoName = randomDinoName();
       await api.customizeDino(id, species, { name: dinoName });
       await api.setPartner(id, species);
       addLog(`${name} auto-collected ${SPECIES_NAMES[species]} and set as partner`);
@@ -60,7 +74,7 @@ export function AdminBots() {
       await api.scanFood(bot.id, food, species);
       addLog(`${bot.name} tamed ${SPECIES_NAMES[species]}`);
 
-      const dinoName = `${bot.name}'s ${SPECIES_NAMES[species]}`;
+      const dinoName = randomDinoName();
       await api.customizeDino(bot.id, species, { name: dinoName });
       await api.setPartner(bot.id, species);
       addLog(`${bot.name} set ${dinoName} as partner`);

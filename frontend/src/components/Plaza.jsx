@@ -3,12 +3,10 @@ import { api } from '../api.js';
 import { ws } from '../ws.js';
 import { store } from '../store.js';
 import { PlazaCanvas } from './PlazaCanvas.js';
-import { DinoSprite } from './DinoSprite.jsx';
 
 export function Plaza() {
   const canvasRef = useRef(null);
   const plazaRef = useRef(null);
-  const [selected, setSelected] = useState(null);
   const [partners, setPartners] = useState([]);
   const [feedEntries, setFeedEntries] = useState(store.feedEntries.slice(0, 7));
 
@@ -23,9 +21,7 @@ export function Plaza() {
   useEffect(() => {
     if (!canvasRef.current) return;
     const canvas = canvasRef.current;
-    const plaza = new PlazaCanvas(canvas, [], (partner) => {
-      setSelected(partner);
-    });
+    const plaza = new PlazaCanvas(canvas, [], () => {});
     plazaRef.current = plaza;
     plaza.start();
     return () => plaza.stop();
@@ -90,42 +86,6 @@ export function Plaza() {
         </div>
       )}
 
-      {selected && (
-        <div style={styles.popup} onClick={() => setSelected(null)}>
-          <div style={styles.popupCard} onClick={(e) => e.stopPropagation()}>
-            <div style={{ marginBottom: '8px' }}>
-              <DinoSprite
-                species={selected.species}
-                colors={selected.colors || {}}
-                scale={3}
-              />
-            </div>
-            <div style={{ fontWeight: 'bold', fontSize: '18px', color: '#f0fdf4' }}>
-              {selected.name || 'Unnamed'}
-            </div>
-            <div style={{ color: '#86efac', fontSize: '13px', marginTop: '2px' }}>
-              {selected.species} · Lv{selected.level}
-            </div>
-            {selected.hat && (
-              <div style={{ color: '#a78bfa', fontSize: '12px', marginTop: '6px' }}>
-                🎩 {selected.hat.replace('_', ' ')}
-              </div>
-            )}
-            <div style={{ color: '#4ade80', fontSize: '13px', marginTop: '10px' }}>
-              Owner: {selected.owner_name || 'Unknown'}
-            </div>
-            <button
-              onClick={() => { setSelected(null); store.navigate('/play'); }}
-              style={styles.playBtn}
-            >
-              🤝 Play Together
-            </button>
-            <button onClick={() => setSelected(null)} style={styles.closeBtn}>
-              Close
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -163,48 +123,6 @@ const styles = {
     transform: 'translate(-50%, -50%)',
     textAlign: 'center',
     pointerEvents: 'none',
-  },
-  popup: {
-    position: 'absolute',
-    inset: 0,
-    background: 'rgba(0,0,0,0.55)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 10,
-  },
-  popupCard: {
-    background: '#1a2e1a',
-    border: '1.5px solid #4ade80',
-    borderRadius: '16px',
-    padding: '24px 28px',
-    textAlign: 'center',
-    minWidth: '200px',
-    boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-  },
-  playBtn: {
-    marginTop: '14px',
-    padding: '8px 22px',
-    background: '#6366f1',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '8px',
-    fontWeight: 'bold',
-    fontSize: '14px',
-    cursor: 'pointer',
-    width: '100%',
-  },
-  closeBtn: {
-    marginTop: '8px',
-    padding: '8px 22px',
-    background: 'transparent',
-    color: '#86efac',
-    border: '1px solid #86efac',
-    borderRadius: '8px',
-    fontWeight: 'bold',
-    fontSize: '14px',
-    cursor: 'pointer',
-    width: '100%',
   },
   feedOverlay: {
     position: 'absolute',

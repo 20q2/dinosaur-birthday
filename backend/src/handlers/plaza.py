@@ -28,6 +28,7 @@ def handler(event, context):
             "colors": _to_native(item.get("colors", {})),
             "level": _to_native(item.get("level", 1)),
             "name": item.get("name", ""),
+            "gender": item.get("gender", ""),
             "owner_name": item.get("owner_name", ""),
             "owner_photo": item.get("owner_photo", ""),
         })

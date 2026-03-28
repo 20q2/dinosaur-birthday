@@ -40,7 +40,7 @@ NATURES = [
 
 LOBBY_SYMBOLS = [
     "meat", "mejoberry", "party_hat", "cowboy_hat", "top_hat",
-    "sunglasses", "paint", "bone", "egg", "leaf",
+    "sunglasses", "paint", "bone", "egg",
 ]
 
 TRIVIA = [
@@ -85,9 +85,44 @@ EXPLORER_NOTES = {
 }
 
 
-def random_colors(regions):
-    """Generate random hue shifts for each color region."""
-    return {region: random.randint(0, 359) for region in regions}
+def random_colors(regions, shiny=False):
+    """Generate hue shifts for each color region.
+
+    Normal dinos get natural earthy tones (greens, browns, olive, grey-greens).
+    Shiny dinos get vivid, unusual colors (pinks, purples, cyan, gold, etc.).
+    """
+    if shiny:
+        # Shiny: pick from vivid hue ranges that look unnatural
+        vivid_ranges = [
+            (280, 330),  # pinks / magentas
+            (180, 220),  # cyans / teals
+            (250, 280),  # purples / lavenders
+            (40, 55),    # golds / ambers
+            (0, 15),     # reds / crimsons
+            (320, 360),  # hot pinks
+        ]
+        colors = {}
+        used = []
+        for region in regions:
+            # Pick a range different from previously used ones
+            available = [r for r in vivid_ranges if r not in used] or vivid_ranges
+            chosen = random.choice(available)
+            used.append(chosen)
+            colors[region] = random.randint(chosen[0], chosen[1])
+        return colors
+    else:
+        # Normal: earthy natural tones
+        earthy_ranges = [
+            (75, 150),   # greens (forest, lime, olive)
+            (25, 50),    # browns / tans
+            (50, 80),    # olive / yellow-green
+            (150, 170),  # muted teal-green
+        ]
+        colors = {}
+        for region in regions:
+            chosen = random.choice(earthy_ranges)
+            colors[region] = random.randint(chosen[0], chosen[1])
+        return colors
 
 
 def random_nature():

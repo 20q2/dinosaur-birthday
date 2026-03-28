@@ -6,7 +6,7 @@ const tabs = [
   { route: '/plaza', icon: '🌿', label: 'Plaza' },
   { route: '/dinos', icon: '🦕', label: 'My Dinos' },
   { route: '/play', icon: '🤝', label: 'Play' },
-  { route: '/feed', icon: '📰', label: 'Feed' },
+  { route: '/inventory', icon: '🎒', label: 'Inventory' },
   { route: '/profile', icon: '👤', label: 'Profile' },
   ...(IS_LOCAL ? [{ route: '/admin', icon: '⚙️', label: 'Admin' }] : []),
 ];

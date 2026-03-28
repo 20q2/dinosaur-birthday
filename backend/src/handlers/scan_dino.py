@@ -32,7 +32,7 @@ def handler(event, context):
 
     species_data = SPECIES[species]
     shiny = is_shiny()
-    colors = random_colors(species_data["regions"])
+    colors = random_colors(species_data["regions"], shiny=shiny)
     gender = random_gender()
     nature = random_nature()
 

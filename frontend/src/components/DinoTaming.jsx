@@ -26,7 +26,6 @@ export function DinoTaming({ foodType }) {
           store.navigate('/dinos');
         }
       } catch (err) {
-        // No untamed dinos of this type
         store.navigate('/plaza');
       }
       setLoading(false);
@@ -53,19 +52,22 @@ export function DinoTaming({ foodType }) {
     store.navigate('/dinos');
   };
 
-  if (loading) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '80dvh' }}><p>Feeding...</p></div>;
+  if (loading) return <div style={styles.loadingPage}><p>Feeding...</p></div>;
 
   // Choose which dino to feed
   if (untamed.length > 0 && !tamed) {
     return (
-      <div style={{ padding: '24px', textAlign: 'center' }}>
-        <h2>Which dino should eat?</h2>
-        <p style={{ color: '#888', marginBottom: '16px' }}>You have multiple untamed {foodType === 'meat' ? 'carnivores' : 'herbivores'}</p>
-        {untamed.map(sp => (
-          <button key={sp} onClick={() => handleChooseSpecies(sp)} style={styles.choiceBtn}>
-            {SPECIES[sp]?.name || sp}
-          </button>
-        ))}
+      <div style={styles.page}>
+        <h2 style={styles.pageTitle}>Which dino should eat?</h2>
+        <p style={styles.pageSub}>You have multiple untamed {foodType === 'meat' ? 'carnivores' : 'herbivores'}</p>
+        <div style={styles.choiceList}>
+          {untamed.map(sp => (
+            <button key={sp} onClick={() => handleChooseSpecies(sp)} style={styles.choiceBtn}>
+              <DinoSprite species={sp} colors={{}} scale={1} />
+              <span>{SPECIES[sp]?.name || sp}</span>
+            </button>
+          ))}
+        </div>
       </div>
     );
   }
@@ -74,46 +76,58 @@ export function DinoTaming({ foodType }) {
   if (tamed) {
     const speciesData = SPECIES[selectedSpecies];
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '24px', gap: '12px' }}>
-        <div style={{ color: '#22c55e', fontSize: '14px' }}>✨ TAMING TIME ✨</div>
-        <div style={styles.dinoBox}><DinoSprite species={selectedSpecies} colors={{}} scale={3} /></div>
-        <h2>{speciesData?.name}</h2>
-        <div style={{ color: '#22c55e' }}>❤️ Munching on {foodType === 'meat' ? 'Meat' : 'Mejoberries'}...</div>
+      <div style={styles.page}>
+        <div style={styles.banner}>TAMING TIME</div>
 
-        <input
-          type="text"
-          placeholder="Name your dino!"
-          value={name}
-          onInput={(e) => setName(e.target.value)}
-          maxLength={16}
-          style={styles.input}
-          autoFocus
-        />
-
-        <div style={{ color: '#888', fontSize: '12px' }}>Pick a starter hat:</div>
-        <div style={{ display: 'flex', gap: '10px' }}>
-          {STARTER_HATS.map(hat => (
-            <button
-              key={hat.id}
-              onClick={() => setSelectedHat(hat.id)}
-              style={{
-                ...styles.hatBtn,
-                borderColor: selectedHat === hat.id ? '#4ade80' : '#333',
-              }}
-              title={hat.name}
-            >
-              🎩
-            </button>
-          ))}
+        <div style={styles.spriteArea}>
+          <DinoSprite species={selectedSpecies} colors={{}} scale={4} />
         </div>
 
-        <button
-          onClick={handleFinish}
-          disabled={!name.trim()}
-          style={{ ...styles.mainBtn, opacity: name.trim() ? 1 : 0.5 }}
-        >
-          WELCOME HOME!
-        </button>
+        <h2 style={styles.dinoName}>{speciesData?.name}</h2>
+        <div style={styles.munchLabel}>
+          Munching on {foodType === 'meat' ? 'Meat' : 'Mejoberries'}...
+        </div>
+
+        <div style={styles.card}>
+          <input
+            type="text"
+            placeholder="Name your dino!"
+            value={name}
+            onInput={(e) => setName(e.target.value)}
+            maxLength={16}
+            style={styles.input}
+            autoFocus
+          />
+
+          <div style={styles.hatSection}>
+            <div style={styles.hatLabel}>Pick a starter hat:</div>
+            <div style={styles.hatRow}>
+              {STARTER_HATS.map(hat => (
+                <button
+                  key={hat.id}
+                  onClick={() => setSelectedHat(hat.id)}
+                  style={{
+                    ...styles.hatBtn,
+                    borderColor: selectedHat === hat.id ? '#4ade80' : '#333',
+                    background: selectedHat === hat.id ? '#0f2a1a' : '#1a1a2e',
+                  }}
+                  title={hat.name}
+                >
+                  <span style={{ fontSize: '22px' }}>🎩</span>
+                  <span style={styles.hatName}>{hat.name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <button
+            onClick={handleFinish}
+            disabled={!name.trim()}
+            style={{ ...styles.mainBtn, opacity: name.trim() ? 1 : 0.5 }}
+          >
+            WELCOME HOME!
+          </button>
+        </div>
       </div>
     );
   }
@@ -122,28 +136,70 @@ export function DinoTaming({ foodType }) {
 }
 
 const styles = {
-  dinoBox: {
-    width: '120px', height: '120px', background: '#1a2e1a', borderRadius: '16px',
+  loadingPage: {
+    display: 'flex', alignItems: 'center', justifyContent: 'center', height: '80dvh',
+  },
+  page: {
+    display: 'flex', flexDirection: 'column', alignItems: 'center',
+    padding: '24px 16px 80px', gap: '12px',
+  },
+  pageTitle: { margin: 0, fontSize: '20px', color: '#e0e0e0' },
+  pageSub: { color: '#888', fontSize: '13px', margin: 0 },
+  banner: {
+    color: '#f59e0b', fontSize: '13px', fontWeight: '900',
+    letterSpacing: '3px', textAlign: 'center',
+  },
+  spriteArea: {
     display: 'flex', alignItems: 'center', justifyContent: 'center',
+    padding: '16px',
+  },
+  dinoName: {
+    margin: 0, fontSize: '24px', fontWeight: 'bold', color: '#e0e0e0',
+    textAlign: 'center',
+  },
+  munchLabel: {
+    color: '#4ade80', fontSize: '14px', textAlign: 'center',
+  },
+  card: {
+    width: '100%', maxWidth: '340px',
+    display: 'flex', flexDirection: 'column', gap: '16px',
+    marginTop: '4px',
   },
   input: {
-    padding: '14px', borderRadius: '8px', border: '1px solid #333',
+    padding: '14px', borderRadius: '10px', border: '1.5px solid #333',
     background: '#1a1a2e', color: '#e0e0e0', fontSize: '16px',
-    outline: 'none', textAlign: 'center', width: '100%', maxWidth: '280px',
+    outline: 'none', textAlign: 'center', width: '100%',
+  },
+  hatSection: {
+    display: 'flex', flexDirection: 'column', gap: '8px',
+  },
+  hatLabel: { color: '#888', fontSize: '12px', textAlign: 'center' },
+  hatRow: {
+    display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px',
   },
   hatBtn: {
-    width: '48px', height: '48px', background: '#333', borderRadius: '8px',
-    border: '2px solid #333', fontSize: '22px', cursor: 'pointer',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
+    padding: '10px 4px', borderRadius: '10px',
+    border: '2px solid #333', cursor: 'pointer',
+  },
+  hatName: {
+    fontSize: '10px', color: '#aaa', lineHeight: 1.2, textAlign: 'center',
   },
   mainBtn: {
-    padding: '14px', borderRadius: '8px', border: 'none',
+    padding: '16px', borderRadius: '12px', border: 'none',
     background: '#22c55e', color: 'white', fontSize: '16px',
-    fontWeight: 'bold', cursor: 'pointer', width: '100%', maxWidth: '280px',
+    fontWeight: 'bold', cursor: 'pointer', width: '100%',
+    letterSpacing: '1px',
+  },
+  choiceList: {
+    display: 'flex', flexDirection: 'column', gap: '8px',
+    width: '100%', maxWidth: '300px', marginTop: '8px',
   },
   choiceBtn: {
-    display: 'block', width: '100%', maxWidth: '280px', margin: '8px auto',
-    padding: '14px', borderRadius: '8px', border: 'none',
-    background: '#1a1a2e', color: '#e0e0e0', fontSize: '16px', cursor: 'pointer',
+    display: 'flex', alignItems: 'center', gap: '12px',
+    width: '100%', padding: '14px',
+    borderRadius: '10px', border: '2px solid #2a2a3e',
+    background: '#1a1a2e', color: '#e0e0e0', fontSize: '16px',
+    cursor: 'pointer', textAlign: 'left',
   },
 };

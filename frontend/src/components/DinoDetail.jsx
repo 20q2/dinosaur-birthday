@@ -6,6 +6,29 @@ import { SPECIES } from '../data/species.js';
 import { HATS, HAT_MAP } from '../data/hats.js';
 import { DinoSprite } from './DinoSprite.jsx';
 
+import bgRocks from '../assets/backgrounds/dino_find_rocks.png';
+import bgSwamp from '../assets/backgrounds/dino_find_swamp.png';
+import bgRiver from '../assets/backgrounds/dino_find_river.png';
+import bgGrass from '../assets/backgrounds/dino_find_tall_grass.png';
+
+const WILD_BG = {
+  trex: bgRocks,
+  spinosaurus: bgSwamp,
+  dilophosaurus: bgGrass,
+  pachycephalosaurus: bgRocks,
+  parasaurolophus: bgRiver,
+  triceratops: bgGrass,
+  ankylosaurus: bgSwamp,
+};
+
+const BG_OPTIONS = [
+  { id: '', label: 'Default', color: '#1a2e1a', img: null },
+  { id: 'rocks', label: 'Rocks', color: null, img: bgRocks },
+  { id: 'swamp', label: 'Swamp', color: null, img: bgSwamp },
+  { id: 'river', label: 'River', color: null, img: bgRiver },
+  { id: 'grass', label: 'Tall Grass', color: null, img: bgGrass },
+];
+
 const XP_PER_LEVEL = 100;
 const MAX_LEVEL = 5;
 
@@ -171,21 +194,37 @@ export function DinoDetail({ species }) {
         <button onClick={() => store.navigate('/dinos')} style={styles.backBtn}>
           Back
         </button>
-        <h2 style={styles.headerTitle}>{speciesData.name || species}</h2>
+        <h2 style={styles.headerTitle}>{speciesData.name || species} {dino.gender === 'male' ? '\u2642' : '\u2640'}</h2>
         <div style={{ width: '48px' }} />
       </div>
 
       {/* Dino portrait */}
-      <div style={styles.portrait}>
-        <DinoSprite species={species} colors={previewColors} scale={4} />
+      <div style={{
+        ...styles.portrait,
+        ...(!dino.tamed && WILD_BG[species] ? {
+          backgroundImage: `url(${WILD_BG[species]})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        } : {}),
+        ...(dino.tamed && dino.background ? (() => {
+          const bg = BG_OPTIONS.find(b => b.id === dino.background);
+          return bg?.img ? {
+            backgroundImage: `url(${bg.img})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          } : {};
+        })() : {}),
+      }}>
+        <DinoSprite species={species} colors={previewColors} scale={4} style={{ filter: 'drop-shadow(0 6px 12px rgba(0,0,0,0.6))' }} />
         {dino.shiny && <div style={styles.shinyLabel}>✨ SHINY</div>}
+        {!dino.tamed && <div style={styles.wildLabel}>WILD</div>}
         {dino.is_partner && <div style={styles.partnerLabel}>Plaza Partner</div>}
       </div>
 
       {/* Name */}
       <div style={styles.section}>
         <div style={styles.dinoName}>{dino.name || <em style={{ color: '#666' }}>Unnamed</em>}</div>
-        <div style={styles.meta}>{dino.gender} · {dino.nature}</div>
+        <div style={styles.meta}>Nature: {dino.nature}</div>
       </div>
 
       {/* Flavor text */}
@@ -193,33 +232,27 @@ export function DinoDetail({ species }) {
         <div style={styles.flavor}>"{speciesData.flavor}"</div>
       )}
 
-      {/* Level / XP */}
-      <div style={styles.card}>
-        <div style={styles.statRow}>
-          <span style={styles.statLabel}>Level</span>
-          <span style={styles.statValue}>{dino.level || 1}{dino.level >= MAX_LEVEL ? ' (MAX)' : ''}</span>
-        </div>
-        <div style={styles.xpBarBg}>
-          <div style={{ ...styles.xpBarFill, width: `${progress}%` }} />
-        </div>
-        <div style={styles.xpText}>{dino.xp || 0} XP</div>
-      </div>
-
-      {/* Hat */}
-      <div style={styles.card}>
-        <div style={styles.statRow}>
-          <span style={styles.statLabel}>Hat</span>
-          <span style={styles.statValue}>{hatData ? hatData.name : 'None'}</span>
-        </div>
-      </div>
-
-      {/* Colors */}
-      {Object.keys(colors).length > 0 && (
+      {/* Level / XP — tamed only */}
+      {dino.tamed && (
         <div style={styles.card}>
-          <div style={styles.sectionTitle}>Colors</div>
-          {Object.entries(colors).map(([region, hue]) => (
-            <ColorSwatch key={region} region={region} hue={hue} />
-          ))}
+          <div style={styles.statRow}>
+            <span style={styles.statLabel}>Level</span>
+            <span style={styles.statValue}>{dino.level || 1}{dino.level >= MAX_LEVEL ? ' (MAX)' : ''}</span>
+          </div>
+          <div style={styles.xpBarBg}>
+            <div style={{ ...styles.xpBarFill, width: `${progress}%` }} />
+          </div>
+          <div style={styles.xpText}>{dino.xp || 0} XP</div>
+        </div>
+      )}
+
+      {/* Hat — tamed only */}
+      {dino.tamed && (
+        <div style={styles.card}>
+          <div style={styles.statRow}>
+            <span style={styles.statLabel}>Hat</span>
+            <span style={styles.statValue}>{hatData ? hatData.name : 'None'}</span>
+          </div>
         </div>
       )}
 
@@ -233,8 +266,8 @@ export function DinoDetail({ species }) {
         </div>
       )}
 
-      {/* Rename flow */}
-      {renaming ? (
+      {/* Rename flow — tamed only */}
+      {dino.tamed && (renaming ? (
         <div style={styles.card}>
           <input
             type="text"
@@ -262,10 +295,10 @@ export function DinoDetail({ species }) {
         <button onClick={() => { setRenaming(true); setNameInput(dino.name || ''); }} style={styles.btn} disabled={busy}>
           Rename
         </button>
-      )}
+      ))}
 
-      {/* Hat picker flow */}
-      {showHats ? (
+      {/* Hat picker flow — tamed only */}
+      {dino.tamed && (showHats ? (
         <div style={styles.card}>
           <div style={styles.sectionTitle}>Choose a Hat</div>
           {availableHats.length === 0 ? (
@@ -294,6 +327,34 @@ export function DinoDetail({ species }) {
         <button onClick={() => setShowHats(true)} style={styles.btn} disabled={busy}>
           Change Hat
         </button>
+      ))}
+
+      {/* Background picker — tamed only */}
+      {dino.tamed && (
+        <div style={styles.card}>
+          <div style={styles.sectionTitle}>Backdrop</div>
+          <div style={styles.bgRow}>
+            {BG_OPTIONS.map(bg => (
+              <button
+                key={bg.id}
+                onClick={() => {
+                  if (dino.background === bg.id || (!dino.background && !bg.id)) return;
+                  doAction(() => api.customizeDino(store.playerId, species, { background: bg.id }));
+                }}
+                disabled={busy}
+                style={{
+                  ...styles.bgThumb,
+                  background: bg.img ? `url(${bg.img}) center/cover` : bg.color,
+                  borderColor: (dino.background || '') === bg.id ? '#4ade80' : '#333',
+                }}
+              >
+                {(dino.background || '') === bg.id && (
+                  <span style={styles.bgCheck}>✓</span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
       )}
 
       {/* Paint flow */}
@@ -399,6 +460,11 @@ const styles = {
     background: '#1a2e1a', borderRadius: '16px', padding: '24px',
   },
   shinyLabel: { color: '#f59e0b', fontSize: '13px', fontWeight: 'bold' },
+  wildLabel: {
+    fontSize: '11px', fontWeight: '900', letterSpacing: '2px',
+    color: '#f97316', background: 'rgba(0,0,0,0.5)',
+    borderRadius: '6px', padding: '3px 10px',
+  },
   partnerLabel: {
     fontSize: '12px', background: '#166534', color: '#4ade80',
     borderRadius: '6px', padding: '3px 10px', fontWeight: 'bold',
@@ -462,6 +528,19 @@ const styles = {
   paintSwatch: {
     width: '36px', height: '36px', borderRadius: '50%', border: '3px solid transparent',
     cursor: 'pointer', padding: 0,
+  },
+  bgRow: {
+    display: 'flex', gap: '8px', flexWrap: 'wrap',
+  },
+  bgThumb: {
+    width: '52px', height: '52px', borderRadius: '10px',
+    border: '2.5px solid #333', cursor: 'pointer', padding: 0,
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    position: 'relative',
+  },
+  bgCheck: {
+    color: '#4ade80', fontSize: '18px', fontWeight: 'bold',
+    textShadow: '0 1px 3px rgba(0,0,0,0.8)',
   },
   partnerNote: { textAlign: 'center', color: '#4ade80', fontSize: '13px' },
   untamedNote: {

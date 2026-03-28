@@ -36,6 +36,7 @@ def _build_dino_response(dino, species):
         "is_partner": bool(dino.get("is_partner", False)),
         "tamed": bool(dino.get("tamed", False)),
         "shiny": bool(dino.get("shiny", False)),
+        "background": dino.get("background", ""),
     }
 
 
@@ -100,6 +101,11 @@ def customize_handler(event, context):
         existing_colors = dict(dino.get("colors", {}))
         existing_colors[region] = color
         updates["colors"] = existing_colors
+
+    # Handle background
+    new_bg = body.get("background")
+    if new_bg is not None:
+        updates["background"] = str(new_bg)
 
     if not updates:
         return success(_build_dino_response(dino, species))
@@ -172,6 +178,7 @@ def partner_handler(event, context):
         "colors": dino.get("colors", {}),
         "level": dino.get("level", 1),
         "name": dino.get("name", ""),
+        "gender": dino.get("gender", ""),
         "owner_name": profile.get("name", "") if profile else "",
         "owner_photo": profile.get("photo_url", "") if profile else "",
     }
