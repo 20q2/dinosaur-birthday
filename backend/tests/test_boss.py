@@ -254,3 +254,28 @@ def test_player_with_no_dinos_deals_base_damage():
 
     assert body["damage"] == 5
     assert body["hp"] == 95
+
+
+# ── test 10: boss defeat awards hat to all players ──────────────────────────────
+
+def test_boss_defeat_awards_hat_to_all_players():
+    """All players' tamed dinos receive Kaiju Slayer hat on defeat, not just killer."""
+    # Two players, only defeat1 delivers killing blow
+    _make_player("defeat1")
+    _make_dino("defeat1", "trex", level=1, tamed=True, is_partner=True)
+    _make_player("defeat2")
+    _make_dino("defeat2", "triceratops", level=1, tamed=True, is_partner=True)
+
+    # HP exactly matches defeat1's damage: 5 + 1 = 6
+    _make_boss(hp=6, max_hp=1000, status="active")
+
+    resp = tap_handler(_tap_event("defeat1"), None)
+    assert resp["statusCode"] == 200
+    body = json.loads(resp["body"])
+    assert body["defeated"] is True
+
+    # Both players should have the hat
+    dino1 = get_item("PLAYER#defeat1", "DINO#trex")
+    dino2 = get_item("PLAYER#defeat2", "DINO#triceratops")
+    assert dino1["hat"] == "kaiju_slayer"
+    assert dino2["hat"] == "kaiju_slayer"

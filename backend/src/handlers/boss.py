@@ -72,8 +72,8 @@ def tap_handler(event, context):
             ExpressionAttributeValues={":defeated": "defeated"},
         )
 
-        # Award "Kaiju Slayer" hat to the player who delivered the killing blow
-        _award_kaiju_slayer_hat(player_id)
+        # Award "Kaiju Slayer" hat to ALL players
+        _award_kaiju_slayer_hat_all()
 
         # Post feed entry
         _post_feed_entry(
@@ -111,6 +111,24 @@ def _award_kaiju_slayer_hat(player_id):
                     ExpressionAttributeValues={":hat": "kaiju_slayer"},
                 )
                 break
+    except Exception:
+        pass
+
+
+def _award_kaiju_slayer_hat_all():
+    """Award the Kaiju Slayer hat to every player's partner/tamed dino."""
+    try:
+        table = get_table()
+        resp = table.scan(
+            FilterExpression="SK = :sk",
+            ExpressionAttributeValues={":sk": "PROFILE"},
+        )
+        for profile in resp.get("Items", []):
+            pk = profile.get("PK", "")
+            if not pk.startswith("PLAYER#"):
+                continue
+            player_id = pk.replace("PLAYER#", "")
+            _award_kaiju_slayer_hat(player_id)
     except Exception:
         pass
 
