@@ -3,26 +3,15 @@ import { store } from '../store.js';
 import { useStore } from '../router.jsx';
 import { api } from '../api.js';
 import { TitleBar } from './TitleBar.jsx';
-import meatImg from '../assets/items/meat.png';
-import berryImg from '../assets/items/berry.png';
-
-const SYMBOL_EMOJI = {
-  meat: '🥩', mejoberry: '🫐', party_hat: '🎉', cowboy_hat: '🤠',
-  top_hat: '🎩', sunglasses: '😎', paint: '🎨', bone: '🦴', egg: '🥚',
-};
-
-const SYMBOL_IMG = { meat: meatImg, mejoberry: berryImg };
+import { LOBBY_SYMBOLS } from '../data/lobbySymbols.js';
+import { Gamepad2, Handshake, Lightbulb } from 'lucide-preact';
 
 function SymbolIcon({ sym, size }) {
-  if (SYMBOL_IMG[sym]) {
-    return <img src={SYMBOL_IMG[sym]} style={{ width: size, height: size, imageRendering: 'pixelated' }} />;
-  }
-  return <span style={{ fontSize: size }}>{SYMBOL_EMOJI[sym] || '?'}</span>;
+  const s = LOBBY_SYMBOLS.find(s => s.id === sym);
+  if (!s) return <span style={{ color: '#444' }}>?</span>;
+  return <img src={s.img} style={{ width: size, height: size, imageRendering: 'pixelated' }} />;
 }
 
-const ALL_SYMBOLS = Object.keys(SYMBOL_EMOJI);
-
-// LocalStorage key for recent plays cooldown tracking
 const RECENT_PLAYS_KEY = 'dino_party_recent_plays';
 
 function getCooldowns() {
@@ -50,7 +39,6 @@ export function PlayMenu() {
   const [selectedSymbols, setSelectedSymbols] = useState([null, null, null]);
   const [tick, setTick] = useState(0);
 
-  // Tick every second to update cooldown timers
   useEffect(() => {
     const id = setInterval(() => setTick(t => t + 1), 1000);
     return () => clearInterval(id);
@@ -103,21 +91,21 @@ export function PlayMenu() {
       <TitleBar title="Play Together" subtitle="Team up with another dino tamer!" />
 
       <div style={styles.content}>
-      {/* No partner warning */}
       {!hasPartner && (
         <div style={styles.hint}>
-          <span style={{ fontSize: '20px' }}>💡</span>
+          <Lightbulb size={20} color="#a78bfa" />
           <span>Set a tamed dino as your Plaza Partner before you can play!</span>
         </div>
       )}
 
-      {/* Host button */}
       <button
         onClick={handleHost}
         disabled={busy || !hasPartner}
         style={{ ...styles.hostBtn, opacity: hasPartner ? 1 : 0.4 }}
       >
-        <div style={styles.bigBtnIconWrap}>🎮</div>
+        <div style={styles.bigBtnIconWrap}>
+          <Gamepad2 size={32} color="#4ade80" />
+        </div>
         <div style={styles.bigBtnText}>
           <div style={styles.bigBtnLabel}>Host a Lobby</div>
           <div style={styles.bigBtnSub}>Get a code, share with a friend</div>
@@ -125,14 +113,15 @@ export function PlayMenu() {
         <span style={styles.bigBtnArrow}>›</span>
       </button>
 
-      {/* Join button / picker */}
       {!showJoin ? (
         <button
           onClick={() => { setShowJoin(true); setError(''); }}
           disabled={busy || !hasPartner}
           style={{ ...styles.joinBtn, opacity: hasPartner ? 1 : 0.4 }}
         >
-          <div style={styles.bigBtnIconWrap}>🤝</div>
+          <div style={styles.bigBtnIconWrap}>
+            <Handshake size={32} color="#60a5fa" />
+          </div>
           <div style={styles.bigBtnText}>
             <div style={styles.bigBtnLabel}>Join a Lobby</div>
             <div style={styles.bigBtnSub}>Enter a 3-symbol code</div>
@@ -155,18 +144,18 @@ export function PlayMenu() {
                     : <span style={{ color: '#444', fontSize: '20px' }}>?</span>}
                 </div>
                 <div style={styles.symbolGrid}>
-                  {ALL_SYMBOLS.map(sym => (
+                  {LOBBY_SYMBOLS.map(s => (
                     <button
-                      key={sym}
-                      onClick={() => handleSymbolPick(i, sym)}
+                      key={s.id}
+                      onClick={() => handleSymbolPick(i, s.id)}
                       style={{
                         ...styles.symbolBtn,
-                        background: selectedSymbols[i] === sym ? '#1e3a5f' : 'transparent',
-                        borderColor: selectedSymbols[i] === sym ? '#60a5fa' : '#222',
+                        background: selectedSymbols[i] === s.id ? '#1e3a5f' : 'transparent',
+                        borderColor: selectedSymbols[i] === s.id ? '#60a5fa' : '#222',
                       }}
-                      title={sym}
+                      title={s.label}
                     >
-                      <SymbolIcon sym={sym} size="18px" />
+                      <SymbolIcon sym={s.id} size="18px" />
                     </button>
                   ))}
                 </div>
@@ -195,7 +184,6 @@ export function PlayMenu() {
 
       {error && <div style={styles.errorMsg}>{error}</div>}
 
-      {/* Recent plays / cooldown section */}
       {recentPlays.length > 0 && (
         <div style={styles.section}>
           <div style={styles.sectionTitle}>Recent Plays</div>
@@ -210,7 +198,6 @@ export function PlayMenu() {
         </div>
       )}
 
-      {/* How it works */}
       <div style={styles.howSection}>
         <div style={styles.howTitle}>How It Works</div>
         <div style={styles.stepsContainer}>
@@ -273,7 +260,7 @@ const styles = {
     boxShadow: '0 2px 12px rgba(96, 165, 250, 0.06)',
   },
   bigBtnIconWrap: {
-    fontSize: '32px', flexShrink: 0,
+    flexShrink: 0,
     width: '48px', height: '48px',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     background: 'rgba(255,255,255,0.06)', borderRadius: '12px',
@@ -292,14 +279,15 @@ const styles = {
   slot: {
     width: '52px', height: '52px', borderRadius: '10px', border: '2px solid',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    fontSize: '28px', transition: 'border-color 0.2s, background 0.2s',
+    transition: 'border-color 0.2s, background 0.2s',
   },
   symbolGrid: {
-    display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px', width: '100%',
+    display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '4px', width: '100%',
   },
   symbolBtn: {
-    fontSize: '18px', padding: '4px', borderRadius: '6px', border: '1px solid',
+    padding: '6px', borderRadius: '6px', border: '1px solid',
     cursor: 'pointer', lineHeight: 1,
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
   },
   btn: {
     padding: '14px', borderRadius: '10px', border: 'none',

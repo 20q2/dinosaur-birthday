@@ -5,39 +5,21 @@ import { api } from '../api.js';
 import { ws } from '../ws.js';
 import { DinoPlayScene } from './DinoPlayScene.jsx';
 import { TitleBar } from './TitleBar.jsx';
+import { Gamepad2, Handshake } from 'lucide-preact';
 
-import meatImg from '../assets/items/meat.png';
-import berryImg from '../assets/items/berry.png';
-import paintImg from '../assets/items/paint.png';
-import partyHatImg from '../assets/hats/partyhat.png';
-import cowboyHatImg from '../assets/hats/cowboyhat.png';
-import topHatImg from '../assets/hats/tophat.png';
-import sunglassesImg from '../assets/hats/sunglasses.png';
+import { LOBBY_SYMBOLS } from '../data/lobbySymbols.js';
 
 const COOLDOWN_MS = 15 * 60 * 1000;
 const RECENT_PLAYS_KEY = 'dino_recent_plays';
 
-const SYMBOLS = [
-  { id: 'meat', img: meatImg, label: 'Meat' },
-  { id: 'mejoberry', img: berryImg, label: 'Mejoberry' },
-  { id: 'party_hat', img: partyHatImg, label: 'Party Hat' },
-  { id: 'cowboy_hat', img: cowboyHatImg, label: 'Cowboy Hat' },
-  { id: 'top_hat', img: topHatImg, label: 'Top Hat' },
-  { id: 'sunglasses', img: sunglassesImg, label: 'Sunglasses' },
-  { id: 'paint', img: paintImg, label: 'Paint' },
-  { id: 'bone', emoji: '\u{1F9B4}', label: 'Bone' },
-  { id: 'egg', emoji: '\u{1F95A}', label: 'Egg' },
-];
-
 function SymbolDisplay({ sym, size = '28px' }) {
-  const s = SYMBOLS.find(s => s.id === sym);
-  if (!s) return <span style={{ fontSize: size }}>?</span>;
-  if (s.img) return <img src={s.img} style={{ width: size, height: size, imageRendering: 'pixelated' }} />;
-  return <span style={{ fontSize: size }}>{s.emoji}</span>;
+  const s = LOBBY_SYMBOLS.find(s => s.id === sym);
+  if (!s) return <span style={{ color: '#444' }}>?</span>;
+  return <img src={s.img} style={{ width: size, height: size, imageRendering: 'pixelated' }} />;
 }
 
 function getSymbolLabel(id) {
-  return SYMBOLS.find(s => s.id === id)?.label || id;
+  return LOBBY_SYMBOLS.find(s => s.id === id)?.label || id;
 }
 
 function saveCooldown(partnerId) {
@@ -307,7 +289,7 @@ function MenuPhase({ hasPartner, loading, recentPlays, onHost, onJoin }) {
         disabled={loading || !hasPartner}
         style={{ ...styles.actionBtn, ...styles.hostBtn, opacity: hasPartner ? 1 : 0.5 }}
       >
-        <div style={styles.actionBtnIcon}>{'\u{1F3AE}'}</div>
+        <div style={styles.actionBtnIcon}><Gamepad2 size={28} color="#4ade80" /></div>
         <div>
           <div style={styles.actionBtnTitle}>Host a Lobby</div>
           <div style={styles.actionBtnSub}>Get a code, share with a friend</div>
@@ -320,7 +302,7 @@ function MenuPhase({ hasPartner, loading, recentPlays, onHost, onJoin }) {
         disabled={loading || !hasPartner}
         style={{ ...styles.actionBtn, ...styles.joinBtn, opacity: hasPartner ? 1 : 0.5 }}
       >
-        <div style={styles.actionBtnIcon}>{'\u{1F49B}'}</div>
+        <div style={styles.actionBtnIcon}><Handshake size={28} color="#60a5fa" /></div>
         <div>
           <div style={styles.actionBtnTitle}>Join a Lobby</div>
           <div style={styles.actionBtnSub}>Enter a 3-symbol code</div>
@@ -415,7 +397,7 @@ function GuestLobbyPhase({ symbols, setSymbols, loading, error, onSubmit, onCanc
 
       {/* Symbol grid */}
       <div style={styles.symbolGrid}>
-        {SYMBOLS.map(s => (
+        {LOBBY_SYMBOLS.map(s => (
           <button
             key={s.id}
             onClick={() => handlePick(s.id)}
@@ -576,7 +558,7 @@ const styles = {
     display: 'flex', alignItems: 'center', justifyContent: 'center',
   },
   symbolGrid: {
-    display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px',
+    display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px',
   },
   symbolPickBtn: {
     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',

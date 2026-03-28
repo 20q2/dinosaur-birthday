@@ -3,47 +3,31 @@ import { store } from '../store.js';
 import { useStore } from '../router.jsx';
 import { api } from '../api.js';
 import { ws } from '../ws.js';
-import meatImg from '../assets/items/meat.png';
-import berryImg from '../assets/items/berry.png';
-
-const SYMBOL_EMOJI = {
-  meat: '🥩', mejoberry: '🫐', party_hat: '🎉', cowboy_hat: '🤠',
-  top_hat: '🎩', sunglasses: '😎', paint: '🎨', bone: '🦴', egg: '🥚',
-};
-
-const SYMBOL_IMG = { meat: meatImg, mejoberry: berryImg };
+import { LOBBY_SYMBOLS } from '../data/lobbySymbols.js';
+import { PartyPopper } from 'lucide-preact';
 
 function SymbolIcon({ sym, size }) {
-  if (SYMBOL_IMG[sym]) {
-    return <img src={SYMBOL_IMG[sym]} style={{ width: size, height: size, imageRendering: 'pixelated' }} />;
-  }
-  return <span style={{ fontSize: size }}>{SYMBOL_EMOJI[sym] || '?'}</span>;
+  const s = LOBBY_SYMBOLS.find(s => s.id === sym);
+  if (!s) return <span style={{ color: '#444' }}>?</span>;
+  return <img src={s.img} style={{ width: size, height: size, imageRendering: 'pixelated' }} />;
 }
-
-const ALL_SYMBOLS = Object.keys(SYMBOL_EMOJI);
 
 export function PlayLobby({ code }) {
   const { player } = useStore();
-
-  // Determine role from store (set before navigating here)
   const isHost = store.lobbyRole === 'host';
 
-  // Host state: the symbols that make up the code
   const [symbols, setSymbols] = useState(() => code ? code.split('_') : []);
-  const [status, setStatus] = useState('waiting'); // 'waiting' | 'active'
+  const [status, setStatus] = useState('waiting');
   const [error, setError] = useState('');
   const [countdown, setCountdown] = useState(null);
 
-  // Join state (for when an external player is sent here directly, role = 'join')
   const [selectedSymbols, setSelectedSymbols] = useState([null, null, null]);
   const [joinBusy, setJoinBusy] = useState(false);
 
-  // Subscribe to lobby WebSocket channel
   useEffect(() => {
     ws.subscribe(`lobby:${code}`);
 
     const offTrivia = ws.on(`lobby:${code}`, 'trivia_start', () => {
-      // A guest joined — navigate host to trivia
       setStatus('active');
       setCountdown(3);
     });
@@ -53,7 +37,6 @@ export function PlayLobby({ code }) {
     };
   }, [code]);
 
-  // Count down then navigate when match is confirmed
   useEffect(() => {
     if (countdown === null) return;
     if (countdown === 0) {
@@ -64,7 +47,6 @@ export function PlayLobby({ code }) {
     return () => clearTimeout(id);
   }, [countdown, code]);
 
-  // Host view: show the code symbols for the other player to enter
   if (isHost) {
     return (
       <div style={styles.page}>
@@ -103,7 +85,7 @@ export function PlayLobby({ code }) {
 
         {status === 'active' && countdown !== null && (
           <div style={styles.matchedBox}>
-            <div style={{ fontSize: '48px' }}>🎉</div>
+            <PartyPopper size={48} color="#4ade80" />
             <div style={styles.matchedText}>A friend joined!</div>
             <div style={styles.countdown}>Starting in {countdown}...</div>
           </div>
@@ -114,7 +96,6 @@ export function PlayLobby({ code }) {
     );
   }
 
-  // Guest / join view: symbol picker (if code is empty, they pick their code here)
   async function handleJoin() {
     const filled = selectedSymbols.filter(Boolean);
     if (filled.length < 3) {
@@ -165,18 +146,18 @@ export function PlayLobby({ code }) {
                   : <span style={{ color: '#444', fontSize: '18px' }}>?</span>}
               </div>
               <div style={styles.symbolGrid}>
-                {ALL_SYMBOLS.map(sym => (
+                {LOBBY_SYMBOLS.map(s => (
                   <button
-                    key={sym}
-                    onClick={() => handleSymbolPick(i, sym)}
+                    key={s.id}
+                    onClick={() => handleSymbolPick(i, s.id)}
                     style={{
                       ...styles.symbolBtn,
-                      background: selectedSymbols[i] === sym ? '#1e3a5f' : 'transparent',
-                      borderColor: selectedSymbols[i] === sym ? '#60a5fa' : '#222',
+                      background: selectedSymbols[i] === s.id ? '#1e3a5f' : 'transparent',
+                      borderColor: selectedSymbols[i] === s.id ? '#60a5fa' : '#222',
                     }}
-                    title={sym}
+                    title={s.label}
                   >
-                    <SymbolIcon sym={sym} size="18px" />
+                    <SymbolIcon sym={s.id} size="18px" />
                   </button>
                 ))}
               </div>
@@ -232,7 +213,6 @@ const styles = {
   symbolBig: {
     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
   },
-  symbolEmoji: { fontSize: '52px' },
   symbolName: { color: '#86efac', fontSize: '11px', textTransform: 'capitalize' },
   codeText: {
     color: '#4ade80', fontSize: '12px', fontFamily: 'monospace',
@@ -268,14 +248,14 @@ const styles = {
   slot: {
     width: '52px', height: '52px', borderRadius: '10px', border: '2px solid',
     background: '#1f2937', display: 'flex', alignItems: 'center', justifyContent: 'center',
-    fontSize: '28px',
   },
   symbolGrid: {
-    display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px', width: '100%',
+    display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '4px', width: '100%',
   },
   symbolBtn: {
-    fontSize: '18px', padding: '4px', borderRadius: '6px', border: '1px solid',
+    padding: '6px', borderRadius: '6px', border: '1px solid',
     cursor: 'pointer', lineHeight: 1,
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
   },
   btn: {
     padding: '14px', borderRadius: '10px', border: 'none',
