@@ -1,18 +1,17 @@
-import { useState, useEffect, useRef } from 'preact/hooks';
+import { useState, useEffect } from 'preact/hooks';
 import { store } from '../store.js';
 import { useStore } from '../router.jsx';
 import { api } from '../api.js';
 import { ws } from '../ws.js';
+import { Footprints, CheckCircle2, XCircle, Zap, Crown } from 'lucide-preact';
 
-// Cooldown tracking helpers
 const RECENT_PLAYS_KEY = 'dino_party_recent_plays';
-const COOLDOWN_MS = 15 * 60 * 1000; // 15 minutes
+const COOLDOWN_MS = 15 * 60 * 1000;
 
 function saveCooldown(withName) {
   try {
     const existing = JSON.parse(localStorage.getItem(RECENT_PLAYS_KEY) || '[]');
     const entry = { withName, expiresAt: Date.now() + COOLDOWN_MS };
-    // Remove stale + same-name entries, prepend new one
     const filtered = existing.filter(e => e.expiresAt > Date.now() && e.withName !== withName);
     localStorage.setItem(RECENT_PLAYS_KEY, JSON.stringify([entry, ...filtered].slice(0, 10)));
   } catch {
@@ -20,26 +19,13 @@ function saveCooldown(withName) {
   }
 }
 
-// Dino emoji placeholders per species
-const DINO_EMOJI = {
-  trex: '🦖', spinosaurus: '🦕', dilophosaurus: '🦎',
-  pachycephalosaurus: '🦕', parasaurolophus: '🦕',
-  triceratops: '🦏', ankylosaurus: '🛡',
-};
-
-function getDinoEmoji(species) {
-  return DINO_EMOJI[species] || '🦕';
-}
-
-// Simple bounce animation for dino icons in the top half
 function DinoDisplay({ player }) {
   const dino = player?.dinos?.find(d => d.is_partner && d.tamed);
-  const emoji = getDinoEmoji(dino?.species);
   const name = dino?.name || dino?.species || 'Your Dino';
 
   return (
     <div style={styles.dinoBox}>
-      <div style={styles.dinoEmoji}>{emoji}</div>
+      <Footprints size={52} style={styles.dinoIcon} />
       <div style={styles.dinoName}>{name}</div>
       {dino && (
         <div style={styles.dinoLevel}>Lv{dino.level || 1}</div>
@@ -51,7 +37,6 @@ function DinoDisplay({ player }) {
 export function PlayTrivia({ code }) {
   const { player } = useStore();
 
-  // Trivia may come from store (set when guest joined) or via WS
   const [trivia, setTrivia] = useState(store.lobbyTrivia || null);
   const [answered, setAnswered] = useState(false);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
@@ -60,7 +45,6 @@ export function PlayTrivia({ code }) {
   const [error, setError] = useState('');
   const [partnerName, setPartnerName] = useState('');
 
-  // Subscribe to lobby channel to receive trivia and results
   useEffect(() => {
     ws.subscribe(`lobby:${code}`);
 
@@ -91,9 +75,7 @@ export function PlayTrivia({ code }) {
       const data = await api.answerTrivia(store.playerId, code, index);
       setResult(data);
       setAnswered(true);
-      // Save cooldown locally so PlayMenu can show it
       saveCooldown(partnerName || 'A tamer');
-      // Refresh player data so XP/level updates are reflected
       await store.refresh();
     } catch (err) {
       setError(err.message || 'Something went wrong');
@@ -108,12 +90,11 @@ export function PlayTrivia({ code }) {
     store.navigate('/play');
   }
 
-  // Loading: waiting for trivia question
   if (!trivia) {
     return (
       <div style={styles.page}>
         <div style={styles.loadingBox}>
-          <div style={{ fontSize: '48px', marginBottom: '12px' }}>🦕</div>
+          <Footprints size={48} color="#86efac" style={{ marginBottom: '12px' }} />
           <p style={{ color: '#86efac' }}>Waiting for trivia question...</p>
           <button onClick={handleBackToPlaza} style={styles.ghostBtn}>
             Cancel
@@ -125,25 +106,20 @@ export function PlayTrivia({ code }) {
 
   return (
     <div style={styles.page}>
-      {/* Top half: two dinos playing */}
       <div style={styles.topHalf}>
         <div style={styles.dinosRow}>
           <DinoDisplay player={player} />
           <div style={styles.vsText}>VS</div>
-          {/* Placeholder for the partner */}
           <div style={styles.dinoBox}>
-            <div style={styles.dinoEmoji}>🦕</div>
+            <Footprints size={52} style={styles.dinoIcon} />
             <div style={styles.dinoName}>Partner</div>
             <div style={styles.dinoLevel}>Friend</div>
           </div>
         </div>
         <div style={styles.playingLabel}>Playing Together!</div>
-
-        {/* Dino hopping animation */}
         <style>{hopAnimation}</style>
       </div>
 
-      {/* Bottom half: trivia or results */}
       <div style={styles.bottomHalf}>
         {!answered ? (
           <>
@@ -175,14 +151,16 @@ export function PlayTrivia({ code }) {
           </>
         ) : (
           <div style={styles.resultsBox}>
-            {/* Correct / Incorrect banner */}
             <div style={{
               ...styles.resultBanner,
               background: result?.correct ? '#0f2a1a' : '#2a0f0f',
               borderColor: result?.correct ? '#4ade80' : '#ef4444',
             }}>
               <div style={styles.resultIcon}>
-                {result?.correct ? '✅' : '❌'}
+                {result?.correct
+                  ? <CheckCircle2 size={40} color="#4ade80" />
+                  : <XCircle size={40} color="#ef4444" />
+                }
               </div>
               <div style={{
                 ...styles.resultLabel,
@@ -197,18 +175,17 @@ export function PlayTrivia({ code }) {
               )}
             </div>
 
-            {/* Rewards */}
             <div style={styles.rewardsCard}>
               <div style={styles.rewardsTitle}>Rewards</div>
               <div style={styles.rewardRow}>
-                <span style={styles.rewardIcon}>⚡</span>
+                <Zap size={20} color="#f59e0b" style={{ flexShrink: 0 }} />
                 <span style={styles.rewardText}>
                   +{result?.xp_awarded || 0} XP to your partner dino!
                 </span>
               </div>
               {result?.hat && (
                 <div style={styles.rewardRow}>
-                  <span style={styles.rewardIcon}>🎩</span>
+                  <Crown size={20} color="#f59e0b" style={{ flexShrink: 0 }} />
                   <span style={styles.rewardText}>
                     New hat: <strong style={{ color: '#f59e0b' }}>{result.hat}</strong>
                   </span>
@@ -216,12 +193,11 @@ export function PlayTrivia({ code }) {
               )}
               {!result?.hat && (
                 <div style={{ ...styles.rewardRow, opacity: 0.5 }}>
-                  <span style={styles.rewardIcon}>🎩</span>
+                  <Crown size={20} color="#f59e0b" style={{ flexShrink: 0 }} />
                   <span style={styles.rewardText}>No hat this time</span>
                 </div>
               )}
 
-              {/* XP bar for current partner dino */}
               {player?.dinos?.find(d => d.is_partner && d.tamed) && (() => {
                 const dino = player.dinos.find(d => d.is_partner && d.tamed);
                 const lvl = dino.level || 1;
@@ -280,8 +256,8 @@ const styles = {
   dinoBox: {
     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
   },
-  dinoEmoji: {
-    fontSize: '52px',
+  dinoIcon: {
+    color: '#4ade80',
     animation: 'hop 1s infinite ease-in-out',
   },
   dinoName: { color: '#86efac', fontSize: '12px', fontWeight: 'bold' },
@@ -331,7 +307,7 @@ const styles = {
     padding: '20px', textAlign: 'center',
     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px',
   },
-  resultIcon: { fontSize: '40px' },
+  resultIcon: { lineHeight: 1 },
   resultLabel: { fontSize: '22px', fontWeight: 'bold' },
   correctAnswerText: { color: '#9ca3af', fontSize: '13px', marginTop: '4px' },
   rewardsCard: {
@@ -342,7 +318,6 @@ const styles = {
     color: '#9ca3af', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase',
   },
   rewardRow: { display: 'flex', alignItems: 'center', gap: '10px' },
-  rewardIcon: { fontSize: '20px', flexShrink: 0 },
   rewardText: { color: '#e0e0e0', fontSize: '14px' },
   xpSection: {
     borderTop: '1px solid #1f2937', paddingTop: '10px',
