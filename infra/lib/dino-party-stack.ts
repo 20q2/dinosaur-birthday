@@ -237,6 +237,7 @@ export class DinoPartyStack extends Stack {
     grantBroadcast(adminFn);
     addRoute(adminFn, 'POST', '/admin/boss/buildup');
     addRoute(adminFn, 'POST', '/admin/boss/start');
+    addRoute(adminFn, 'POST', '/admin/boss/stop');
     addRoute(adminFn, 'POST', '/admin/announce');
     addRoute(adminFn, 'POST', '/admin/give-all-items');
     addRoute(adminFn, 'POST', '/admin/give-item');
