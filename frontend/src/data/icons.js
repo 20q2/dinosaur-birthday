@@ -11,6 +11,7 @@ export const FEED_ICONS = {
   levelup:     TrendingUp,
   boss:        Swords,
   inspiration: Sparkles,
+  partner:     Footprints,
 };
 
 // Party event type → Lucide icon component. Use Leaf as fallback.

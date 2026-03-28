@@ -1,4 +1,6 @@
 import json
+import uuid
+from datetime import datetime, timezone
 from decimal import Decimal
 from ..shared.db import get_item, put_item, update_item, query_pk, delete_item
 from ..shared.response import success, error
@@ -207,6 +209,31 @@ def partner_handler(event, context):
             "level": dino.get("level", 1),
             "owner_name": profile.get("name", "") if profile else "",
             "owner_photo": profile.get("photo_url", "") if profile else "",
+        })
+    except Exception:
+        pass
+
+    # Feed entry — announce arrival to everyone
+    try:
+        species_display = SPECIES.get(species, {}).get("name", species)
+        dino_display = dino.get("name") or species_display
+        owner_name = profile.get("name", "Someone") if profile else "Someone"
+        feed_message = f"{owner_name}'s {dino_display} strutted into the plaza!"
+        ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
+        feed_sk = f"{ts}#{str(uuid.uuid4())[:8]}"
+        put_item({
+            "PK": "FEED",
+            "SK": feed_sk,
+            "type": "partner",
+            "message": feed_message,
+            "player_name": owner_name,
+        })
+        broadcast("feed", "new_entry", {
+            "id": feed_sk,
+            "type": "partner",
+            "message": feed_message,
+            "player_name": owner_name,
+            "timestamp": ts,
         })
     except Exception:
         pass
