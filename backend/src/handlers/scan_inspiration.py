@@ -5,6 +5,7 @@ from ..shared.db import get_item, put_item
 from ..shared.response import success, error
 from ..shared.xp import award_xp
 from ..shared.ws_broadcast import broadcast
+from ..shared.rare_paints import grant_rare_paint
 
 BLESSING_HAT = {"id": "birthday_blessing", "name": "Birthday Balloons", "rarity": "legendary"}
 
@@ -53,6 +54,9 @@ def handler(event, context):
         "SK": "INSPIRATION",
         "received_at": datetime.now(timezone.utc).isoformat(),
     })
+
+    # Grant rainbow rare paint (once per player, idempotent)
+    grant_rare_paint(player_id, "rainbow")
 
     # Post to feed
     try:

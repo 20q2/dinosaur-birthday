@@ -55,10 +55,13 @@ def test_claim_inspiration_awards_50xp_and_blessing():
     dino = get_item("PLAYER#insp1", "DINO#parasaurolophus")
     assert int(dino["xp"]) == 50
 
-    # Hat in inventory
+    # Hat and rainbow paint in inventory
     items = query_pk("PLAYER#insp1", "ITEM#")
-    assert len(items) == 1
-    assert items[0]["details"]["hat_id"] == "birthday_blessing"
+    assert len(items) == 2
+    hat = [i for i in items if i.get("details", {}).get("hat_id") == "birthday_blessing"][0]
+    assert hat is not None
+    rainbow = [i for i in items if i.get("details", {}).get("effect") == "rainbow"][0]
+    assert rainbow is not None
 
     # INSPIRATION record written
     record = get_item("PLAYER#insp1", "INSPIRATION")
@@ -138,7 +141,10 @@ def test_inspiration_without_partner_dino():
     body = json.loads(resp["body"])
     assert body["claimed"] is True
     assert body["dino"] is None
-    # Hat is still awarded
+    # Hat and rainbow paint are awarded
     items = query_pk("PLAYER#insp4", "ITEM#")
-    assert len(items) == 1
-    assert items[0]["details"]["hat_id"] == "birthday_blessing"
+    assert len(items) == 2
+    hat = [i for i in items if i.get("details", {}).get("hat_id") == "birthday_blessing"][0]
+    assert hat is not None
+    rainbow = [i for i in items if i.get("details", {}).get("effect") == "rainbow"][0]
+    assert rainbow is not None
