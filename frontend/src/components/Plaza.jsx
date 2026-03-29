@@ -7,11 +7,22 @@ import { TitleBar } from './TitleBar.jsx';
 import { FEED_ICONS } from '../data/icons.js';
 import { Leaf, Footprints } from 'lucide-preact';
 
+const RECENT_PLAYS_KEY = 'dino_party_recent_plays';
+
+function getActiveCooldownIds() {
+  try {
+    const entries = JSON.parse(localStorage.getItem(RECENT_PLAYS_KEY) || '[]');
+    const now = Date.now();
+    return entries.filter(e => e.expiresAt > now && e.partnerId).map(e => e.partnerId);
+  } catch { return []; }
+}
+
 export function Plaza() {
   const canvasRef = useRef(null);
   const plazaRef = useRef(null);
   const [partners, setPartners] = useState([]);
   const [feedEntries, setFeedEntries] = useState(store.feedEntries.slice(0, 7));
+  const [cooldownIds, setCooldownIds] = useState(() => getActiveCooldownIds());
 
   // Initial load + canvas setup
   useEffect(() => {
@@ -68,6 +79,16 @@ export function Plaza() {
       plazaRef.current.setShadowPhase(data.phase === 1);
     });
     return () => off();
+  }, []);
+
+  // Push cooldown updates to canvas, refresh every 30s
+  useEffect(() => {
+    if (plazaRef.current) plazaRef.current.setCooldowns(cooldownIds);
+  }, [cooldownIds]);
+
+  useEffect(() => {
+    const iv = setInterval(() => setCooldownIds(getActiveCooldownIds()), 30000);
+    return () => clearInterval(iv);
   }, []);
 
   // Subscribe to live feed entries from store
@@ -156,7 +177,7 @@ const styles = {
   },
   feedList: {
     display: 'flex',
-    flexDirection: 'column',
+    flexDirection: 'column-reverse',
     gap: '3px',
   },
   feedItem: {

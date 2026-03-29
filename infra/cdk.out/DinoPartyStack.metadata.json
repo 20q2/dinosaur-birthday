@@ -1,0 +1,1428 @@
+{
+  "/DinoPartyStack/GameTable": [
+    {
+      "type": "aws:cdk:hasPhysicalName",
+      "data": {
+        "Ref": "GameTable0C79FC62"
+      }
+    }
+  ],
+  "/DinoPartyStack/ConnectionsTable": [
+    {
+      "type": "aws:cdk:hasPhysicalName",
+      "data": {
+        "Ref": "ConnectionsTable8000B8A1"
+      }
+    }
+  ],
+  "/DinoPartyStack/Custom::S3AutoDeleteObjectsCustomResourceProvider": [
+    {
+      "type": "aws:cdk:is-custom-resource-handler-customResourceProvider",
+      "data": true
+    }
+  ],
+  "/DinoPartyStack/WebSocketApi": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "WebSocketApi"
+    }
+  ],
+  "/DinoPartyStack/WebSocketStage": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "WebSocketStage"
+    }
+  ],
+  "/DinoPartyStack/WsIntegconnect": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "WsIntegconnect"
+    }
+  ],
+  "/DinoPartyStack/WsRouteconnect": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "WsRouteconnect"
+    }
+  ],
+  "/DinoPartyStack/WsIntegdisconnect": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "WsIntegdisconnect"
+    }
+  ],
+  "/DinoPartyStack/WsRoutedisconnect": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "WsRoutedisconnect"
+    }
+  ],
+  "/DinoPartyStack/WsIntegdefault": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "WsIntegdefault"
+    }
+  ],
+  "/DinoPartyStack/WsRoutedefault": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "WsRoutedefault"
+    }
+  ],
+  "/DinoPartyStack/RestApiUrl": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiUrl"
+    }
+  ],
+  "/DinoPartyStack/WebSocketUrl": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "WebSocketUrl"
+    }
+  ],
+  "/DinoPartyStack/PhotoBucketName": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "PhotoBucketName"
+    }
+  ],
+  "/DinoPartyStack/BootstrapVersion": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "BootstrapVersion"
+    }
+  ],
+  "/DinoPartyStack/CheckBootstrapVersion": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CheckBootstrapVersion"
+    }
+  ],
+  "/DinoPartyStack/GameTable/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "GameTable0C79FC62"
+    }
+  ],
+  "/DinoPartyStack/ConnectionsTable/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ConnectionsTable8000B8A1"
+    }
+  ],
+  "/DinoPartyStack/PhotoBucket/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "PhotoBucket465738B3"
+    },
+    {
+      "type": "aws:cdk:analytics:mixin",
+      "data": {
+        "mixin": "aws-cdk-lib.aws_s3.mixins.BucketAutoDeleteObjects"
+      }
+    }
+  ],
+  "/DinoPartyStack/Custom::S3AutoDeleteObjectsCustomResourceProvider/Role": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092"
+    }
+  ],
+  "/DinoPartyStack/Custom::S3AutoDeleteObjectsCustomResourceProvider/Handler": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CustomS3AutoDeleteObjectsCustomResourceProviderHandler9D90184F"
+    }
+  ],
+  "/DinoPartyStack/WsConnectFn/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "WsConnectFnB17D99F3"
+    }
+  ],
+  "/DinoPartyStack/WsConnectFn/WsPermission-$connect": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "WsConnectFnWsPermissionconnect527F642B"
+    }
+  ],
+  "/DinoPartyStack/WsDisconnectFn/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "WsDisconnectFn9523C1B1"
+    }
+  ],
+  "/DinoPartyStack/WsDisconnectFn/WsPermission-$disconnect": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "WsDisconnectFnWsPermissiondisconnectCDF21F4A"
+    }
+  ],
+  "/DinoPartyStack/WsDefaultFn/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "WsDefaultFn14DA6159"
+    }
+  ],
+  "/DinoPartyStack/WsDefaultFn/WsPermission-$default": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "WsDefaultFnWsPermissiondefault32061C4C"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApi0C43BF4B"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Account": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiAccount7C83CF5A"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Endpoint": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiEndpoint0551178A"
+    }
+  ],
+  "/DinoPartyStack/PlayerFn/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "PlayerFn6D08CDD8"
+    }
+  ],
+  "/DinoPartyStack/ScanDinoFn/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ScanDinoFn82845CD6"
+    }
+  ],
+  "/DinoPartyStack/ScanFoodFn/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ScanFoodFn57C155DC"
+    }
+  ],
+  "/DinoPartyStack/ScanEventFn/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ScanEventFn3F3797CF"
+    }
+  ],
+  "/DinoPartyStack/ScanInspirationFn/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ScanInspirationFn01559008"
+    }
+  ],
+  "/DinoPartyStack/ScanNoteFn/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ScanNoteFn3A320BC5"
+    }
+  ],
+  "/DinoPartyStack/LobbyFn/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "LobbyFn3E99561C"
+    }
+  ],
+  "/DinoPartyStack/DinoFn/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "DinoFnC74B0562"
+    }
+  ],
+  "/DinoPartyStack/BossFn/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "BossFnC279E05B"
+    }
+  ],
+  "/DinoPartyStack/PlazaFn/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "PlazaFn5550130F"
+    }
+  ],
+  "/DinoPartyStack/FeedFn/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "FeedFnC6FF4F13"
+    }
+  ],
+  "/DinoPartyStack/AdminFn/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "AdminFn81E922BC"
+    }
+  ],
+  "/DinoPartyStack/CDKMetadata/Default": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CDKMetadata"
+    }
+  ],
+  "/DinoPartyStack/CDKMetadata/Condition": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CDKMetadataAvailable"
+    }
+  ],
+  "/DinoPartyStack/PhotoBucket/Policy/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "PhotoBucketPolicy60C1073C"
+    },
+    {
+      "type": "aws:cdk:analytics:mixin",
+      "data": {
+        "mixin": "aws-cdk-lib.aws_s3.mixins.BucketPolicyStatements"
+      }
+    }
+  ],
+  "/DinoPartyStack/PhotoBucket/AutoDeleteObjectsCustomResource/Default": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "PhotoBucketAutoDeleteObjectsCustomResourceE23A3D3F"
+    }
+  ],
+  "/DinoPartyStack/WsConnectFn/ServiceRole/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "WsConnectFnServiceRole749353A4"
+    }
+  ],
+  "/DinoPartyStack/WsDisconnectFn/ServiceRole/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "WsDisconnectFnServiceRoleF36033AD"
+    }
+  ],
+  "/DinoPartyStack/WsDefaultFn/ServiceRole/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "WsDefaultFnServiceRole423383DA"
+    }
+  ],
+  "/DinoPartyStack/RestApi/CloudWatchRole/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiCloudWatchRoleE3ED6605"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Deployment/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiDeployment180EC503ac1533a404f7b70b3a29316da56cea52"
+    }
+  ],
+  "/DinoPartyStack/RestApi/DeploymentStage.prod/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiDeploymentStageprod3855DE66"
+    }
+  ],
+  "/DinoPartyStack/PlayerFn/ServiceRole/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "PlayerFnServiceRole66BA9133"
+    }
+  ],
+  "/DinoPartyStack/ScanDinoFn/ServiceRole/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ScanDinoFnServiceRoleBF559789"
+    }
+  ],
+  "/DinoPartyStack/ScanFoodFn/ServiceRole/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ScanFoodFnServiceRole086EB4A4"
+    }
+  ],
+  "/DinoPartyStack/ScanEventFn/ServiceRole/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ScanEventFnServiceRole156562AC"
+    }
+  ],
+  "/DinoPartyStack/ScanInspirationFn/ServiceRole/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ScanInspirationFnServiceRole5EDB168F"
+    }
+  ],
+  "/DinoPartyStack/ScanNoteFn/ServiceRole/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ScanNoteFnServiceRoleE64E8733"
+    }
+  ],
+  "/DinoPartyStack/LobbyFn/ServiceRole/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "LobbyFnServiceRoleFE81BB1F"
+    }
+  ],
+  "/DinoPartyStack/DinoFn/ServiceRole/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "DinoFnServiceRole36CF401D"
+    }
+  ],
+  "/DinoPartyStack/BossFn/ServiceRole/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "BossFnServiceRole192F3902"
+    }
+  ],
+  "/DinoPartyStack/PlazaFn/ServiceRole/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "PlazaFnServiceRole42F1CA82"
+    }
+  ],
+  "/DinoPartyStack/FeedFn/ServiceRole/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "FeedFnServiceRole7DF62202"
+    }
+  ],
+  "/DinoPartyStack/AdminFn/ServiceRole/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "AdminFnServiceRoleABECE09B"
+    }
+  ],
+  "/DinoPartyStack/WsConnectFn/ServiceRole/DefaultPolicy/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "WsConnectFnServiceRoleDefaultPolicyE8538EDC"
+    }
+  ],
+  "/DinoPartyStack/WsDisconnectFn/ServiceRole/DefaultPolicy/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "WsDisconnectFnServiceRoleDefaultPolicy76179A14"
+    }
+  ],
+  "/DinoPartyStack/WsDefaultFn/ServiceRole/DefaultPolicy/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "WsDefaultFnServiceRoleDefaultPolicyA56957EF"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/OPTIONS/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiOPTIONS6AA64D2D"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/player/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiplayer65A79EB9"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/scan/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiscan1F94E721"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/lobby/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApilobbyECD20714"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/dino/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApidino585D7CBC"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/boss/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiboss57B070AC"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/plaza/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiplazaB112AE17"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/feed/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApifeedB696685E"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadmin6E2AFAD8"
+    }
+  ],
+  "/DinoPartyStack/PlayerFn/ServiceRole/DefaultPolicy/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "PlayerFnServiceRoleDefaultPolicy66D9B44B"
+    }
+  ],
+  "/DinoPartyStack/ScanDinoFn/ServiceRole/DefaultPolicy/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ScanDinoFnServiceRoleDefaultPolicy367186F3"
+    }
+  ],
+  "/DinoPartyStack/ScanFoodFn/ServiceRole/DefaultPolicy/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ScanFoodFnServiceRoleDefaultPolicy919DB266"
+    }
+  ],
+  "/DinoPartyStack/ScanEventFn/ServiceRole/DefaultPolicy/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ScanEventFnServiceRoleDefaultPolicy6AF9A725"
+    }
+  ],
+  "/DinoPartyStack/ScanInspirationFn/ServiceRole/DefaultPolicy/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ScanInspirationFnServiceRoleDefaultPolicy32C1BA75"
+    }
+  ],
+  "/DinoPartyStack/ScanNoteFn/ServiceRole/DefaultPolicy/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ScanNoteFnServiceRoleDefaultPolicyD94E1EE1"
+    }
+  ],
+  "/DinoPartyStack/LobbyFn/ServiceRole/DefaultPolicy/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "LobbyFnServiceRoleDefaultPolicyBCE15E6F"
+    }
+  ],
+  "/DinoPartyStack/DinoFn/ServiceRole/DefaultPolicy/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "DinoFnServiceRoleDefaultPolicyEB186AAC"
+    }
+  ],
+  "/DinoPartyStack/BossFn/ServiceRole/DefaultPolicy/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "BossFnServiceRoleDefaultPolicy841A25FD"
+    }
+  ],
+  "/DinoPartyStack/PlazaFn/ServiceRole/DefaultPolicy/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "PlazaFnServiceRoleDefaultPolicyA29C582A"
+    }
+  ],
+  "/DinoPartyStack/FeedFn/ServiceRole/DefaultPolicy/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "FeedFnServiceRoleDefaultPolicyF82DA5BE"
+    }
+  ],
+  "/DinoPartyStack/AdminFn/ServiceRole/DefaultPolicy/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "AdminFnServiceRoleDefaultPolicyA64AB9FE"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/player/OPTIONS/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiplayerOPTIONSD7DB4E20"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/player/POST/ApiPermission.DinoPartyStackRestApi0E9D52D0.POST..player": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiplayerPOSTApiPermissionDinoPartyStackRestApi0E9D52D0POSTplayerE094B0D3"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/player/POST/ApiPermission.Test.DinoPartyStackRestApi0E9D52D0.POST..player": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiplayerPOSTApiPermissionTestDinoPartyStackRestApi0E9D52D0POSTplayerE44B72AE"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/player/POST/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiplayerPOSTCE69883E"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/player/{id}/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiplayerid8AFB18E7"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/scan/OPTIONS/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiscanOPTIONS1D1E6823"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/scan/dino/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiscandinoE2CD2DF1"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/scan/food/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiscanfood9839695D"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/scan/event/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiscanevent876B7986"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/scan/inspiration/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiscaninspirationB130C915"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/scan/note/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiscannote26B57B18"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/lobby/OPTIONS/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApilobbyOPTIONS2EE92CE1"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/lobby/POST/ApiPermission.DinoPartyStackRestApi0E9D52D0.POST..lobby": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApilobbyPOSTApiPermissionDinoPartyStackRestApi0E9D52D0POSTlobbyC9CDE62A"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/lobby/POST/ApiPermission.Test.DinoPartyStackRestApi0E9D52D0.POST..lobby": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApilobbyPOSTApiPermissionTestDinoPartyStackRestApi0E9D52D0POSTlobbyEFDCD19F"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/lobby/POST/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApilobbyPOST1EC59098"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/lobby/{code}/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApilobbycodeB2D87011"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/dino/OPTIONS/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApidinoOPTIONSF3853FAC"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/dino/{species}/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApidinospecies3D82F78F"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/boss/OPTIONS/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApibossOPTIONSEF03A0DF"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/boss/tap/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApibosstap7BE739DD"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/boss/state/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApibossstate000133A7"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/plaza/OPTIONS/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiplazaOPTIONS66287259"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/plaza/GET/ApiPermission.DinoPartyStackRestApi0E9D52D0.GET..plaza": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiplazaGETApiPermissionDinoPartyStackRestApi0E9D52D0GETplazaBA3B9CC1"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/plaza/GET/ApiPermission.Test.DinoPartyStackRestApi0E9D52D0.GET..plaza": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiplazaGETApiPermissionTestDinoPartyStackRestApi0E9D52D0GETplazaEACB0CB8"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/plaza/GET/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiplazaGET289FAD38"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/feed/OPTIONS/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApifeedOPTIONS4638B5F5"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/feed/GET/ApiPermission.DinoPartyStackRestApi0E9D52D0.GET..feed": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApifeedGETApiPermissionDinoPartyStackRestApi0E9D52D0GETfeedFFCE8EF5"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/feed/GET/ApiPermission.Test.DinoPartyStackRestApi0E9D52D0.GET..feed": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApifeedGETApiPermissionTestDinoPartyStackRestApi0E9D52D0GETfeedC1D7F3EF"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/feed/GET/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApifeedGET83119F2A"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/OPTIONS/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadminOPTIONS9579A88D"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/boss/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadminboss007CF11F"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/announce/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadminannounce3F2ED7ED"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/give-all-items/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadmingiveallitems81291F0F"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/give-item/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadmingiveitemBC55FC6B"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/dashboard/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadmindashboardA3D6AA5E"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/reset/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadminresetA3299F7B"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/reset-all/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadminresetall70DA8794"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/nuke-all/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadminnukeall30091059"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/player/{id}/OPTIONS/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiplayeridOPTIONS9247BE71"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/player/{id}/GET/ApiPermission.DinoPartyStackRestApi0E9D52D0.GET..player.{id}": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiplayeridGETApiPermissionDinoPartyStackRestApi0E9D52D0GETplayeridF9D9DD2D"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/player/{id}/GET/ApiPermission.Test.DinoPartyStackRestApi0E9D52D0.GET..player.{id}": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiplayeridGETApiPermissionTestDinoPartyStackRestApi0E9D52D0GETplayerid8AA69C27"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/player/{id}/GET/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiplayeridGET0E281DD0"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/player/{id}/PUT/ApiPermission.DinoPartyStackRestApi0E9D52D0.PUT..player.{id}": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiplayeridPUTApiPermissionDinoPartyStackRestApi0E9D52D0PUTplayerid3E61B63A"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/player/{id}/PUT/ApiPermission.Test.DinoPartyStackRestApi0E9D52D0.PUT..player.{id}": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiplayeridPUTApiPermissionTestDinoPartyStackRestApi0E9D52D0PUTplayerid0BF3927D"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/player/{id}/PUT/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiplayeridPUTFD60648E"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/scan/dino/OPTIONS/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiscandinoOPTIONSE3F407DB"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/scan/dino/{species}/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiscandinospecies650B5D1D"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/scan/food/OPTIONS/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiscanfoodOPTIONS5EF5FC36"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/scan/food/{type}/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiscanfoodtype95E4337A"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/scan/event/OPTIONS/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiscaneventOPTIONS99418917"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/scan/event/{type}/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiscaneventtype4CA45E56"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/scan/inspiration/OPTIONS/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiscaninspirationOPTIONS237F6634"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/scan/inspiration/POST/ApiPermission.DinoPartyStackRestApi0E9D52D0.POST..scan.inspiration": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiscaninspirationPOSTApiPermissionDinoPartyStackRestApi0E9D52D0POSTscaninspirationEB3AC1E4"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/scan/inspiration/POST/ApiPermission.Test.DinoPartyStackRestApi0E9D52D0.POST..scan.inspiration": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiscaninspirationPOSTApiPermissionTestDinoPartyStackRestApi0E9D52D0POSTscaninspiration101021C7"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/scan/inspiration/POST/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiscaninspirationPOSTD34F4D35"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/scan/note/OPTIONS/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiscannoteOPTIONSF6D197EC"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/scan/note/{note_id}/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiscannotenoteid1F59ABB0"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/lobby/{code}/OPTIONS/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApilobbycodeOPTIONSEEE6378B"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/lobby/{code}/join/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApilobbycodejoin6948E0B6"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/lobby/{code}/answer/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApilobbycodeanswer20CF0CC9"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/dino/{species}/OPTIONS/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApidinospeciesOPTIONS17B803C5"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/dino/{species}/customize/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApidinospeciescustomize9568BD46"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/dino/{species}/partner/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApidinospeciespartner86312E9C"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/boss/tap/OPTIONS/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApibosstapOPTIONSD08A8216"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/boss/tap/POST/ApiPermission.DinoPartyStackRestApi0E9D52D0.POST..boss.tap": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApibosstapPOSTApiPermissionDinoPartyStackRestApi0E9D52D0POSTbosstapCFEA43F3"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/boss/tap/POST/ApiPermission.Test.DinoPartyStackRestApi0E9D52D0.POST..boss.tap": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApibosstapPOSTApiPermissionTestDinoPartyStackRestApi0E9D52D0POSTbosstapEA67009E"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/boss/tap/POST/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApibosstapPOST62EFDA67"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/boss/state/OPTIONS/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApibossstateOPTIONS8C092CB5"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/boss/state/GET/ApiPermission.DinoPartyStackRestApi0E9D52D0.GET..boss.state": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApibossstateGETApiPermissionDinoPartyStackRestApi0E9D52D0GETbossstateCF711188"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/boss/state/GET/ApiPermission.Test.DinoPartyStackRestApi0E9D52D0.GET..boss.state": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApibossstateGETApiPermissionTestDinoPartyStackRestApi0E9D52D0GETbossstateF6A42C9C"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/boss/state/GET/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApibossstateGET24A93212"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/boss/OPTIONS/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadminbossOPTIONS8FBDF28C"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/boss/buildup/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadminbossbuildupFF9FD5B6"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/boss/start/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadminbossstart851D5BFC"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/boss/stop/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadminbossstop2415D02D"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/announce/OPTIONS/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadminannounceOPTIONSF57FE4A7"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/announce/POST/ApiPermission.DinoPartyStackRestApi0E9D52D0.POST..admin.announce": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadminannouncePOSTApiPermissionDinoPartyStackRestApi0E9D52D0POSTadminannounce381192BB"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/announce/POST/ApiPermission.Test.DinoPartyStackRestApi0E9D52D0.POST..admin.announce": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadminannouncePOSTApiPermissionTestDinoPartyStackRestApi0E9D52D0POSTadminannounceB32AA043"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/announce/POST/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadminannouncePOST38854C27"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/give-all-items/OPTIONS/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadmingiveallitemsOPTIONS6128DFC3"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/give-all-items/POST/ApiPermission.DinoPartyStackRestApi0E9D52D0.POST..admin.give-all-items": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadmingiveallitemsPOSTApiPermissionDinoPartyStackRestApi0E9D52D0POSTadmingiveallitems5E63F8D8"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/give-all-items/POST/ApiPermission.Test.DinoPartyStackRestApi0E9D52D0.POST..admin.give-all-items": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadmingiveallitemsPOSTApiPermissionTestDinoPartyStackRestApi0E9D52D0POSTadmingiveallitemsA41B82D0"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/give-all-items/POST/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadmingiveallitemsPOSTE994A19C"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/give-item/OPTIONS/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadmingiveitemOPTIONS9914628C"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/give-item/POST/ApiPermission.DinoPartyStackRestApi0E9D52D0.POST..admin.give-item": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadmingiveitemPOSTApiPermissionDinoPartyStackRestApi0E9D52D0POSTadmingiveitem8BA4B63D"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/give-item/POST/ApiPermission.Test.DinoPartyStackRestApi0E9D52D0.POST..admin.give-item": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadmingiveitemPOSTApiPermissionTestDinoPartyStackRestApi0E9D52D0POSTadmingiveitem8962822D"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/give-item/POST/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadmingiveitemPOSTF0EEE976"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/dashboard/OPTIONS/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadmindashboardOPTIONS184AFAE8"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/dashboard/GET/ApiPermission.DinoPartyStackRestApi0E9D52D0.GET..admin.dashboard": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadmindashboardGETApiPermissionDinoPartyStackRestApi0E9D52D0GETadmindashboardCBE5911F"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/dashboard/GET/ApiPermission.Test.DinoPartyStackRestApi0E9D52D0.GET..admin.dashboard": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadmindashboardGETApiPermissionTestDinoPartyStackRestApi0E9D52D0GETadmindashboard5C706088"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/dashboard/GET/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadmindashboardGET862562AC"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/reset/OPTIONS/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadminresetOPTIONS901DEB5D"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/reset/DELETE/ApiPermission.DinoPartyStackRestApi0E9D52D0.DELETE..admin.reset": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadminresetDELETEApiPermissionDinoPartyStackRestApi0E9D52D0DELETEadminresetB968BE2B"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/reset/DELETE/ApiPermission.Test.DinoPartyStackRestApi0E9D52D0.DELETE..admin.reset": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadminresetDELETEApiPermissionTestDinoPartyStackRestApi0E9D52D0DELETEadminreset835B7D54"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/reset/DELETE/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadminresetDELETE4C13DDA4"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/reset-all/OPTIONS/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadminresetallOPTIONSACF3B12F"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/reset-all/DELETE/ApiPermission.DinoPartyStackRestApi0E9D52D0.DELETE..admin.reset-all": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadminresetallDELETEApiPermissionDinoPartyStackRestApi0E9D52D0DELETEadminresetall03007937"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/reset-all/DELETE/ApiPermission.Test.DinoPartyStackRestApi0E9D52D0.DELETE..admin.reset-all": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadminresetallDELETEApiPermissionTestDinoPartyStackRestApi0E9D52D0DELETEadminresetall16E8EEB3"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/reset-all/DELETE/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadminresetallDELETE5041CA17"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/nuke-all/OPTIONS/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadminnukeallOPTIONS9617F914"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/nuke-all/DELETE/ApiPermission.DinoPartyStackRestApi0E9D52D0.DELETE..admin.nuke-all": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadminnukeallDELETEApiPermissionDinoPartyStackRestApi0E9D52D0DELETEadminnukeall5DDAE1B3"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/nuke-all/DELETE/ApiPermission.Test.DinoPartyStackRestApi0E9D52D0.DELETE..admin.nuke-all": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadminnukeallDELETEApiPermissionTestDinoPartyStackRestApi0E9D52D0DELETEadminnukeallF8B1C605"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/nuke-all/DELETE/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadminnukeallDELETE5DCF3A9D"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/scan/dino/{species}/OPTIONS/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiscandinospeciesOPTIONS6735F444"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/scan/dino/{species}/POST/ApiPermission.DinoPartyStackRestApi0E9D52D0.POST..scan.dino.{species}": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiscandinospeciesPOSTApiPermissionDinoPartyStackRestApi0E9D52D0POSTscandinospeciesD6F4A7A1"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/scan/dino/{species}/POST/ApiPermission.Test.DinoPartyStackRestApi0E9D52D0.POST..scan.dino.{species}": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiscandinospeciesPOSTApiPermissionTestDinoPartyStackRestApi0E9D52D0POSTscandinospeciesAEA34466"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/scan/dino/{species}/POST/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiscandinospeciesPOST1C256EA9"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/scan/food/{type}/OPTIONS/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiscanfoodtypeOPTIONS10B2BA5E"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/scan/food/{type}/POST/ApiPermission.DinoPartyStackRestApi0E9D52D0.POST..scan.food.{type}": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiscanfoodtypePOSTApiPermissionDinoPartyStackRestApi0E9D52D0POSTscanfoodtype78FDA955"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/scan/food/{type}/POST/ApiPermission.Test.DinoPartyStackRestApi0E9D52D0.POST..scan.food.{type}": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiscanfoodtypePOSTApiPermissionTestDinoPartyStackRestApi0E9D52D0POSTscanfoodtypeA7172566"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/scan/food/{type}/POST/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiscanfoodtypePOSTCD63FB2B"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/scan/event/{type}/OPTIONS/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiscaneventtypeOPTIONS6D4B91B3"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/scan/event/{type}/POST/ApiPermission.DinoPartyStackRestApi0E9D52D0.POST..scan.event.{type}": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiscaneventtypePOSTApiPermissionDinoPartyStackRestApi0E9D52D0POSTscaneventtype45F07401"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/scan/event/{type}/POST/ApiPermission.Test.DinoPartyStackRestApi0E9D52D0.POST..scan.event.{type}": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiscaneventtypePOSTApiPermissionTestDinoPartyStackRestApi0E9D52D0POSTscaneventtypeFD8ACB5A"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/scan/event/{type}/POST/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiscaneventtypePOST25750A8C"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/scan/note/{note_id}/OPTIONS/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiscannotenoteidOPTIONSAC3D43DB"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/scan/note/{note_id}/POST/ApiPermission.DinoPartyStackRestApi0E9D52D0.POST..scan.note.{note_id}": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiscannotenoteidPOSTApiPermissionDinoPartyStackRestApi0E9D52D0POSTscannotenoteid29EBF9F0"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/scan/note/{note_id}/POST/ApiPermission.Test.DinoPartyStackRestApi0E9D52D0.POST..scan.note.{note_id}": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiscannotenoteidPOSTApiPermissionTestDinoPartyStackRestApi0E9D52D0POSTscannotenoteid0133530D"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/scan/note/{note_id}/POST/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiscannotenoteidPOSTBDF4976D"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/lobby/{code}/join/OPTIONS/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApilobbycodejoinOPTIONS1D93BD25"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/lobby/{code}/join/POST/ApiPermission.DinoPartyStackRestApi0E9D52D0.POST..lobby.{code}.join": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApilobbycodejoinPOSTApiPermissionDinoPartyStackRestApi0E9D52D0POSTlobbycodejoin639360EA"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/lobby/{code}/join/POST/ApiPermission.Test.DinoPartyStackRestApi0E9D52D0.POST..lobby.{code}.join": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApilobbycodejoinPOSTApiPermissionTestDinoPartyStackRestApi0E9D52D0POSTlobbycodejoinE0C5FF72"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/lobby/{code}/join/POST/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApilobbycodejoinPOST7B1AA387"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/lobby/{code}/answer/OPTIONS/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApilobbycodeanswerOPTIONSE295BF98"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/lobby/{code}/answer/POST/ApiPermission.DinoPartyStackRestApi0E9D52D0.POST..lobby.{code}.answer": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApilobbycodeanswerPOSTApiPermissionDinoPartyStackRestApi0E9D52D0POSTlobbycodeanswer23F0A858"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/lobby/{code}/answer/POST/ApiPermission.Test.DinoPartyStackRestApi0E9D52D0.POST..lobby.{code}.answer": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApilobbycodeanswerPOSTApiPermissionTestDinoPartyStackRestApi0E9D52D0POSTlobbycodeanswer73C79B69"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/lobby/{code}/answer/POST/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApilobbycodeanswerPOST5F082E28"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/dino/{species}/customize/OPTIONS/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApidinospeciescustomizeOPTIONSDEC0D3FA"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/dino/{species}/customize/PUT/ApiPermission.DinoPartyStackRestApi0E9D52D0.PUT..dino.{species}.customize": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApidinospeciescustomizePUTApiPermissionDinoPartyStackRestApi0E9D52D0PUTdinospeciescustomize84D583EB"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/dino/{species}/customize/PUT/ApiPermission.Test.DinoPartyStackRestApi0E9D52D0.PUT..dino.{species}.customize": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApidinospeciescustomizePUTApiPermissionTestDinoPartyStackRestApi0E9D52D0PUTdinospeciescustomize8F381D2B"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/dino/{species}/customize/PUT/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApidinospeciescustomizePUT80822772"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/dino/{species}/partner/OPTIONS/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApidinospeciespartnerOPTIONSA55FD434"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/dino/{species}/partner/PUT/ApiPermission.DinoPartyStackRestApi0E9D52D0.PUT..dino.{species}.partner": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApidinospeciespartnerPUTApiPermissionDinoPartyStackRestApi0E9D52D0PUTdinospeciespartner1F451239"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/dino/{species}/partner/PUT/ApiPermission.Test.DinoPartyStackRestApi0E9D52D0.PUT..dino.{species}.partner": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApidinospeciespartnerPUTApiPermissionTestDinoPartyStackRestApi0E9D52D0PUTdinospeciespartnerFF03C652"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/dino/{species}/partner/PUT/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApidinospeciespartnerPUT386C2074"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/boss/buildup/OPTIONS/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadminbossbuildupOPTIONSB025CEA8"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/boss/buildup/POST/ApiPermission.DinoPartyStackRestApi0E9D52D0.POST..admin.boss.buildup": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadminbossbuildupPOSTApiPermissionDinoPartyStackRestApi0E9D52D0POSTadminbossbuildup4242A3C2"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/boss/buildup/POST/ApiPermission.Test.DinoPartyStackRestApi0E9D52D0.POST..admin.boss.buildup": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadminbossbuildupPOSTApiPermissionTestDinoPartyStackRestApi0E9D52D0POSTadminbossbuildup1E509295"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/boss/buildup/POST/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadminbossbuildupPOSTBD247565"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/boss/start/OPTIONS/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadminbossstartOPTIONS3D0F7F13"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/boss/start/POST/ApiPermission.DinoPartyStackRestApi0E9D52D0.POST..admin.boss.start": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadminbossstartPOSTApiPermissionDinoPartyStackRestApi0E9D52D0POSTadminbossstart477B501F"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/boss/start/POST/ApiPermission.Test.DinoPartyStackRestApi0E9D52D0.POST..admin.boss.start": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadminbossstartPOSTApiPermissionTestDinoPartyStackRestApi0E9D52D0POSTadminbossstart0D2D8348"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/boss/start/POST/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadminbossstartPOST681EEB86"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/boss/stop/OPTIONS/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadminbossstopOPTIONS3801805E"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/boss/stop/POST/ApiPermission.DinoPartyStackRestApi0E9D52D0.POST..admin.boss.stop": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadminbossstopPOSTApiPermissionDinoPartyStackRestApi0E9D52D0POSTadminbossstopBA2744CE"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/boss/stop/POST/ApiPermission.Test.DinoPartyStackRestApi0E9D52D0.POST..admin.boss.stop": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadminbossstopPOSTApiPermissionTestDinoPartyStackRestApi0E9D52D0POSTadminbossstop1A6E929A"
+    }
+  ],
+  "/DinoPartyStack/RestApi/Default/admin/boss/stop/POST/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "RestApiadminbossstopPOST825E811F"
+    }
+  ]
+}

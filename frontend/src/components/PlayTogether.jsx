@@ -10,7 +10,7 @@ import { Gamepad2, Handshake } from 'lucide-preact';
 import { LOBBY_SYMBOLS } from '../data/lobbySymbols.js';
 
 const COOLDOWN_MS = 15 * 60 * 1000;
-const RECENT_PLAYS_KEY = 'dino_recent_plays';
+const RECENT_PLAYS_KEY = 'dino_party_recent_plays';
 
 function SymbolDisplay({ sym, size = '28px' }) {
   const s = LOBBY_SYMBOLS.find(s => s.id === sym);
@@ -22,24 +22,17 @@ function getSymbolLabel(id) {
   return LOBBY_SYMBOLS.find(s => s.id === id)?.label || id;
 }
 
-function saveCooldown(partnerId) {
-  try {
-    const plays = JSON.parse(localStorage.getItem(RECENT_PLAYS_KEY) || '{}');
-    plays[partnerId] = Date.now();
-    localStorage.setItem(RECENT_PLAYS_KEY, JSON.stringify(plays));
-  } catch {}
-}
-
 function getRecentPlays() {
   try {
-    const plays = JSON.parse(localStorage.getItem(RECENT_PLAYS_KEY) || '{}');
-    const now = Date.now();
-    const active = {};
-    for (const [id, ts] of Object.entries(plays)) {
-      if (now - ts < COOLDOWN_MS) active[id] = ts;
-    }
-    return active;
-  } catch { return {}; }
+    const entries = JSON.parse(localStorage.getItem(RECENT_PLAYS_KEY) || '[]');
+    return entries.filter(e => e.expiresAt > Date.now());
+  } catch { return []; }
+}
+
+function formatCountdown(ms) {
+  const mins = Math.floor(ms / 60000);
+  const secs = Math.floor((ms % 60000) / 1000);
+  return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
 }
 
 export function PlayTogether() {
@@ -51,21 +44,25 @@ export function PlayTogether() {
   const [lobbyCode, setLobbyCode] = useState('');
   const [role, setRole] = useState(null); // 'host' | 'guest'
   const [trivia, setTrivia] = useState(null);
+  const [hostTrivia, setHostTrivia] = useState(null); // stored from create_lobby for reliability
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [result, setResult] = useState(null);
   const [partnerDinoData, setPartnerDinoData] = useState(null);
+  const [partnerAnswered, setPartnerAnswered] = useState(false);
   const [countdown, setCountdown] = useState(3);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const hasAnsweredRef = useRef(false);
 
   // Symbol picker state (for joining)
   const [joinSymbols, setJoinSymbols] = useState([]);
+  const [lobbySymbols, setLobbySymbols] = useState([]);
 
   // Cooldown display
-  const [recentPlays, setRecentPlays] = useState({});
+  const [recentPlays, setRecentPlays] = useState([]);
   useEffect(() => {
     setRecentPlays(getRecentPlays());
-    const iv = setInterval(() => setRecentPlays(getRecentPlays()), 10000);
+    const iv = setInterval(() => setRecentPlays(getRecentPlays()), 1000);
     return () => clearInterval(iv);
   }, [phase]);
 
@@ -89,7 +86,6 @@ export function PlayTogether() {
     if (!lobbyCode) return;
 
     const unsub1 = ws.on(`lobby:${lobbyCode}`, 'trivia_start', (data) => {
-      // Determine which dino is the partner's
       const myPartnerDino = role === 'host' ? data.guest_dino : data.host_dino;
       if (myPartnerDino && sceneRef.current) {
         sceneRef.current.setPartnerDino(myPartnerDino);
@@ -100,8 +96,14 @@ export function PlayTogether() {
     });
 
     const unsub2 = ws.on(`lobby:${lobbyCode}`, 'trivia_result', (data) => {
-      setResult(data);
-      setPhase('results');
+      // Only auto-advance to results if this player has already submitted their answer.
+      // Otherwise show a "partner answered" indicator so they can still answer.
+      if (hasAnsweredRef.current) {
+        setResult(data);
+        setPhase('results');
+      } else {
+        setPartnerAnswered(true);
+      }
     });
 
     ws.subscribe(`lobby:${lobbyCode}`);
@@ -136,6 +138,8 @@ export function PlayTogether() {
     try {
       const data = await api.createLobby(store.playerId);
       setLobbyCode(data.code);
+      setLobbySymbols(data.symbols);
+      setHostTrivia(data.trivia || null);
       setRole('host');
       store.lobbyRole = 'host';
       setPhase('lobby');
@@ -154,7 +158,7 @@ export function PlayTogether() {
 
   async function handleJoinSubmit() {
     if (joinSymbols.length !== 3) return;
-    const code = joinSymbols.join('_');
+    const code = joinSymbols.join('-');
     setLoading(true);
     setError('');
     try {
@@ -180,11 +184,20 @@ export function PlayTogether() {
   async function handleAnswer(index) {
     if (selectedAnswer !== null) return;
     setSelectedAnswer(index);
+    hasAnsweredRef.current = true;
     try {
       const data = await api.answerTrivia(store.playerId, lobbyCode, index);
       setResult(data);
       setPhase('results');
       await store.refresh();
+      if (data.partner_id) {
+        try {
+          const entries = JSON.parse(localStorage.getItem(RECENT_PLAYS_KEY) || '[]');
+          const filtered = entries.filter(e => e.partnerId !== data.partner_id);
+          filtered.push({ partnerId: data.partner_id, withName: data.partner_name || data.partner_id, expiresAt: Date.now() + COOLDOWN_MS });
+          localStorage.setItem(RECENT_PLAYS_KEY, JSON.stringify(filtered));
+        } catch {}
+      }
     } catch (err) {
       setError(err.message || 'Failed to submit answer');
     }
@@ -196,9 +209,12 @@ export function PlayTogether() {
     setLobbyCode('');
     setRole(null);
     setTrivia(null);
+    setHostTrivia(null);
     setSelectedAnswer(null);
     setResult(null);
     setPartnerDinoData(null);
+    setPartnerAnswered(false);
+    hasAnsweredRef.current = false;
     setError('');
     store.lobbyRole = null;
     store.lobbyTrivia = null;
@@ -228,7 +244,7 @@ export function PlayTogether() {
 
         {phase === 'lobby' && role === 'host' && (
           <HostLobbyPhase
-            code={lobbyCode}
+            symbols={lobbySymbols}
             onCancel={handleBackToMenu}
           />
         )}
@@ -256,6 +272,8 @@ export function PlayTogether() {
             trivia={trivia}
             selectedAnswer={selectedAnswer}
             onAnswer={handleAnswer}
+            partnerAnswered={partnerAnswered}
+            onSeeResults={() => { setResult({}); setPhase('results'); }}
           />
         )}
 
@@ -274,8 +292,6 @@ export function PlayTogether() {
 // -- Sub-components for each phase --
 
 function MenuPhase({ hasPartner, loading, recentPlays, onHost, onJoin }) {
-  const cooldownEntries = Object.entries(recentPlays);
-
   return (
     <>
       {!hasPartner && (
@@ -310,22 +326,6 @@ function MenuPhase({ hasPartner, loading, recentPlays, onHost, onJoin }) {
         <span style={styles.chevron}>{'\u203A'}</span>
       </button>
 
-      {cooldownEntries.length > 0 && (
-        <div style={styles.cooldownSection}>
-          <div style={styles.cooldownTitle}>Recent Plays</div>
-          {cooldownEntries.map(([id, ts]) => {
-            const remaining = Math.max(0, COOLDOWN_MS - (Date.now() - ts));
-            const mins = Math.ceil(remaining / 60000);
-            return (
-              <div key={id} style={styles.cooldownRow}>
-                <span style={{ color: '#9ca3af', fontSize: '13px' }}>{id}</span>
-                <span style={{ color: '#f59e0b', fontSize: '13px' }}>{mins}m left</span>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
       <div style={styles.howItWorks}>
         <div style={styles.howTitle}>HOW IT WORKS</div>
         {[
@@ -342,12 +342,33 @@ function MenuPhase({ hasPartner, loading, recentPlays, onHost, onJoin }) {
           </div>
         ))}
       </div>
+
+      {recentPlays.length > 0 && (
+        <div style={styles.cooldownSection}>
+          <div style={styles.cooldownTitle}>Recent Plays</div>
+          {recentPlays.map((entry, i) => {
+            const remaining = Math.max(0, entry.expiresAt - Date.now());
+            const ready = remaining === 0;
+            return (
+              <div key={i} style={styles.cooldownRow}>
+                <div style={styles.cooldownInfo}>
+                  <Handshake size={14} color="#60a5fa" />
+                  <span style={{ color: '#d1d5db', fontSize: '13px' }}>{entry.withName}</span>
+                </div>
+                {ready
+                  ? <span style={{ color: '#4ade80', fontSize: '12px', fontWeight: '600' }}>Ready!</span>
+                  : <span style={{ color: '#f59e0b', fontSize: '12px', fontFamily: 'monospace' }}>{formatCountdown(remaining)}</span>
+                }
+              </div>
+            );
+          })}
+        </div>
+      )}
     </>
   );
 }
 
-function HostLobbyPhase({ code, onCancel }) {
-  const symbols = code ? code.split('_') : [];
+function HostLobbyPhase({ symbols = [], onCancel }) {
 
   return (
     <div style={styles.lobbyCard}>
@@ -427,7 +448,7 @@ function GuestLobbyPhase({ symbols, setSymbols, loading, error, onSubmit, onCanc
   );
 }
 
-function TriviaPhase({ trivia, selectedAnswer, onAnswer }) {
+function TriviaPhase({ trivia, selectedAnswer, onAnswer, partnerAnswered, onSeeResults }) {
   const labels = ['A', 'B', 'C', 'D'];
 
   return (
@@ -451,6 +472,12 @@ function TriviaPhase({ trivia, selectedAnswer, onAnswer }) {
       ))}
       {selectedAnswer !== null && (
         <div style={styles.waitingText}>Waiting for results...</div>
+      )}
+      {partnerAnswered && selectedAnswer === null && (
+        <div style={styles.partnerAnsweredBanner}>
+          <span>Your partner already answered!</span>
+          <button onClick={onSeeResults} style={styles.seeResultsBtn}>See Results</button>
+        </div>
       )}
     </div>
   );
@@ -569,6 +596,17 @@ const styles = {
   waitingText: {
     color: '#9ca3af', fontSize: '14px', textAlign: 'center',
   },
+  partnerAnsweredBanner: {
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    gap: '12px', padding: '12px 14px', borderRadius: '10px',
+    background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)',
+    color: '#f59e0b', fontSize: '13px',
+  },
+  seeResultsBtn: {
+    padding: '6px 14px', borderRadius: '8px', border: 'none',
+    background: '#f59e0b', color: '#000', fontSize: '13px',
+    fontWeight: 'bold', cursor: 'pointer', flexShrink: 0,
+  },
 
   // Countdown
   countdownOverlay: {
@@ -641,9 +679,14 @@ const styles = {
 
   // Cooldown
   cooldownSection: {
-    background: '#111827', borderRadius: '10px', padding: '12px',
-    display: 'flex', flexDirection: 'column', gap: '6px',
+    background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
+    borderRadius: '14px', padding: '14px 16px',
+    display: 'flex', flexDirection: 'column', gap: '8px',
   },
-  cooldownTitle: { fontSize: '12px', fontWeight: 'bold', color: '#666', textTransform: 'uppercase' },
-  cooldownRow: { display: 'flex', justifyContent: 'space-between' },
+  cooldownTitle: { fontSize: '12px', fontWeight: '800', color: '#888', letterSpacing: '1.5px', textTransform: 'uppercase' },
+  cooldownRow: {
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+    padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,0.04)',
+  },
+  cooldownInfo: { display: 'flex', alignItems: 'center', gap: '8px' },
 };

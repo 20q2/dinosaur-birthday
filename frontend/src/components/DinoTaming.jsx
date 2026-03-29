@@ -19,6 +19,7 @@ export function DinoTaming({ foodType, prefetchedResult }) {
   const [name, setName] = useState('');
   const [selectedHat, setSelectedHat] = useState('');
   const [loading, setLoading] = useState(!prefetchedResult);
+  const [firstPartner, setFirstPartner] = useState(false);
 
   useEffect(() => {
     // If we got pre-fetched data from FoodHarvest, use it directly
@@ -28,6 +29,7 @@ export function DinoTaming({ foodType, prefetchedResult }) {
       } else if (prefetchedResult.tamed) {
         setTamed(true);
         setSelectedSpecies(prefetchedResult.species);
+        if (prefetchedResult.first_partner) setFirstPartner(true);
       } else if (prefetchedResult.already_tamed) {
         store.navigate('/dinos');
       }
@@ -41,6 +43,7 @@ export function DinoTaming({ foodType, prefetchedResult }) {
         } else if (result.tamed) {
           setTamed(true);
           setSelectedSpecies(result.species);
+          if (result.first_partner) setFirstPartner(true);
         } else if (result.already_tamed) {
           store.navigate('/dinos');
         }
@@ -59,6 +62,7 @@ export function DinoTaming({ foodType, prefetchedResult }) {
     if (result.tamed) {
       setTamed(true);
       setSelectedSpecies(species);
+      if (result.first_partner) setFirstPartner(true);
     }
     setLoading(false);
   };
@@ -133,6 +137,11 @@ export function DinoTaming({ foodType, prefetchedResult }) {
           <img src={foodType === 'meat' ? meatImg : berryImg} style={styles.munchFoodImg} />
           {' '}Munching on {foodType === 'meat' ? 'Meat' : 'Mejoberries'}...
         </div>
+        {firstPartner && (
+          <div style={styles.partnerBadge}>
+            Your first partner! This dino will represent you on the Plaza.
+          </div>
+        )}
         {dino?.nature && (
           <div style={{ color: '#9ca3af', fontSize: '13px', textAlign: 'center' }}>Nature: {dino.nature}</div>
         )}
@@ -240,6 +249,12 @@ const styles = {
     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
   },
   munchFoodImg: { width: '20px', height: '20px', imageRendering: 'pixelated' },
+  partnerBadge: {
+    color: '#c084fc', fontSize: '13px', textAlign: 'center',
+    background: 'rgba(139,92,246,0.1)', borderRadius: '10px',
+    padding: '8px 16px', border: '1px solid rgba(139,92,246,0.25)',
+    maxWidth: '320px',
+  },
   flavorText: {
     margin: 0, fontSize: '13px', color: '#9ca3af', fontStyle: 'italic',
     textAlign: 'center', maxWidth: '320px', lineHeight: '1.4',

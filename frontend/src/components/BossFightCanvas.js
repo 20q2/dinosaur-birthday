@@ -12,6 +12,8 @@ const MAX_LEVEL = 5;
 const DEPTH_SCALE_FAR  = 0.45;
 const DEPTH_SCALE_NEAR = 1.25;
 
+function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+
 // My-dino arc: bottom portion of ellipse, in radians
 // 0 = right, PI/2 = bottom, PI = left
 const MY_ARC_START = (Math.PI / 2) - (Math.PI * 0.45); // ~80°
@@ -37,9 +39,20 @@ export class BossFightCanvas {
     this.shakeTimer = 0;
     this.squishT   = 0;   // 1→0 over 0.30s, drives squish scale
     this.hitFlashT = 0;   // 1→0 over 0.20s, drives red tint
+    // Offscreen canvas for silhouette-accurate red flash
+    this._flashCanvas = document.createElement('canvas');
+    this._flashCtx    = this._flashCanvas.getContext('2d');
     this._photoCache = new Map();
     this.particles = [];
     this._defeated = false;
+    // Defeat fall-over animation state
+    this._defeatT      = 0;        // seconds since defeat started
+    this._defeatPhase  = 'none';   // 'none' | 'falling' | 'fallen'
+    this._defeatDustSpawned = false;
+    this._victoryHopDone    = false;
+    this._FALL_DURATION  = 1.5;    // seconds for rotation
+    this._FALL_ANGLE     = 80 * Math.PI / 180;  // radians
+    this._FALL_DIRECTION = 1;      // randomized on defeat: +1 or -1
 
     // Dino slot arrays (populated by _buildSlots)
     this._mySlots = [];
@@ -63,12 +76,12 @@ export class BossFightCanvas {
     this._geo = {
       w, h,
       godzillaCX:  w * 0.5,
-      godzillaCY:  h * 0.30,
-      godzillaH:   h * 0.52,
+      godzillaCY:  h * 0.44,
+      godzillaH:   h * 0.44,
       ellipseCX:   w * 0.5,
-      ellipseCY:   h * 0.52,
-      ellipseRX:   w * 0.32,
-      ellipseRY:   h * 0.15,
+      ellipseCY:   h * 0.63,
+      ellipseRX:   w * 0.40,
+      ellipseRY:   h * 0.09,
     };
     // Recompute slot positions after geometry change
     this._mySlots.forEach(s   => this._positionSlot(s));
@@ -203,10 +216,12 @@ export class BossFightCanvas {
   triggerAttack() {
     if (this._defeated) return;
 
-    // My dinos all jump
+    // My dinos jump with a random stagger
     this._mySlots.forEach(slot => {
-      slot.jumpT      = 0;
-      slot.jumpHeight = (30 + slot.depthT * 30) * slot.drawScale;
+      setTimeout(() => {
+        slot.jumpT      = 0;
+        slot.jumpHeight = (30 + slot.depthT * 30) * slot.drawScale;
+      }, Math.random() * 220);
     });
 
     // Popcorn burst — trigger ~25% of plaza crowd dinos
@@ -231,6 +246,13 @@ export class BossFightCanvas {
 
   setDefeated(active) {
     this._defeated = active;
+    if (active) {
+      this._defeatT      = 0;
+      this._defeatPhase  = 'falling';
+      this._defeatDustSpawned = false;
+      this._victoryHopDone    = false;
+      this._FALL_DIRECTION = Math.random() < 0.5 ? -1 : 1;
+    }
   }
 
   // ── Start / Stop ──────────────────────────────────────────────────────────
@@ -283,11 +305,14 @@ export class BossFightCanvas {
     // Draw far dinos (behind Godzilla)
     far.forEach(s => this._drawDino(s, elapsed, dt));
 
+    // Draw far particles (behind Godzilla)
+    this._drawParticles(p => p.y < g.ellipseCY);
+
     // Draw Godzilla
     this._drawGodzilla(elapsed, dt);
 
-    // Draw particles (above Godzilla base, below near dinos)
-    this._drawParticles();
+    // Draw near particles (in front of Godzilla)
+    this._drawParticles(p => p.y >= g.ellipseCY);
 
     // Draw near dinos (in front of Godzilla)
     near.forEach(s => this._drawDino(s, elapsed, dt));
@@ -300,22 +325,45 @@ export class BossFightCanvas {
     const g   = this._geo;
     if (!this.godzillaImg || !this.godzillaImg.complete) return;
 
+    // Advance defeat timer
+    if (this._defeatPhase === 'falling') {
+      this._defeatT += dt;
+      if (this._defeatT >= this._FALL_DURATION) {
+        this._defeatT = this._FALL_DURATION;
+        this._defeatPhase = 'fallen';
+        if (!this._defeatDustSpawned) {
+          this._defeatDustSpawned = true;
+          this._spawnGodzillaDust();
+        }
+        if (!this._victoryHopDone) {
+          this._victoryHopDone = true;
+          this._triggerVictoryHop();
+        }
+      }
+    }
+
+    // Defeat progress: 0 (alive) → 1 (fallen)
+    const defeatProgress = this._defeatPhase !== 'none'
+      ? easeOutCubic(Math.min(1, this._defeatT / this._FALL_DURATION))
+      : 0;
+    const aliveT = 1 - defeatProgress; // multiplier that suppresses idle motion
+
     // Decay hit feedback timers
     if (this.squishT   > 0) this.squishT   = Math.max(0, this.squishT   - dt / 0.30);
     if (this.hitFlashT > 0) this.hitFlashT = Math.max(0, this.hitFlashT - dt / 0.20);
 
-    // Idle animations — breathing (slow Y bob) + fighting sway (irregular X)
-    const breathY = Math.sin(elapsed * 1.1) * 5;
-    const swayX   = Math.sin(elapsed * 1.7) * 4 + Math.sin(elapsed * 2.9) * 2;
+    // Idle animations — damped by aliveT during defeat
+    const breathY = Math.sin(elapsed * 1.1) * 5 * aliveT;
+    const swayX   = (Math.sin(elapsed * 1.7) * 4 + Math.sin(elapsed * 2.9) * 2) * aliveT;
 
-    // Shake offset (on big hit)
+    // Shake offset (on big hit) — also damped
     let shakeX = 0, shakeY = 0;
     if (this.shaking) {
       this.shakeTimer -= dt;
       if (this.shakeTimer <= 0) {
         this.shaking = false;
       } else {
-        const intensity = (this.shakeTimer / 0.4) * 7;
+        const intensity = (this.shakeTimer / 0.4) * 7 * aliveT;
         shakeX = (Math.random() - 0.5) * 2 * intensity;
         shakeY = (Math.random() - 0.5) * 2 * intensity;
       }
@@ -328,31 +376,57 @@ export class BossFightCanvas {
     const baseX = g.godzillaCX + swayX + shakeX;
     const baseY = g.godzillaCY + breathY + shakeY;
 
-    // Squish scale — pivots from feet so Godzilla squishes downward
-    const scaleX = 1 + this.squishT * 0.18;
-    const scaleY = 1 - this.squishT * 0.28;
+    // Squish scale — damped by aliveT
+    const scaleX = 1 + this.squishT * 0.18 * aliveT;
+    const scaleY = 1 - this.squishT * 0.28 * aliveT;
     const feetX  = baseX;
     const feetY  = baseY + drawH / 2;
 
+    // Fall rotation angle
+    const fallAngle = this._FALL_DIRECTION * this._FALL_ANGLE * defeatProgress;
+
+    // Gradual filter: grayscale and brightness interpolate during fall
+    const gs  = defeatProgress;                       // 0→1
+    const br  = 1 - defeatProgress * 0.6;             // 1→0.4
+    const redGlow   = (1 - defeatProgress) * 0.7;     // fades out
+    const greenGlow = defeatProgress * 0.5;            // fades in
+    const filterStr = this._defeatPhase !== 'none'
+      ? `grayscale(${gs}) brightness(${br}) drop-shadow(0 0 24px rgba(255,50,50,${redGlow})) drop-shadow(0 0 16px rgba(74,222,128,${greenGlow}))`
+      : 'drop-shadow(0 0 24px rgba(255,50,50,0.7))';
+
     ctx.save();
     ctx.translate(feetX, feetY);
+    ctx.rotate(fallAngle);
     ctx.scale(scaleX, scaleY);
-    ctx.filter = this._defeated
-      ? 'grayscale(1) brightness(0.4) drop-shadow(0 0 16px rgba(74,222,128,0.5))'
-      : 'drop-shadow(0 0 24px rgba(255,50,50,0.7))';
+    ctx.filter = filterStr;
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(this.godzillaImg, -drawW / 2, -drawH, drawW, drawH);
-
-    // Red hit flash — drawn inside same transform so it squishes with Godzilla
-    if (this.hitFlashT > 0) {
-      ctx.filter = 'none';
-      ctx.globalAlpha = this.hitFlashT * 0.55;
-      ctx.globalCompositeOperation = 'screen';
-      ctx.fillStyle = '#ff1500';
-      ctx.fillRect(-drawW / 2, -drawH, drawW, drawH);
-    }
-
     ctx.restore();
+
+    // Red hit flash — paint silhouette via offscreen canvas + source-atop
+    if (this.hitFlashT > 0) {
+      const fw = Math.ceil(drawW);
+      const fh = Math.ceil(drawH);
+      if (this._flashCanvas.width !== fw || this._flashCanvas.height !== fh) {
+        this._flashCanvas.width  = fw;
+        this._flashCanvas.height = fh;
+      }
+      const fc = this._flashCtx;
+      fc.clearRect(0, 0, fw, fh);
+      fc.imageSmoothingEnabled = false;
+      fc.drawImage(this.godzillaImg, 0, 0, fw, fh);
+      fc.globalCompositeOperation = 'source-atop';
+      fc.fillStyle = `rgba(255, 30, 0, ${this.hitFlashT * 0.75})`;
+      fc.fillRect(0, 0, fw, fh);
+      fc.globalCompositeOperation = 'source-over';
+
+      ctx.save();
+      ctx.translate(feetX, feetY);
+      ctx.rotate(fallAngle);
+      ctx.scale(scaleX, scaleY);
+      ctx.drawImage(this._flashCanvas, -drawW / 2, -drawH, drawW, drawH);
+      ctx.restore();
+    }
   }
 
   // ── Dino rendering ────────────────────────────────────────────────────────
@@ -442,6 +516,19 @@ export class BossFightCanvas {
         ctx.restore();
       }
     }
+
+    // Name label — my dinos only
+    if (slot.isMyDino) {
+      const name     = slot.partner.species.charAt(0).toUpperCase() + slot.partner.species.slice(1);
+      const fontSize = Math.round(9 * sc);
+      ctx.save();
+      ctx.font         = `${fontSize}px monospace`;
+      ctx.textAlign    = 'center';
+      ctx.textBaseline = 'top';
+      ctx.fillStyle    = 'rgba(255,255,255,0.85)';
+      ctx.fillText(name, drawX, slot.sy + halfH * 0.9 + 2);
+      ctx.restore();
+    }
   }
 
   // ── Particles ─────────────────────────────────────────────────────────────
@@ -464,6 +551,39 @@ export class BossFightCanvas {
     }
   }
 
+  _spawnGodzillaDust() {
+    const g = this._geo;
+    const impactX = g.godzillaCX + this._FALL_DIRECTION * g.godzillaH * 0.3;
+    const impactY = g.godzillaCY + g.godzillaH * 0.5;
+    const count = 18 + Math.floor(Math.random() * 8);
+    for (let i = 0; i < count; i++) {
+      const angle = (i / count) * Math.PI * 2 + Math.random() * 0.5;
+      const speed = 30 + Math.random() * 50;
+      const ttl   = 0.5 + Math.random() * 0.4;
+      const browns = ['#8B7355', '#A0926B', '#6B5B45', '#C4A77D', '#7A6B52'];
+      this.particles.push({
+        x: impactX + (Math.random() - 0.5) * 20,
+        y: impactY,
+        vx: Math.cos(angle) * speed * 2,
+        vy: Math.sin(angle) * speed * 0.5 - 30 - Math.random() * 20,
+        life: ttl, maxLife: ttl,
+        size: 5 + Math.random() * 6,
+        color: browns[Math.floor(Math.random() * browns.length)],
+      });
+    }
+  }
+
+  _triggerVictoryHop() {
+    const allSlots = [...this._mySlots, ...this._plazaSlots];
+    allSlots.forEach((slot, i) => {
+      // Stagger the hops slightly for a wave effect
+      setTimeout(() => {
+        slot.jumpT      = 0;
+        slot.jumpHeight = (20 + slot.depthT * 25) * slot.drawScale;
+      }, i * 40 + Math.random() * 60);
+    });
+  }
+
   _updateParticles(dt) {
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i];
@@ -476,12 +596,13 @@ export class BossFightCanvas {
     }
   }
 
-  _drawParticles() {
+  _drawParticles(filter) {
     const ctx = this.ctx;
     for (const p of this.particles) {
+      if (filter && !filter(p)) continue;
       ctx.save();
       ctx.globalAlpha = (p.life / p.maxLife) * 0.65;
-      ctx.fillStyle   = '#e9c46a';
+      ctx.fillStyle   = p.color || '#e9c46a';
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
       ctx.fill();

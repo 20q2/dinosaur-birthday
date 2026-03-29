@@ -14,7 +14,7 @@ function SymbolIcon({ sym, size }) {
 export function PlayLobby({ code }) {
   const isHost = store.lobbyRole === 'host';
 
-  const [symbols, setSymbols] = useState(() => code ? code.split('_') : []);
+  const [symbols, setSymbols] = useState(() => code ? code.split('-') : []);
   const [status, setStatus] = useState('waiting');
   const [error, setError] = useState('');
   const [countdown, setCountdown] = useState(null);
@@ -100,7 +100,7 @@ export function PlayLobby({ code }) {
       setError('Pick all 3 symbols');
       return;
     }
-    const joinCode = selectedSymbols.join('_');
+    const joinCode = selectedSymbols.join('-');
     setJoinBusy(true);
     setError('');
     try {

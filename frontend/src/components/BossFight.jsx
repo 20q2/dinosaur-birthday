@@ -20,6 +20,7 @@ export function BossFight() {
   const [maxHp, setMaxHp] = useState(null);
   const [damageNumbers, setDamageNumbers] = useState([]);
   const [plazaPartners, setPlazaPartners] = useState([]);
+  const [showVictoryOverlay, setShowVictoryOverlay] = useState(false);
   const lastTapRef = useRef(0);
   const idCounter  = useRef(0);
   const canvasRef  = useRef(null);
@@ -38,7 +39,11 @@ export function BossFight() {
   useEffect(() => {
     if (bossState?.status === 'defeated') {
       if (arenaRef.current) arenaRef.current.setDefeated(true);
-      setTimeout(() => store.navigate('/boss/victory'), 800);
+      // Show "VICTORY!" overlay after fall animation completes (~1.6s)
+      const overlayTimer = setTimeout(() => setShowVictoryOverlay(true), 1600);
+      // Navigate to victory screen after players appreciate the fall (~3s)
+      const navTimer = setTimeout(() => store.navigate('/boss/victory'), 3000);
+      return () => { clearTimeout(overlayTimer); clearTimeout(navTimer); };
     }
   }, [bossState?.status]);
 
@@ -224,10 +229,10 @@ export function BossFight() {
         {!isDefeated && <div style={styles.tapHint}>TAP TO ATTACK!</div>}
       </div>
 
-      {/* Defeated overlay */}
-      {isDefeated && (
+      {/* Victory overlay — delayed so fall animation is visible */}
+      {showVictoryOverlay && (
         <div style={styles.defeatedOverlay}>
-          <div style={styles.defeatedText}>DEFEATED!</div>
+          <div style={styles.defeatedText}>VICTORY!</div>
         </div>
       )}
 
@@ -352,7 +357,7 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    background: 'rgba(0,0,0,0.7)',
+    background: 'rgba(0,0,0,0.3)',
     zIndex: 50,
   },
   defeatedText: {

@@ -3,8 +3,8 @@ import { SPECIES } from '../data/species.js';
 import { getHatImage, getHatAnchor } from '../data/hatImages.js';
 
 const BASE_SPRITE_SCALE = 1.25;
-const SCALE_MIN = 1.0;
-const SCALE_MAX = 1.4;
+const SCALE_MIN = 0.7;
+const SCALE_MAX = 1.5;
 const MAX_LEVEL = 5;
 
 const WORLD_W = 1800;
@@ -54,6 +54,8 @@ export class PlazaCanvas {
     this.shadowActive = false;
     this.shadowPulseTimer = 0;  // countdown to next pulse toggle
 
+    this.cooldownSet = new Set();
+
     this._initDinos();
     this._resize();
     this._centerCamera();
@@ -97,6 +99,7 @@ export class PlazaCanvas {
       worldX: MARGIN + Math.random() * (WORLD_W - MARGIN * 2),
       worldY: MARGIN + Math.random() * (WORLD_H - MARGIN * 2),
       tapJump: 0, // remaining tap-jump time (seconds)
+      tapJumpHeight: 0, // peak height in world-pixels for current tap jump
     };
 
     return {
@@ -284,9 +287,31 @@ export class PlazaCanvas {
     d.state = sprint ? 'sprinting' : 'walking';
   }
 
+  _spawnLandingPoof(d) {
+    const footY = d.worldY + (d.spriteCanvas ? d.spriteCanvas.height * BASE_SPRITE_SCALE * d.scale * 0.38 : 12);
+    const count = 8 + Math.floor(Math.random() * 5);
+    for (let i = 0; i < count; i++) {
+      const angle = (i / count) * Math.PI * 2 + Math.random() * 0.4;
+      const speed = 28 + Math.random() * 36;
+      const ttl = 0.35 + Math.random() * 0.25;
+      this.particles.push({
+        x: d.worldX + (Math.random() - 0.5) * 8,
+        y: footY,
+        vx: Math.cos(angle) * speed * 4.0,
+        vy: Math.sin(angle) * speed * 0.3 - 18,
+        life: ttl,
+        maxLife: ttl,
+        size: 4 + Math.random() * 5,
+      });
+    }
+  }
+
   _updateDino(d, dt, elapsed) {
-    // Decay tap jump timer
-    if (d.tapJump > 0) d.tapJump = Math.max(0, d.tapJump - dt);
+    // Decay tap jump timer; detect landing to spawn poof
+    if (d.tapJump > 0) {
+      d.tapJump = Math.max(0, d.tapJump - dt);
+      if (d.tapJump === 0) this._spawnLandingPoof(d);
+    }
 
     switch (d.state) {
       case 'idling': {
@@ -413,6 +438,12 @@ export class PlazaCanvas {
     }
   }
 
+  // ── Cooldown overlay ─────────────────────────────────────────────────────
+
+  setCooldowns(playerIds) {
+    this.cooldownSet = new Set(playerIds);
+  }
+
   // ── Start / Stop ──────────────────────────────────────────────────────────
 
   start() {
@@ -455,9 +486,10 @@ export class PlazaCanvas {
       const halfH = spriteH / 2;
       if (wx >= d.worldX - halfW && wx <= d.worldX + halfW &&
           wy >= d.worldY - halfH && wy <= d.worldY + halfH) {
-        d.tapJump = 0.35; // trigger jump animation
+        d.tapJump = 0.45; // trigger jump animation
+        d.tapJumpHeight = 14 + Math.random() * 22; // 14–36px variable height
         d.state = 'idling';
-        d.idleTimer = 2.0 + Math.random(); // stay put a bit after tap
+        d.idleTimer = 3.5 + Math.random() * 2.0; // stay put 3.5–5.5s after tap
         this.onSelect(d.partner);
         return;
       }
@@ -547,10 +579,10 @@ export class PlazaCanvas {
       hopY = Math.sin(elapsed * 1.0 + d.hopPhase) * 1;
     }
 
-    // Tap jump — parabolic arc over 0.35s
+    // Tap jump — parabolic arc over 0.45s, variable height
     if (d.tapJump > 0) {
-      const t = 1 - d.tapJump / 0.35; // 0→1
-      hopY -= Math.sin(t * Math.PI) * 10;
+      const t = 1 - d.tapJump / 0.45; // 0→1
+      hopY -= Math.sin(t * Math.PI) * (d.tapJumpHeight || 10);
     }
 
     // Shadow
@@ -617,13 +649,23 @@ export class PlazaCanvas {
       }
     }
 
-    // Champion crown
-    if (d.isChampion) {
-      const crownY = y - halfH + hopY - (d.partner.hat ? 14 : 6);
-      ctx.font = `${Math.round(8 * d.scale)}px serif`;
+    // Champion crown + cooldown icon
+    const aboveHatOffset = d.partner.hat ? 14 : 6;
+    const onCooldown = this.cooldownSet.has(d.partner.player_id);
+    if (d.isChampion || onCooldown) {
+      const baseY = y - halfH + hopY - aboveHatOffset;
+      const iconSize = Math.round(8 * d.scale);
+      ctx.font = `${iconSize}px serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'bottom';
-      ctx.fillText('\u{1F451}', x, crownY);
+      if (d.isChampion && onCooldown) {
+        ctx.fillText('\u{1F451}', x - iconSize * 0.6, baseY);
+        ctx.fillText('\u23F3', x + iconSize * 0.6, baseY);
+      } else if (d.isChampion) {
+        ctx.fillText('\u{1F451}', x, baseY);
+      } else {
+        ctx.fillText('\u23F3', x, baseY);
+      }
     }
 
     // Champion sparkles

@@ -10,6 +10,7 @@ import { PaintSprite } from './PaintSprite.jsx';
 import { TitleBar } from './TitleBar.jsx';
 import { getQuirk } from '../data/natureQuirks.js';
 import { getHatImage } from '../data/hatImages.js';
+import { Pencil } from 'lucide-preact';
 
 import bgRocks from '../assets/backgrounds/dino_find_rocks.png';
 import bgSwamp from '../assets/backgrounds/dino_find_swamp.png';
@@ -227,8 +228,8 @@ export function DinoDetail({ species }) {
         {dino.is_partner && <div style={styles.partnerLabel}>{'\u2764\uFE0F'} Plaza Partner</div>}
       </div>
 
-      {/* Name — with inline pencil to rename */}
-      <div style={styles.section}>
+      {/* Name / Nature / Flavor card */}
+      <div style={styles.infoCard}>
         {dino.tamed && renaming ? (
           <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
             <input
@@ -261,20 +262,21 @@ export function DinoDetail({ species }) {
                 style={styles.pencilBtn}
                 disabled={busy}
               >
-                {'\u270F\uFE0F'}
+                <Pencil size={14} />
               </button>
             )}
           </div>
         )}
         {dino.tamed && <div style={styles.meta}>Nature: {dino.nature}</div>}
+        {speciesData.flavor && (
+          <>
+            <div style={styles.divider} />
+            <div style={styles.flavor}>
+              "{speciesData.flavor}{dino.tamed && dino.nature ? ` ${getQuirk(dino.nature, species)}` : ''}"
+            </div>
+          </>
+        )}
       </div>
-
-      {/* Flavor text */}
-      {speciesData.flavor && (
-        <div style={styles.flavor}>
-          "{speciesData.flavor}{dino.tamed && dino.nature ? ` ${getQuirk(dino.nature, species)}` : ''}"
-        </div>
-      )}
 
       {/* Feedback message */}
       {feedback && (
@@ -522,30 +524,35 @@ const styles = {
   },
   shinyLabel: {
     color: '#f59e0b', fontSize: '13px', fontWeight: 'bold',
-    background: 'rgba(0,0,0,0.5)', borderRadius: '6px', padding: '3px 10px',
-    backdropFilter: 'blur(4px)',
+    background: '#1a1a2e', borderRadius: '6px', padding: '3px 10px',
   },
   wildLabel: {
     fontSize: '11px', fontWeight: '900', letterSpacing: '2px',
-    color: '#f97316', background: 'rgba(0,0,0,0.5)',
+    color: '#f97316', background: '#1a1a2e',
     borderRadius: '6px', padding: '3px 10px',
-    backdropFilter: 'blur(4px)',
   },
   partnerLabel: {
-    fontSize: '12px', background: 'rgba(22,101,52,0.85)', color: '#4ade80',
+    fontSize: '12px', background: '#166534', color: '#4ade80',
     borderRadius: '6px', padding: '3px 10px', fontWeight: 'bold',
-    backdropFilter: 'blur(4px)',
   },
   section: {
     textAlign: 'center',
-    background: 'rgba(0,0,0,0.45)', borderRadius: '10px', padding: '8px 14px',
-    backdropFilter: 'blur(4px)',
+    background: '#16213e', borderRadius: '10px', padding: '8px 14px',
+  },
+  infoCard: {
+    textAlign: 'center',
+    background: '#0d1117', borderRadius: '12px', padding: '12px 14px',
+    display: 'flex', flexDirection: 'column', gap: '8px',
+  },
+  divider: {
+    height: '1px', background: '#1e2a3a', margin: '2px 0',
   },
   nameRow: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' },
   dinoName: { fontSize: '22px', fontWeight: 'bold', color: '#e0e0e0' },
   pencilBtn: {
-    background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px',
-    padding: '4px', lineHeight: 1, opacity: 0.6,
+    background: 'none', border: 'none', cursor: 'pointer',
+    padding: '4px', lineHeight: 1, opacity: 0.6, color: '#e0e0e0',
+    display: 'flex', alignItems: 'center',
   },
   iconBtn: {
     background: '#16213e', border: '1px solid #333', borderRadius: '8px',
@@ -554,9 +561,7 @@ const styles = {
   meta: { fontSize: '13px', color: '#9ca3af', marginTop: '4px' },
   flavor: {
     color: '#c4b5fd', fontSize: '13px', fontStyle: 'italic',
-    textAlign: 'center', padding: '10px 16px',
-    background: 'rgba(0,0,0,0.55)', borderRadius: '10px',
-    backdropFilter: 'blur(4px)',
+    textAlign: 'center',
   },
   card: {
     background: '#16213e', borderRadius: '12px', padding: '14px',
@@ -642,8 +647,7 @@ const styles = {
   },
   partnerNote: {
     textAlign: 'center', color: '#4ade80', fontSize: '13px',
-    background: 'rgba(0,0,0,0.45)', borderRadius: '10px', padding: '8px 14px',
-    backdropFilter: 'blur(4px)',
+    background: '#16213e', borderRadius: '10px', padding: '8px 14px',
   },
   untamedNote: {
     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',

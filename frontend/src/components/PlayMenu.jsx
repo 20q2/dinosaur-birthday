@@ -72,7 +72,7 @@ export function PlayMenu() {
       setError('Pick all 3 symbols');
       return;
     }
-    const code = selectedSymbols.join('_');
+    const code = selectedSymbols.join('-');
     setBusy(true);
     setError('');
     try {
