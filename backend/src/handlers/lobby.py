@@ -8,6 +8,7 @@ from ..shared.response import success, error
 from ..shared.game_data import generate_lobby_code, random_trivia, random_hat
 from ..shared.ws_broadcast import broadcast
 from ..shared.xp import award_xp
+from ..shared.rare_paints import grant_rare_paint
 
 
 def _give_reward(player_id):
@@ -32,6 +33,20 @@ def _give_reward(player_id):
             "details": {},
         })
         return {"type": "paint", "name": "Paint"}
+
+
+def _track_trivia_partner(player_id, other_id):
+    """
+    Record that player_id played trivia with other_id.
+    Unique per pair (idempotent). Grants starry_night at 10 unique partners.
+    """
+    sk = f"PARTNER#{other_id}"
+    if get_item(f"EVENT#{player_id}", sk):
+        return
+    put_item({"PK": f"EVENT#{player_id}", "SK": sk})
+    partners = query_pk(f"EVENT#{player_id}", sk_prefix="PARTNER#")
+    if len(partners) == 10:
+        grant_rare_paint(player_id, "starry_night")
 
 
 # ── Handler: POST /lobby ──────────────────────────────────────────────────────
@@ -217,6 +232,11 @@ def answer_lobby_handler(event, context):
             "SK": "META",
             "ttl": now + 900,
         })
+
+        # Track unique trivia partners for starry_night achievement
+        if guest_id:
+            _track_trivia_partner(host_id, guest_id)
+            _track_trivia_partner(guest_id, host_id)
 
         # Mark XP as awarded and post feed (only once)
         update_item(f"LOBBY#{code}", "META", {"xp_awarded": True})
