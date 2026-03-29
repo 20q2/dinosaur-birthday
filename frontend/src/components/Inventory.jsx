@@ -107,6 +107,27 @@ export function Inventory() {
 
   return (
     <div style={styles.page}>
+      <style>{`
+        @keyframes invSpin {
+          to { transform: rotate(360deg); }
+        }
+        .inv-spinner {
+          width: 24px; height: 24px;
+          border: 3px solid rgba(255,255,255,0.15);
+          border-top-color: #6366f1;
+          border-radius: 50%;
+          animation: invSpin 0.7s linear infinite;
+        }
+        @keyframes invPop {
+          0% { transform: scale(0); }
+          60% { transform: scale(1.3); }
+          100% { transform: scale(1); }
+        }
+        .inv-check {
+          display: inline-block;
+          animation: invPop 0.35s ease-out forwards;
+        }
+      `}</style>
       <TitleBar title="Inventory" />
       <div style={styles.content}>
       {feedback && (
@@ -114,7 +135,7 @@ export function Inventory() {
           ...styles.feedback,
           color: feedback === 'Applied!' ? '#4ade80' : '#ef4444',
         }}>
-          {feedback}
+          {feedback === 'Applied!' && <span class="inv-check">{'\u2714\uFE0F'}</span>}{' '}{feedback}
         </div>
       )}
 
@@ -212,17 +233,28 @@ export function Inventory() {
                 <div style={styles.dinoGrid}>
                   {tamedDinos.map(d => {
                     const sp = SPECIES[d.species] || {};
+                    const isLoading = busySpecies === d.species;
                     return (
                       <button
                         key={d.species}
-                        style={styles.dinoCard}
+                        style={{
+                          ...styles.dinoCard,
+                          ...(isLoading ? { borderColor: '#6366f1' } : {}),
+                        }}
                         onClick={() => modal.type === 'hat'
                           ? handleHatDinoPick(d.species)
                           : handlePaintDinoPick(d.species)
                         }
                         disabled={busy}
                       >
-                        <DinoSprite species={d.species} colors={d.colors || {}} scale={2} hat={modal.type === 'hat' ? modal.hatId : null} />
+                        <div style={{ position: 'relative', display: 'inline-flex' }}>
+                          <DinoSprite species={d.species} colors={d.colors || {}} scale={2} hat={modal.type === 'hat' ? modal.hatId : null} />
+                          {isLoading && (
+                            <div style={styles.loadingOverlay}>
+                              <div class="inv-spinner" />
+                            </div>
+                          )}
+                        </div>
                         <span style={styles.dinoCardName}>{d.name || sp.name || d.species}</span>
                       </button>
                     );
@@ -281,12 +313,26 @@ export function Inventory() {
                   </div>
                   <div style={styles.previewRow}>
                     <div style={styles.previewCol}>
-                      <DinoSprite species={modal.species} colors={currentColors} scale={2} />
+                      <div style={{ position: 'relative', display: 'inline-flex' }}>
+                        <DinoSprite species={modal.species} colors={currentColors} scale={2} />
+                        {busySpecies === modal.species && (
+                          <div style={styles.loadingOverlay}>
+                            <div class="inv-spinner" />
+                          </div>
+                        )}
+                      </div>
                       <span style={styles.previewLabel}>Before</span>
                     </div>
                     <span style={styles.previewArrow}>→</span>
                     <div style={styles.previewCol}>
-                      <DinoSprite species={modal.species} colors={previewColors} scale={2} />
+                      <div style={{ position: 'relative', display: 'inline-flex' }}>
+                        <DinoSprite species={modal.species} colors={previewColors} scale={2} />
+                        {busySpecies === modal.species && (
+                          <div style={styles.loadingOverlay}>
+                            <div class="inv-spinner" />
+                          </div>
+                        )}
+                      </div>
                       <span style={styles.previewLabel}>After</span>
                     </div>
                   </div>
@@ -444,5 +490,10 @@ const styles = {
   },
   dinoCardName: {
     fontSize: '13px', fontWeight: '600', color: '#e0e0e0', textAlign: 'center',
+  },
+  loadingOverlay: {
+    position: 'absolute', inset: 0,
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    background: 'rgba(0,0,0,0.45)', borderRadius: '6px',
   },
 };
