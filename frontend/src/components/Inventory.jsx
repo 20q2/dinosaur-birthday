@@ -97,6 +97,7 @@ export function Inventory() {
   }
 
   function handlePaintConfirm() {
+    setBusySpecies(modal.species);
     doAction(() =>
       api.customizeDino(store.playerId, modal.species, {
         paint: { region: modal.region, paint_id: modal.paintId },
