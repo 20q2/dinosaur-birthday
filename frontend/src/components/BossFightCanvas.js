@@ -519,7 +519,7 @@ export class BossFightCanvas {
 
     // Name label — my dinos only
     if (slot.isMyDino) {
-      const name     = slot.partner.species.charAt(0).toUpperCase() + slot.partner.species.slice(1);
+      const name     = slot.partner.name || (slot.partner.species.charAt(0).toUpperCase() + slot.partner.species.slice(1));
       const fontSize = Math.round(9 * sc);
       ctx.save();
       ctx.font         = `${fontSize}px monospace`;
