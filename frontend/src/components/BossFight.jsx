@@ -163,10 +163,6 @@ export function BossFight() {
   const max = maxHp ?? bossState?.max_hp ?? bossState?.maxHp ?? 1;
   const hpPct = Math.max(0, Math.min(100, (hp / max) * 100));
 
-  const playerDinos  = player?.dinos?.filter(d => d.tamed) ?? [];
-  const totalLevels  = playerDinos.reduce((sum, d) => sum + (d.level || 1), 0);
-  const playerDamage = 5 + totalLevels;
-
   const isDefeated = hp <= 0 || bossState?.status === 'defeated';
 
   return (
@@ -222,19 +218,8 @@ export function BossFight() {
             />
           </div>
         </div>
-        <div style={styles.statsRow}>
-          <div style={styles.statBox}>
-            <div style={styles.statValue}>{playerDamage}</div>
-            <div style={styles.statLabel}>Your DMG/tap</div>
-          </div>
-          <div style={styles.statBox}>
-            <div style={styles.statValue}>{playerDinos.length}</div>
-            <div style={styles.statLabel}>Tamed Dinos</div>
-          </div>
-          <div style={styles.statBox}>
-            <div style={styles.statValue}>{totalLevels}</div>
-            <div style={styles.statLabel}>Total Levels</div>
-          </div>
+        <div style={styles.flavorText}>
+          Your tamed dinosaurs are joining in on the fight!
         </div>
         {!isDefeated && <div style={styles.tapHint}>TAP TO ATTACK!</div>}
       </div>
@@ -347,27 +332,12 @@ const styles = {
     borderRadius: '10px',
     transition: 'width 0.4s ease-out',
   },
-  statsRow: {
-    display: 'flex',
-    gap: '12px',
-  },
-  statBox: {
-    background: 'rgba(255,255,255,0.07)',
-    border: '1px solid rgba(255,255,255,0.12)',
-    borderRadius: '10px',
-    padding: '10px 16px',
+  flavorText: {
+    fontSize: '14px',
+    color: 'rgba(255,255,255,0.55)',
+    fontStyle: 'italic',
     textAlign: 'center',
-    minWidth: '80px',
-  },
-  statValue: {
-    fontSize: '22px',
-    fontWeight: 'bold',
-    color: '#facc15',
-  },
-  statLabel: {
-    fontSize: '11px',
-    color: '#9ca3af',
-    marginTop: '2px',
+    letterSpacing: '0.3px',
   },
   tapHint: {
     fontSize: '18px',
