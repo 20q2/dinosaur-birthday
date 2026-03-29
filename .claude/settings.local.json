@@ -1,0 +1,37 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//a/Coding//**)",
+      "Read(//c/Users/andje/.claude/plugins/cache/superpowers-marketplace/superpowers/5.0.6/skills/brainstorming/**)",
+      "Bash(node -e:*)",
+      "Bash(npx cdk deploy:*)",
+      "Bash(aws logs tail:*)",
+      "Bash(aws logs describe-log-groups:*)",
+      "Bash(MSYS_NO_PATHCONV=1 aws logs describe-log-groups:*)",
+      "Bash(MSYS_NO_PATHCONV=1 aws logs tail:*)",
+      "Bash(file:*)",
+      "Bash(ls:*)",
+      "Bash(python -m pytest:*)",
+      "Bash(npx vite build:*)",
+      "Bash(identify:*)",
+      "Bash(python3:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Read(//c/Users/andje/.claude/plugins/cache/superpowers-marketplace/superpowers/5.0.6/skills/subagent-driven-development/**)",
+      "Bash(python -m pylint:*)",
+      "Bash(python:*)",
+      "Bash(git log:*)",
+      "Read(//c/Users/andje/.claude/plugins/cache/superpowers-marketplace/superpowers/5.0.6/skills/requesting-code-review/**)",
+      "Bash(pytest:*)",
+      "Bash(grep:*)",
+      "Bash(cat:*)",
+      "Bash(aws lambda list-functions:*)",
+      "Bash(zip -r:*)",
+      "Bash(aws lambda update-function-code:*)"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\andje\\.claude\\projects\\a--Coding-AlexBirthdayDinos\\memory",
+      "a:\\Coding\\AlexBirthdayDinos\\docs\\superpowers\\specs"
+    ]
+  }
+}

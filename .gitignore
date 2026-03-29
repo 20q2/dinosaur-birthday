@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.env
+__pycache__/
+.pytest_cache/
+.aws-sam/
+.superpowers/
+*.pyc
+scripts/output/
+
+infra/cdk.out/
