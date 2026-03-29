@@ -9,17 +9,15 @@ export function FoodHarvest({ foodType }) {
   const [error, setError] = useState('');
   const [phase, setPhase] = useState('minigame'); // 'minigame' | 'taming'
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const data = await api.scanFood(store.playerId, foodType, null);
-        setResult(data);
-        await store.refresh();
-      } catch (err) {
-        setError(err.message);
-      }
-    })();
-  }, [foodType]);
+  async function handleGameEnd(perfects, goods) {
+    try {
+      const data = await api.scanFood(store.playerId, foodType, null, perfects, goods);
+      setResult(data);
+      await store.refresh();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
 
   if (error) {
     return (
@@ -48,6 +46,7 @@ export function FoodHarvest({ foodType }) {
     <HarvestMinigame
       foodType={foodType}
       apiResult={result}
+      onGameEnd={handleGameEnd}
       onComplete={handleComplete}
     />
   );

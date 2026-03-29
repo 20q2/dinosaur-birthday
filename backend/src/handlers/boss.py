@@ -54,13 +54,15 @@ def tap_handler(event, context):
         ExpressionAttributeValues={":new_hp": new_hp},
     )
 
-    # Broadcast hp_update to all
-    broadcast("boss", "hp_update", {
+    # Broadcast hp_update to all connected clients
+    hp_data = {
         "hp": new_hp,
         "max_hp": _to_int(boss.get("max_hp", current_hp)),
         "damage": actual_damage,
         "attacker": player_id,
-    })
+    }
+    broadcast("all", "hp_update", hp_data)
+    broadcast("boss", "hp_update", hp_data)
 
     # Check for defeat
     if new_hp <= 0:
@@ -82,12 +84,14 @@ def tap_handler(event, context):
             player_id,
         )
 
-        # Broadcast boss_defeated
-        broadcast("boss", "boss_defeated", {
+        # Broadcast boss_defeated on all channels so every client receives it
+        defeat_data = {
             "hp": 0,
             "max_hp": _to_int(boss.get("max_hp", current_hp)),
             "defeated_by": player_id,
-        })
+        }
+        broadcast("all", "boss_defeated", defeat_data)
+        broadcast("boss", "boss_defeated", defeat_data)
 
     return success({
         "damage": actual_damage,

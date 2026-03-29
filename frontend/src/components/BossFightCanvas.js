@@ -13,6 +13,7 @@ const DEPTH_SCALE_FAR  = 0.45;
 const DEPTH_SCALE_NEAR = 1.25;
 
 function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+function easeInQuad(t) { return t * t; }
 
 // My-dino arc: bottom portion of ellipse, in radians
 // 0 = right, PI/2 = bottom, PI = left
@@ -53,6 +54,11 @@ export class BossFightCanvas {
     this._FALL_DURATION  = 1.5;    // seconds for rotation
     this._FALL_ANGLE     = 80 * Math.PI / 180;  // radians
     this._FALL_DIRECTION = 1;      // randomized on defeat: +1 or -1
+    // Intro entrance animation state
+    this._introT     = 0;          // seconds since start
+    this._introPhase = 'dropping'; // 'dropping' | 'impact' | 'ready'
+    this._INTRO_DROP_DURATION = 0.8;
+    this._INTRO_SETTLE_DURATION = 0.6;
 
     // Dino slot arrays (populated by _buildSlots)
     this._mySlots = [];
@@ -214,7 +220,7 @@ export class BossFightCanvas {
   }
 
   triggerAttack() {
-    if (this._defeated) return;
+    if (this._defeated || this._introPhase !== 'ready') return;
 
     // My dinos jump with a random stagger
     this._mySlots.forEach(slot => {
@@ -294,6 +300,25 @@ export class BossFightCanvas {
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, g.w, g.h);
 
+    // Advance intro animation
+    if (this._introPhase === 'dropping') {
+      this._introT += dt;
+      if (this._introT >= this._INTRO_DROP_DURATION) {
+        this._introT = this._INTRO_DROP_DURATION;
+        this._introPhase = 'impact';
+        // Landing effects
+        this.squishT   = 1;
+        this.shaking   = true;
+        this.shakeTimer = 0.6;
+        this._spawnLandingDust();
+      }
+    } else if (this._introPhase === 'impact') {
+      this._introT += dt;
+      if (this._introT >= this._INTRO_DROP_DURATION + this._INTRO_SETTLE_DURATION) {
+        this._introPhase = 'ready';
+      }
+    }
+
     // Update particles
     this._updateParticles(dt);
 
@@ -369,12 +394,19 @@ export class BossFightCanvas {
       }
     }
 
+    // Intro drop offset — Godzilla falls from above screen
+    let introOffsetY = 0;
+    if (this._introPhase === 'dropping') {
+      const dropT = Math.min(1, this._introT / this._INTRO_DROP_DURATION);
+      introOffsetY = -(1 - easeInQuad(dropT)) * (g.godzillaH + g.godzillaCY);
+    }
+
     const imgW  = this.godzillaImg.naturalWidth  || 1;
     const imgH  = this.godzillaImg.naturalHeight || 1;
     const drawH = g.godzillaH;
     const drawW = (imgW / imgH) * drawH;
     const baseX = g.godzillaCX + swayX + shakeX;
-    const baseY = g.godzillaCY + breathY + shakeY;
+    const baseY = g.godzillaCY + breathY + shakeY + introOffsetY;
 
     // Squish scale — damped by aliveT
     const scaleX = 1 + this.squishT * 0.18 * aliveT;
@@ -435,6 +467,14 @@ export class BossFightCanvas {
     const ctx = this.ctx;
     if (!slot.spriteCanvas) return;
 
+    // During intro, dinos are hidden then fade in after impact
+    if (this._introPhase === 'dropping') return;
+    let introAlpha = 1;
+    if (this._introPhase === 'impact') {
+      const fadeT = (this._introT - this._INTRO_DROP_DURATION) / this._INTRO_SETTLE_DURATION;
+      introAlpha = Math.min(1, fadeT);
+    }
+
     // Advance jump timer
     if (slot.jumpT >= 0) {
       slot.jumpT = Math.min(slot.jumpT + dt, slot.jumpDuration);
@@ -476,7 +516,7 @@ export class BossFightCanvas {
 
     // Ground shadow (at rest position)
     ctx.save();
-    ctx.globalAlpha = 0.18 * slot.depthT + 0.05;
+    ctx.globalAlpha = (0.18 * slot.depthT + 0.05) * introAlpha;
     ctx.fillStyle   = '#000';
     ctx.beginPath();
     ctx.ellipse(slot.sx, slot.sy + halfH * 0.85, halfW * 0.7, halfH * 0.15, 0, 0, Math.PI * 2);
@@ -485,6 +525,7 @@ export class BossFightCanvas {
 
     // Sprite (sprites face left by default; flip for right-facing)
     ctx.save();
+    ctx.globalAlpha = introAlpha;
     ctx.imageSmoothingEnabled = false;
     if (!slot.facingLeft) {
       ctx.translate(drawX, drawY);
@@ -547,6 +588,28 @@ export class BossFightCanvas {
         vy: Math.sin(angle) * speed * 0.3 - 14,
         life: ttl, maxLife: ttl,
         size: 3 + Math.random() * 4,
+      });
+    }
+  }
+
+  _spawnLandingDust() {
+    const g = this._geo;
+    const feetX = g.godzillaCX;
+    const feetY = g.godzillaCY + g.godzillaH * 0.5;
+    const count = 22 + Math.floor(Math.random() * 8);
+    for (let i = 0; i < count; i++) {
+      const angle = (i / count) * Math.PI * 2 + Math.random() * 0.5;
+      const speed = 40 + Math.random() * 60;
+      const ttl   = 0.4 + Math.random() * 0.5;
+      const grays = ['#555', '#666', '#777', '#888', '#999'];
+      this.particles.push({
+        x: feetX + (Math.random() - 0.5) * 30,
+        y: feetY,
+        vx: Math.cos(angle) * speed * 2.5,
+        vy: Math.sin(angle) * speed * 0.4 - 35 - Math.random() * 25,
+        life: ttl, maxLife: ttl,
+        size: 4 + Math.random() * 7,
+        color: grays[Math.floor(Math.random() * grays.length)],
       });
     }
   }

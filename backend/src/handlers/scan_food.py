@@ -8,11 +8,13 @@ from ..shared.xp import award_xp
 from ..shared.ws_broadcast import broadcast
 
 
-def _harvest(player_id, food_type, profile):
-    """Award XP for harvesting food. Called on every scan."""
-    dino_result = award_xp(player_id, 5)
+def _harvest(player_id, food_type, profile, perfects=0, goods=0):
+    """Award XP for harvesting food. XP scales with minigame score."""
+    raw = goods + perfects * 2
+    xp = 3 + min(6, raw // 2)
+    dino_result = award_xp(player_id, xp)
     return {
-        "xp_awarded": 5,
+        "xp_awarded": xp,
         "dino": dino_result,
         "no_partner": dino_result is None,
     }
@@ -73,8 +75,10 @@ def handler(event, context):
     if not profile:
         return error("Player not found", 404)
 
-    # Always do harvest tracking
-    harvest = _harvest(player_id, food_type, profile)
+    # Always do harvest tracking — score comes from the minigame
+    perfects = body.get("perfects", 0)
+    goods = body.get("goods", 0)
+    harvest = _harvest(player_id, food_type, profile, perfects, goods)
 
     # If species is specified, check if it exists and handle directly
     if species:

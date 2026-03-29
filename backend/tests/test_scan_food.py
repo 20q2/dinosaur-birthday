@@ -65,12 +65,31 @@ def test_tame_lists_untamed_when_no_species_given():
     assert len(body["untamed"]) == 2
 
 
-def test_harvest_awards_xp_every_scan():
+def test_harvest_awards_base_xp_with_no_score():
     put_item({"PK": "PLAYER#p9", "SK": "PROFILE", "name": "Dana"})
     resp1 = handler(_event("meat", {"player_id": "p9"}), None)
     body1 = json.loads(resp1["body"])
-    assert body1["harvest"]["xp_awarded"] == 5
+    assert body1["harvest"]["xp_awarded"] == 3  # base XP, no minigame score
 
     resp2 = handler(_event("meat", {"player_id": "p9"}), None)
     body2 = json.loads(resp2["body"])
-    assert body2["harvest"]["xp_awarded"] == 5
+    assert body2["harvest"]["xp_awarded"] == 3  # repeatable
+
+
+def test_harvest_xp_scales_with_score():
+    put_item({"PK": "PLAYER#p10", "SK": "PROFILE", "name": "Eve"})
+
+    # All perfects: raw = 0 + 6*2 = 12, xp = 3 + min(6, 6) = 9
+    resp = handler(_event("meat", {"player_id": "p10", "perfects": 6, "goods": 0}), None)
+    body = json.loads(resp["body"])
+    assert body["harvest"]["xp_awarded"] == 9
+
+    # All goods: raw = 6 + 0 = 6, xp = 3 + min(6, 3) = 6
+    resp2 = handler(_event("meat", {"player_id": "p10", "perfects": 0, "goods": 6}), None)
+    body2 = json.loads(resp2["body"])
+    assert body2["harvest"]["xp_awarded"] == 6
+
+    # Mix: 3 perfect + 2 good: raw = 2 + 6 = 8, xp = 3 + min(6, 4) = 7
+    resp3 = handler(_event("meat", {"player_id": "p10", "perfects": 3, "goods": 2}), None)
+    body3 = json.loads(resp3["body"])
+    assert body3["harvest"]["xp_awarded"] == 7

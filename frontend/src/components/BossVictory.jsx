@@ -8,6 +8,7 @@ import { Trophy, Crown } from 'lucide-preact';
  */
 export function BossVictory() {
   const [particles, setParticles] = useState([]);
+  const [visible, setVisible] = useState(false);
 
   // Generate confetti on mount
   useEffect(() => {
@@ -23,10 +24,12 @@ export function BossVictory() {
       rotationSpeed: (Math.random() - 0.5) * 720,
     }));
     setParticles(items);
+    // Fade in after a tiny delay so the transition from flash is smooth
+    requestAnimationFrame(() => setVisible(true));
   }, []);
 
   return (
-    <div style={styles.container}>
+    <div style={{ ...styles.container, opacity: visible ? 1 : 0, transition: 'opacity 0.6s ease-out' }}>
       <style>{`
         @keyframes confettiFall {
           0%   { transform: translateY(-20px) rotate(0deg); opacity: 1; }

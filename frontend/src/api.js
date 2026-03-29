@@ -27,8 +27,8 @@ export const api = {
   scanDino: (playerId, species) =>
     request('POST', `/scan/dino/${species}`, { player_id: playerId }),
 
-  scanFood: (playerId, type, species) =>
-    request('POST', `/scan/food/${type}`, { player_id: playerId, species }),
+  scanFood: (playerId, type, species, perfects, goods) =>
+    request('POST', `/scan/food/${type}`, { player_id: playerId, species, perfects, goods }),
 
   scanEvent: (playerId, type, description) =>
     request('POST', `/scan/event/${type}`, { player_id: playerId, description }),

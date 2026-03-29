@@ -22,6 +22,7 @@ export function Inventory() {
   const { player } = useStore();
   const [modal, setModal] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [busySpecies, setBusySpecies] = useState(null);
   const [feedback, setFeedback] = useState('');
 
   const dinos = player?.dinos || [];
@@ -61,6 +62,7 @@ export function Inventory() {
       setFeedback(err.message || 'Something went wrong');
     }
     setBusy(false);
+    setBusySpecies(null);
   }
 
   function handleHatTap(hatId) {
@@ -73,6 +75,7 @@ export function Inventory() {
   }
 
   function handleHatDinoPick(species) {
+    setBusySpecies(species);
     doAction(() => api.customizeDino(store.playerId, species, { hat: modal.hatId }));
   }
 

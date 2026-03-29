@@ -21,6 +21,8 @@ export function BossFight() {
   const [damageNumbers, setDamageNumbers] = useState([]);
   const [plazaPartners, setPlazaPartners] = useState([]);
   const [showVictoryOverlay, setShowVictoryOverlay] = useState(false);
+  const [introReady, setIntroReady] = useState(false);
+  const [transitioning, setTransitioning] = useState(false);
   const lastTapRef = useRef(0);
   const idCounter  = useRef(0);
   const canvasRef  = useRef(null);
@@ -41,11 +43,19 @@ export function BossFight() {
       if (arenaRef.current) arenaRef.current.setDefeated(true);
       // Show "VICTORY!" overlay after fall animation completes (~1.6s)
       const overlayTimer = setTimeout(() => setShowVictoryOverlay(true), 1600);
-      // Navigate to victory screen after players appreciate the fall (~3s)
-      const navTimer = setTimeout(() => store.navigate('/boss/victory'), 3000);
-      return () => { clearTimeout(overlayTimer); clearTimeout(navTimer); };
+      // Start bright flash transition (~2.6s)
+      const flashTimer = setTimeout(() => setTransitioning(true), 2600);
+      // Navigate to victory screen after flash covers screen (~3.4s)
+      const navTimer = setTimeout(() => store.navigate('/boss/victory'), 3400);
+      return () => { clearTimeout(overlayTimer); clearTimeout(flashTimer); clearTimeout(navTimer); };
     }
   }, [bossState?.status]);
+
+  // Show UI after Godzilla landing animation
+  useEffect(() => {
+    const t = setTimeout(() => setIntroReady(true), 1200);
+    return () => clearTimeout(t);
+  }, []);
 
   // Preload Godzilla image then mount the arena canvas
   useEffect(() => {
@@ -159,6 +169,11 @@ export function BossFight() {
           if (arenaRef.current) arenaRef.current.setShaking(false);
         }, 400);
       }
+
+      // Trigger defeat animation immediately when API confirms kill
+      if (result.defeated) {
+        store.setBossState({ ...store.bossState, status: 'defeated', hp: 0 });
+      }
     } catch {
       // Tap failed (throttled by server or fight over), ignore
     }
@@ -173,8 +188,8 @@ export function BossFight() {
   return (
     <div
       style={styles.container}
-      onClick={!isDefeated ? handleTap : undefined}
-      onTouchStart={!isDefeated ? handleTap : undefined}
+      onClick={!isDefeated && introReady ? handleTap : undefined}
+      onTouchStart={!isDefeated && introReady ? handleTap : undefined}
     >
       <style>{`
         @keyframes floatUp {
@@ -187,6 +202,11 @@ export function BossFight() {
           50%  { filter: brightness(1.3); }
           100% { filter: brightness(1); }
         }
+        @keyframes victoryFlash {
+          0%   { opacity: 0; }
+          40%  { opacity: 1; }
+          100% { opacity: 1; }
+        }
         .dmg-float { animation: floatUp 1.2s ease-out forwards; position: absolute; pointer-events: none; }
         .hp-pulse  { animation: hpBarPulse 0.5s ease-in-out; }
       `}</style>
@@ -195,13 +215,13 @@ export function BossFight() {
       <canvas ref={canvasRef} style={styles.arenaCanvas} />
 
       {/* Header — top overlay */}
-      <div style={styles.header}>
+      <div style={{ ...styles.header, opacity: introReady ? 1 : 0, transition: 'opacity 0.6s ease-out' }}>
         <div style={styles.bossTitle}>GODZILLA ATTACKS!</div>
         <div style={styles.bossSubtitle}>Tap anywhere to fight back!</div>
       </div>
 
       {/* UI overlay — HP bar, stats, tap hint at bottom */}
-      <div style={styles.uiOverlay}>
+      <div style={{ ...styles.uiOverlay, opacity: introReady ? 1 : 0, transition: 'opacity 0.6s ease-out' }}>
         <div style={styles.hpSection}>
           <div style={styles.hpLabel}>
             <span>GODZILLA HP</span>
@@ -234,6 +254,11 @@ export function BossFight() {
         <div style={styles.defeatedOverlay}>
           <div style={styles.defeatedText}>VICTORY!</div>
         </div>
+      )}
+
+      {/* Transition flash — bright white/green wash before navigating to victory */}
+      {transitioning && (
+        <div style={styles.transitionFlash} />
       )}
 
       {/* Floating damage numbers */}
@@ -366,5 +391,13 @@ const styles = {
     color: '#4ade80',
     textShadow: '0 0 40px rgba(74,222,128,0.7)',
     letterSpacing: '4px',
+  },
+  transitionFlash: {
+    position: 'absolute',
+    inset: 0,
+    background: 'radial-gradient(ellipse at center, #ffffff 0%, #4ade80 50%, #052e16 100%)',
+    zIndex: 60,
+    pointerEvents: 'none',
+    animation: 'victoryFlash 0.8s ease-in forwards',
   },
 };

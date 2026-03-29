@@ -3,11 +3,17 @@ import meatImg from '../assets/items/meat.png';
 import berryImg from '../assets/items/berry.png';
 
 const FOOD_IMGS = { meat: meatImg, mejoberries: berryImg };
+const FOOD_LABELS = { meat: 'Meat', mejoberries: 'Mejoberries' };
 const TIMING_ROUNDS = 6;
 const ROUND_MS = 1500;
 const WHACK_MS = 10000;
 const SPAWN_MS = 700;
 const MAX_ON_SCREEN = 4;
+
+function computeXp(perfects, goods) {
+  const raw = goods + perfects * 2;
+  return 3 + Math.min(6, Math.floor(raw / 2));
+}
 
 // ── Ready Screen ──────────────────────────────────────────────────────────────
 
@@ -32,36 +38,50 @@ function ReadyScreen({ foodType, countdown, theme }) {
 
 // ── Timing Tap Game ───────────────────────────────────────────────────────────
 // Outer ring shrinks inward over ROUND_MS. t = elapsed/ROUND_MS (0→1).
-// t >= 0.7 → PERFECT (ring near centre), t >= 0.4 → GOOD, else MISS.
-// Score = catch count (GOOD or PERFECT rounds) out of TIMING_ROUNDS.
+// t >= 0.7 → PERFECT, t >= 0.4 → GOOD, else MISS.
+// Ring freezes on tap so the player can see where they landed.
 
 function TimingTapGame({ foodType, theme, onFinish }) {
   const [displayRound, setDisplayRound] = useState(1);
   const [animKey, setAnimKey] = useState(0);
-  const [feedback, setFeedback] = useState(null); // 'PERFECT ✦' | 'GOOD' | 'MISS'
-  const [dots, setDots] = useState([]);           // 'perfect' | 'good' | 'miss'
+  const [feedback, setFeedback] = useState(null);
+  const [dots, setDots] = useState([]);
+  const [frozen, setFrozen] = useState(false);
+  const [tapEffect, setTapEffect] = useState(null); // { color, key }
 
   const roundStartRef = useRef(null);
-  const tappedRef = useRef(false);   // guards against double-resolution (tap vs. timer race)
+  const tappedRef = useRef(false);
   const timerRef = useRef(null);
-  const catchRef = useRef(0);        // rounds where player tapped (GOOD or PERFECT)
+  const perfectRef = useRef(0);
+  const goodRef = useRef(0);
   const roundRef = useRef(0);
 
-  function resolveRound(label, isCatch) {
-    if (tappedRef.current) return;   // already resolved — ignore duplicate call
+  // pts: 0=miss, 1=good, 2=perfect. fromTap: true if player tapped (not timer miss).
+  function resolveRound(label, pts, fromTap) {
+    if (tappedRef.current) return;
     tappedRef.current = true;
     clearTimeout(timerRef.current);
 
-    if (isCatch) catchRef.current++;
+    if (pts === 2) perfectRef.current++;
+    else if (pts === 1) goodRef.current++;
+
     setFeedback(label);
-    setDots(d => [...d, label === 'PERFECT ✦' ? 'perfect' : label === 'GOOD' ? 'good' : 'miss']);
+    setDots(d => [...d, pts === 2 ? 'perfect' : pts === 1 ? 'good' : 'miss']);
+
+    if (fromTap) {
+      setFrozen(true);
+      setTapEffect({
+        color: pts === 2 ? '#fbbf24' : pts === 1 ? '#4ade80' : '#ef4444',
+        key: Date.now(),
+      });
+    }
 
     const next = roundRef.current + 1;
     roundRef.current = next;
     setDisplayRound(Math.min(next + 1, TIMING_ROUNDS));
 
     if (next >= TIMING_ROUNDS) {
-      setTimeout(() => onFinish(catchRef.current, TIMING_ROUNDS), 700);
+      setTimeout(() => onFinish(perfectRef.current, goodRef.current, TIMING_ROUNDS), 700);
     } else {
       setTimeout(() => startRound(), 700);
     }
@@ -70,17 +90,19 @@ function TimingTapGame({ foodType, theme, onFinish }) {
   function startRound() {
     tappedRef.current = false;
     roundStartRef.current = performance.now();
-    setAnimKey(k => k + 1);  // new key unmounts/remounts ring div → restarts CSS animation
+    setAnimKey(k => k + 1);
     setFeedback(null);
-    timerRef.current = setTimeout(() => resolveRound('MISS', false), ROUND_MS + 50);
+    setFrozen(false);
+    setTapEffect(null);
+    timerRef.current = setTimeout(() => resolveRound('MISS', 0, false), ROUND_MS + 50);
   }
 
   function handleTap() {
     const elapsed = performance.now() - (roundStartRef.current || 0);
     const t = Math.min(elapsed / ROUND_MS, 1);
-    if (t >= 0.7) resolveRound('PERFECT ✦', true);
-    else if (t >= 0.4) resolveRound('GOOD', true);
-    else resolveRound('MISS', false);
+    if (t >= 0.7) resolveRound('PERFECT ✦', 2, true);
+    else if (t >= 0.4) resolveRound('GOOD', 1, true);
+    else resolveRound('MISS', 0, true);
   }
 
   useEffect(() => {
@@ -94,6 +116,10 @@ function TimingTapGame({ foodType, theme, onFinish }) {
         @keyframes shrinkRing {
           from { transform: scale(1); opacity: 1; }
           to   { transform: scale(0.02); opacity: 0; }
+        }
+        @keyframes tapFlash {
+          0%   { opacity: 0.5; transform: scale(0.9); }
+          100% { opacity: 0; transform: scale(1.3); }
         }
       `}</style>
 
@@ -112,13 +138,15 @@ function TimingTapGame({ foodType, theme, onFinish }) {
         </div>
       </div>
 
-      {/* Ring arena — tap anywhere on the page to register */}
+      {/* Ring arena */}
       <div style={styles.ringContainer}>
         {/* Static outer reference ring */}
         <div style={styles.ringOuter} />
-        {/* Static target zone ring — shows where PERFECT begins (30% of radius from centre) */}
-        <div style={{ ...styles.ringTarget, borderColor: `${theme.accent}80` }} />
-        {/* Animated shrinking ring — key change restarts the CSS animation each round */}
+        {/* GOOD zone band (t=0.4–0.7) */}
+        <div style={styles.zoneGood} />
+        {/* PERFECT zone (t=0.7–1.0) */}
+        <div style={styles.zonePerfect} />
+        {/* Animated shrinking ring */}
         <div
           key={animKey}
           style={{
@@ -127,8 +155,23 @@ function TimingTapGame({ foodType, theme, onFinish }) {
             border: `4px solid ${theme.accentAlt}`,
             boxShadow: `0 0 14px ${theme.accentAlt}88`,
             animation: `shrinkRing ${ROUND_MS}ms linear forwards`,
+            animationPlayState: frozen ? 'paused' : 'running',
           }}
         />
+        {/* Tap flash glow */}
+        {tapEffect && (
+          <div
+            key={tapEffect.key}
+            style={{
+              position: 'absolute', inset: '-20px',
+              borderRadius: '50%',
+              background: `radial-gradient(circle, ${tapEffect.color}60 0%, transparent 70%)`,
+              animation: 'tapFlash 300ms ease-out forwards',
+              pointerEvents: 'none',
+            }}
+          />
+        )}
+        {/* Food icon in centre */}
         <img src={FOOD_IMGS[foodType]} style={styles.ringIcon} />
       </div>
 
@@ -153,9 +196,6 @@ function TimingTapGame({ foodType, theme, onFinish }) {
 }
 
 // ── Whack-a-Food Game ─────────────────────────────────────────────────────────
-// Items spawn every SPAWN_MS for WHACK_MS total. Each lives 1.0–1.4s.
-// Up to MAX_ON_SCREEN items on screen at once.
-// Score = items tapped / items spawned.
 
 function WhackAFoodGame({ foodType, theme, onFinish }) {
   const [items, setItems] = useState([]);
@@ -173,17 +213,15 @@ function WhackAFoodGame({ foodType, theme, onFinish }) {
     const id = nextIdRef.current++;
     const item = {
       id,
-      left: 5 + Math.random() * 70,  // 5–75%
-      top: 5 + Math.random() * 75,   // 5–80%
+      left: 5 + Math.random() * 70,
+      top: 5 + Math.random() * 75,
       life,
     };
-    // Only add if under the simultaneous cap; count only what actually appears
     setItems(prev => {
       if (prev.length >= MAX_ON_SCREEN) return prev;
       totalRef.current++;
       return [...prev, item];
     });
-    // Auto-expire — filter is a no-op if item was never added
     setTimeout(() => {
       setItems(prev => prev.filter(i => i.id !== id));
     }, life);
@@ -205,7 +243,7 @@ function WhackAFoodGame({ foodType, theme, onFinish }) {
       if (remaining <= 0) {
         clearInterval(timerInterval);
         doneRef.current = true;
-        onFinish(scoreRef.current, totalRef.current);
+        onFinish(0, scoreRef.current, totalRef.current);
       }
     }, 100);
 
@@ -213,7 +251,7 @@ function WhackAFoodGame({ foodType, theme, onFinish }) {
       if (!doneRef.current) spawnItem();
     }, SPAWN_MS);
 
-    spawnItem(); // immediate first item
+    spawnItem();
 
     return () => {
       clearInterval(timerInterval);
@@ -268,31 +306,45 @@ function WhackAFoodGame({ foodType, theme, onFinish }) {
 
 // ── Results Screen ────────────────────────────────────────────────────────────
 
-function ResultsScreen({ score, total, foodType, apiResult, onComplete, theme }) {
+function ResultsScreen({ score, total, foodType, xpEarned, apiResult, onComplete, theme }) {
   const canTame = apiResult && !apiResult.harvest_only && !apiResult.already_tamed;
   const scoreLabel = foodType === 'meat' ? 'catches' : 'berries collected';
+  const label = FOOD_LABELS[foodType] || foodType;
 
   return (
     <div style={{ ...styles.page, background: theme.bg }}>
       <div style={{ ...styles.tagline, color: theme.accent }}>{theme.label}</div>
-      <div style={{ fontSize: '40px', fontWeight: '900', color: theme.text }}>
+
+      {/* Food obtained */}
+      <img src={FOOD_IMGS[foodType]} style={{ width: '64px', height: '64px', imageRendering: 'pixelated', margin: '4px 0' }} />
+      <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#e5e7eb', textAlign: 'center' }}>
+        You obtained {label}!
+      </div>
+      <div style={{ fontSize: '12px', color: '#6b7280', margin: '-6px 0 4px' }}>
+        Added to your inventory
+      </div>
+
+      {/* Score */}
+      <div style={{ fontSize: '32px', fontWeight: '900', color: theme.text }}>
         {score} / {total || '?'}
       </div>
       <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>{scoreLabel}</div>
 
+      {/* XP box */}
       <div style={{ ...styles.xpBox, borderColor: `${theme.accent}40` }}>
         <div style={styles.xpRow}>
           <span style={{ color: '#9ca3af' }}>XP Earned</span>
-          <span style={{ color: '#f59e0b', fontWeight: 'bold' }}>+5 XP</span>
+          <span style={{ color: '#f59e0b', fontWeight: 'bold' }}>+{xpEarned} XP</span>
         </div>
       </div>
 
+      {/* Action button */}
       {!apiResult ? (
         <div style={{ color: '#6b7280', fontSize: '13px' }}>Calculating reward...</div>
       ) : canTame ? (
-        <button onClick={onComplete} style={styles.primaryBtn}>Feed a Dino! 🦕</button>
+        <button onClick={onComplete} style={styles.primaryBtn}>Feed a Dino!</button>
       ) : (
-        <button onClick={onComplete} style={styles.backBtn}>Back to Plaza</button>
+        <button onClick={onComplete} style={styles.secondaryBtn}>Back to Plaza</button>
       )}
     </div>
   );
@@ -300,18 +352,18 @@ function ResultsScreen({ score, total, foodType, apiResult, onComplete, theme })
 
 // ── Main Component ────────────────────────────────────────────────────────────
 
-export function HarvestMinigame({ foodType, apiResult, onComplete }) {
+export function HarvestMinigame({ foodType, apiResult, onGameEnd, onComplete }) {
   const [phase, setPhase] = useState('ready');
   const [countdown, setCountdown] = useState(3);
   const [score, setScore] = useState(0);
   const [total, setTotal] = useState(0);
+  const [xpEarned, setXpEarned] = useState(5);
 
   const isMeat = foodType === 'meat';
   const theme = isMeat
     ? { bg: '#1a1008', accent: '#f87171', accentAlt: '#fbbf24', text: '#fef3c7', title: 'HUNTING TIME',   label: 'HUNT COMPLETE'   }
     : { bg: '#1a1035', accent: '#a78bfa', accentAlt: '#a78bfa', text: '#ede9fe', title: 'FORAGING TIME', label: 'FORAGE COMPLETE' };
 
-  // Countdown: 3 → 2 → 1 → "GO!" (400ms) → phase='playing'
   useEffect(() => {
     if (phase !== 'ready') return;
     const interval = setInterval(() => {
@@ -327,10 +379,12 @@ export function HarvestMinigame({ foodType, apiResult, onComplete }) {
     return () => clearInterval(interval);
   }, [phase]);
 
-  function handleGameFinish(s, t) {
-    setScore(s);
-    setTotal(t);
+  function handleGameFinish(perfects, goods, total) {
+    setScore(perfects + goods);
+    setTotal(total);
+    setXpEarned(computeXp(perfects, goods));
     setPhase('results');
+    if (onGameEnd) onGameEnd(perfects, goods);
   }
 
   if (phase === 'ready') {
@@ -346,6 +400,7 @@ export function HarvestMinigame({ foodType, apiResult, onComplete }) {
       score={score}
       total={total}
       foodType={foodType}
+      xpEarned={xpEarned}
       apiResult={apiResult}
       onComplete={onComplete}
       theme={theme}
@@ -381,11 +436,15 @@ const styles = {
     position: 'absolute', inset: 0, borderRadius: '50%',
     border: '3px solid #374151',
   },
-  // Target ring marks the PERFECT zone (30% of radius = 21px from centre)
-  // inset = (140 - 42) / 2 = 49px  →  42px diameter ring
-  ringTarget: {
+  // GOOD zone: t=0.4–0.7 → scale 0.6–0.3 → inset 28px–49px
+  zoneGood: {
+    position: 'absolute', inset: '28px', borderRadius: '50%',
+    background: '#22c55e18', border: '1px solid #22c55e40',
+  },
+  // PERFECT zone: t=0.7–1.0 → scale 0.3–0 → inset 49px–center
+  zonePerfect: {
     position: 'absolute', inset: '49px', borderRadius: '50%',
-    border: '2px dashed #374151', opacity: 0.7,
+    background: '#fbbf2425', border: '1px solid #fbbf2450',
   },
   ringIcon: {
     position: 'absolute', width: '44px', height: '44px',
@@ -400,7 +459,6 @@ const styles = {
   timerBar: {
     height: '100%', borderRadius: '4px', transition: 'width 0.1s linear',
   },
-  // Berry play area
   playArea: {
     position: 'relative', width: '100%', maxWidth: '340px', height: '200px',
     background: '#0f0a20', borderRadius: '12px', overflow: 'hidden',
@@ -418,9 +476,9 @@ const styles = {
     background: '#22c55e', color: 'white', fontSize: '16px',
     fontWeight: 'bold', cursor: 'pointer', width: '100%', maxWidth: '300px',
   },
-  backBtn: {
+  secondaryBtn: {
     padding: '14px', borderRadius: '10px', border: 'none',
-    background: 'transparent', color: '#6b7280', fontSize: '14px',
-    cursor: 'pointer', width: '100%', maxWidth: '300px',
+    background: '#6366f1', color: 'white', fontSize: '16px',
+    fontWeight: 'bold', cursor: 'pointer', width: '100%', maxWidth: '300px',
   },
 };

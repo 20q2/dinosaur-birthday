@@ -37,25 +37,33 @@ export function App() {
       store.addFeedEntry(data);
     });
 
-    // Wire boss handlers
-    ws.on('boss', 'boss_start', (data) => {
+    // Wire boss handlers (listen on both 'boss' and 'all' channels)
+    const onBossStart = (data) => {
       store.setBossState({ status: 'active', ...data });
       store.navigate('/boss');
-    });
-    ws.on('boss', 'hp_update', (data) => {
+    };
+    const onHpUpdate = (data) => {
       if (store.bossState) {
         store.bossState = { ...store.bossState, ...data };
         store.notify();
       }
-    });
-    ws.on('boss', 'boss_defeated', (data) => {
+    };
+    const onBossDefeated = (data) => {
       store.setBossState({ status: 'defeated', ...data });
-      store.navigate('/boss/victory');
-    });
-    ws.on('boss', 'boss_stopped', () => {
+      // Navigation handled by BossFight.jsx after defeat animation plays
+    };
+    const onBossStopped = () => {
       store.setBossState({ status: 'idle' });
       store.navigate('/plaza');
-    });
+    };
+    ws.on('boss', 'boss_start', onBossStart);
+    ws.on('boss', 'hp_update', onHpUpdate);
+    ws.on('boss', 'boss_defeated', onBossDefeated);
+    ws.on('boss', 'boss_stopped', onBossStopped);
+    ws.on('all', 'boss_start', onBossStart);
+    ws.on('all', 'hp_update', onHpUpdate);
+    ws.on('all', 'boss_defeated', onBossDefeated);
+    ws.on('all', 'boss_stopped', onBossStopped);
   }, []);
 
   // Hard-lock: redirect to /boss whenever a fight is active
