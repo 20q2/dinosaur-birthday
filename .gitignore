@@ -8,4 +8,4 @@ __pycache__/
 *.pyc
 scripts/output/
 
-infra/cdk.out/
+infra/cdk.out/.worktrees/
