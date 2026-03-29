@@ -35,6 +35,8 @@ export class BossFightCanvas {
     this.lastTs = this.startTime;
     this.shaking = false;
     this.shakeTimer = 0;
+    this.squishT   = 0;   // 1→0 over 0.30s, drives squish scale
+    this.hitFlashT = 0;   // 1→0 over 0.20s, drives red tint
     this._photoCache = new Map();
     this.particles = [];
     this._defeated = false;
@@ -84,8 +86,9 @@ export class BossFightCanvas {
   _positionSlot(slot) {
     const g = this._geo;
     if (!g.ellipseCX) return; // geometry not yet computed
-    slot.sx = g.ellipseCX + Math.cos(slot.slotAngle) * g.ellipseRX;
-    slot.sy = g.ellipseCY + Math.sin(slot.slotAngle) * g.ellipseRY;
+    const rf = slot.radiusFactor ?? 1;
+    slot.sx = g.ellipseCX + Math.cos(slot.slotAngle) * g.ellipseRX * rf;
+    slot.sy = g.ellipseCY + Math.sin(slot.slotAngle) * g.ellipseRY * rf;
 
     // depthT: 0 = top of ellipse (far), 1 = bottom (near)
     const topY   = g.ellipseCY - g.ellipseRY;
@@ -129,6 +132,8 @@ export class BossFightCanvas {
       isMyDino,
       spriteCanvas,
       ownerPhoto,
+      // Slight radial jitter — gives crowd depth rather than a perfect ring
+      radiusFactor: isMyDino ? 1 : 0.82 + Math.random() * 0.36,
       // Computed by _positionSlot (overwritten on first _layout call)
       sx: 0, sy: 0, depthT: 0, drawScale: 1, facingLeft: false,
       // Idle animation
@@ -153,7 +158,7 @@ export class BossFightCanvas {
     // ── Plaza dinos: rest of the ellipse, capped at 24, sorted by level desc
     const sorted = [...plazaDinos]
       .sort((a, b) => (b.level || 1) - (a.level || 1))
-      .slice(0, 24);
+      .slice(0, 50);
 
     const plazaArcStart = MY_ARC_END;
     const plazaArcSpan  = Math.PI * 2 - (MY_ARC_END - MY_ARC_START);
@@ -173,7 +178,7 @@ export class BossFightCanvas {
   updatePlazaDinos(partners) {
     const sorted = [...partners]
       .sort((a, b) => (b.level || 1) - (a.level || 1))
-      .slice(0, 24);
+      .slice(0, 50);
     const plazaArcStart = MY_ARC_END;
     const plazaArcSpan  = Math.PI * 2 - (MY_ARC_END - MY_ARC_START);
     this._plazaSlots = sorted.map((partner, i) => {
@@ -197,10 +202,26 @@ export class BossFightCanvas {
 
   triggerAttack() {
     if (this._defeated) return;
+
+    // My dinos all jump
     this._mySlots.forEach(slot => {
       slot.jumpT      = 0;
       slot.jumpHeight = (30 + slot.depthT * 30) * slot.drawScale;
     });
+
+    // Popcorn burst — trigger ~25% of plaza crowd dinos
+    const burstCount = Math.max(3, Math.floor(this._plazaSlots.length * 0.25));
+    const shuffled   = this._plazaSlots.slice().sort(() => Math.random() - 0.5);
+    shuffled.slice(0, burstCount).forEach(slot => {
+      if (slot.jumpT < 0) {
+        slot.jumpT      = 0;
+        slot.jumpHeight = (12 + slot.depthT * 18) * slot.drawScale;
+      }
+    });
+
+    // Godzilla hit feedback
+    this.squishT   = 1;
+    this.hitFlashT = 1;
   }
 
   setShaking(active) {
@@ -279,11 +300,15 @@ export class BossFightCanvas {
     const g   = this._geo;
     if (!this.godzillaImg || !this.godzillaImg.complete) return;
 
+    // Decay hit feedback timers
+    if (this.squishT   > 0) this.squishT   = Math.max(0, this.squishT   - dt / 0.30);
+    if (this.hitFlashT > 0) this.hitFlashT = Math.max(0, this.hitFlashT - dt / 0.20);
+
     // Idle animations — breathing (slow Y bob) + fighting sway (irregular X)
     const breathY = Math.sin(elapsed * 1.1) * 5;
     const swayX   = Math.sin(elapsed * 1.7) * 4 + Math.sin(elapsed * 2.9) * 2;
 
-    // Shake offset (on hit)
+    // Shake offset (on big hit)
     let shakeX = 0, shakeY = 0;
     if (this.shaking) {
       this.shakeTimer -= dt;
@@ -300,15 +325,33 @@ export class BossFightCanvas {
     const imgH  = this.godzillaImg.naturalHeight || 1;
     const drawH = g.godzillaH;
     const drawW = (imgW / imgH) * drawH;
-    const drawX = g.godzillaCX - drawW / 2 + swayX + shakeX;
-    const drawY = g.godzillaCY - drawH / 2 + breathY + shakeY;
+    const baseX = g.godzillaCX + swayX + shakeX;
+    const baseY = g.godzillaCY + breathY + shakeY;
+
+    // Squish scale — pivots from feet so Godzilla squishes downward
+    const scaleX = 1 + this.squishT * 0.18;
+    const scaleY = 1 - this.squishT * 0.28;
+    const feetX  = baseX;
+    const feetY  = baseY + drawH / 2;
 
     ctx.save();
+    ctx.translate(feetX, feetY);
+    ctx.scale(scaleX, scaleY);
     ctx.filter = this._defeated
       ? 'grayscale(1) brightness(0.4) drop-shadow(0 0 16px rgba(74,222,128,0.5))'
       : 'drop-shadow(0 0 24px rgba(255,50,50,0.7))';
     ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(this.godzillaImg, drawX, drawY, drawW, drawH);
+    ctx.drawImage(this.godzillaImg, -drawW / 2, -drawH, drawW, drawH);
+
+    // Red hit flash — drawn inside same transform so it squishes with Godzilla
+    if (this.hitFlashT > 0) {
+      ctx.filter = 'none';
+      ctx.globalAlpha = this.hitFlashT * 0.55;
+      ctx.globalCompositeOperation = 'screen';
+      ctx.fillStyle = '#ff1500';
+      ctx.fillRect(-drawW / 2, -drawH, drawW, drawH);
+    }
+
     ctx.restore();
   }
 
