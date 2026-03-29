@@ -63,3 +63,14 @@ def test_tame_lists_untamed_when_no_species_given():
     body = json.loads(resp["body"])
     assert body["choose_species"] is True
     assert len(body["untamed"]) == 2
+
+
+def test_harvest_awards_xp_every_scan():
+    put_item({"PK": "PLAYER#p9", "SK": "PROFILE", "name": "Dana"})
+    resp1 = handler(_event("meat", {"player_id": "p9"}), None)
+    body1 = json.loads(resp1["body"])
+    assert body1["harvest"]["xp_awarded"] == 5
+
+    resp2 = handler(_event("meat", {"player_id": "p9"}), None)
+    body2 = json.loads(resp2["body"])
+    assert body2["harvest"]["xp_awarded"] == 5
