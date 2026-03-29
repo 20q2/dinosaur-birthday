@@ -196,15 +196,18 @@ function TimingTapGame({ foodType, theme, onFinish }) {
 }
 
 // ── Whack-a-Food Game ─────────────────────────────────────────────────────────
+// Items pop in with a bounce, fade out when expiring, and burst on tap.
 
 function WhackAFoodGame({ foodType, theme, onFinish }) {
   const [items, setItems] = useState([]);
+  const [bursts, setBursts] = useState([]);
   const [score, setScore] = useState(0);
   const [timeLeft, setTimeLeft] = useState(WHACK_MS);
 
   const scoreRef = useRef(0);
   const totalRef = useRef(0);
   const nextIdRef = useRef(0);
+  const burstIdRef = useRef(0);
   const doneRef = useRef(false);
 
   function spawnItem() {
@@ -216,19 +219,31 @@ function WhackAFoodGame({ foodType, theme, onFinish }) {
       left: 5 + Math.random() * 70,
       top: 5 + Math.random() * 75,
       life,
+      state: 'active',
     };
     setItems(prev => {
       if (prev.length >= MAX_ON_SCREEN) return prev;
       totalRef.current++;
       return [...prev, item];
     });
+    // Start expire-out animation, then remove
     setTimeout(() => {
-      setItems(prev => prev.filter(i => i.id !== id));
+      setItems(prev => prev.map(i => i.id === id ? { ...i, state: 'expiring' } : i));
+      setTimeout(() => {
+        setItems(prev => prev.filter(i => i.id !== id));
+      }, 200);
     }, life);
   }
 
   function tapItem(e, id) {
     e.stopPropagation();
+    // Spawn burst at berry position
+    const tapped = items.find(i => i.id === id);
+    if (tapped) {
+      const bid = burstIdRef.current++;
+      setBursts(b => [...b, { id: bid, left: tapped.left, top: tapped.top }]);
+      setTimeout(() => setBursts(b => b.filter(x => x.id !== bid)), 350);
+    }
     scoreRef.current++;
     setScore(scoreRef.current);
     setItems(prev => prev.filter(i => i.id !== id));
@@ -263,6 +278,21 @@ function WhackAFoodGame({ foodType, theme, onFinish }) {
 
   return (
     <div style={{ ...styles.page, background: theme.bg }}>
+      <style>{`
+        @keyframes berrySpawn {
+          from { transform: scale(0) rotate(-20deg); opacity: 0; }
+          to   { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+        @keyframes berryExpire {
+          from { transform: scale(1); opacity: 1; }
+          to   { transform: scale(0.3); opacity: 0; }
+        }
+        @keyframes berryBurst {
+          0%   { transform: translate(-50%, -50%) scale(0.5); opacity: 0.7; }
+          100% { transform: translate(-50%, -50%) scale(2.2); opacity: 0; }
+        }
+      `}</style>
+
       <div style={styles.roundRow}>
         <span style={{ color: theme.accent, fontWeight: 'bold', fontSize: '13px' }}>
           Score: {score}
@@ -292,6 +322,25 @@ function WhackAFoodGame({ foodType, theme, onFinish }) {
               cursor: 'pointer',
               filter: `drop-shadow(0 0 6px ${theme.accent})`,
               touchAction: 'manipulation',
+              pointerEvents: item.state === 'expiring' ? 'none' : 'auto',
+              animation: item.state === 'expiring'
+                ? 'berryExpire 200ms ease-in forwards'
+                : 'berrySpawn 200ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
+            }}
+          />
+        ))}
+        {bursts.map(b => (
+          <div
+            key={b.id}
+            style={{
+              position: 'absolute',
+              left: `calc(${b.left}% + 22px)`,
+              top: `calc(${b.top}% + 22px)`,
+              width: '44px', height: '44px',
+              borderRadius: '50%',
+              background: `radial-gradient(circle, ${theme.accent}70 0%, transparent 70%)`,
+              animation: 'berryBurst 350ms ease-out forwards',
+              pointerEvents: 'none',
             }}
           />
         ))}
