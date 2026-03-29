@@ -79,3 +79,38 @@ def test_inspiration_rainbow_not_granted_twice():
     items = query_pk("PLAYER#p1", sk_prefix="ITEM#")
     rainbow = [i for i in items if i.get("details", {}).get("effect") == "rainbow"]
     assert len(rainbow) == 1
+
+
+from src.handlers.scan_note import handler as note_handler
+from src.shared.game_data import EXPLORER_NOTES
+
+
+def _note_event(note_id, body):
+    return {"httpMethod": "POST", "pathParameters": {"note_id": note_id}, "body": json.dumps(body)}
+
+
+def test_metallic_granted_on_5th_note():
+    _make_profile("p1")
+    note_ids = list(EXPLORER_NOTES.keys())  # 5 notes
+    for i, note_id in enumerate(note_ids):
+        resp = note_handler(_note_event(note_id, {"player_id": "p1"}), None)
+        assert resp["statusCode"] == 200
+        items = query_pk("PLAYER#p1", sk_prefix="ITEM#")
+        has_metallic = any(i.get("details", {}).get("effect") == "metallic" for i in items)
+        if i < 4:
+            assert not has_metallic, f"Should not have metallic after note {i+1}"
+        else:
+            assert has_metallic, "Should have metallic after 5th note"
+
+
+def test_metallic_not_granted_twice():
+    _make_profile("p1")
+    note_ids = list(EXPLORER_NOTES.keys())
+    for note_id in note_ids:
+        note_handler(_note_event(note_id, {"player_id": "p1"}), None)
+    # Collect all notes a second time (already_found path)
+    for note_id in note_ids:
+        note_handler(_note_event(note_id, {"player_id": "p1"}), None)
+    items = query_pk("PLAYER#p1", sk_prefix="ITEM#")
+    metallic = [i for i in items if i.get("details", {}).get("effect") == "metallic"]
+    assert len(metallic) == 1

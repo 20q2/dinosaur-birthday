@@ -2,6 +2,7 @@ import json
 from ..shared.db import get_item, put_item, query_pk
 from ..shared.response import success, error
 from ..shared.game_data import EXPLORER_NOTES
+from ..shared.rare_paints import grant_rare_paint
 
 
 def handler(event, context):
@@ -44,6 +45,10 @@ def handler(event, context):
 
     # Count total notes found (including this one)
     found_notes = query_pk(f"PLAYER#{player_id}", "NOTE#")
+
+    # Grant metallic rare paint on collecting all 5 notes
+    if len(found_notes) == len(EXPLORER_NOTES):
+        grant_rare_paint(player_id, "metallic")
 
     return success({
         "found": True,
