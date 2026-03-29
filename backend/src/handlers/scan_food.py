@@ -9,51 +9,12 @@ from ..shared.ws_broadcast import broadcast
 
 
 def _harvest(player_id, food_type, profile):
-    """Check harvest status and award XP on first harvest of this food type."""
-    existing = get_item(f"FOOD#{player_id}", food_type)
-    if existing:
-        return {"first_time": False, "xp_awarded": 0, "dino": None, "no_partner": False}
-
-    # First harvest — award XP and record it
-    dino_result = award_xp(player_id, 10)
-    no_partner = dino_result is None
-
-    put_item({
-        "PK": f"FOOD#{player_id}",
-        "SK": food_type,
-        "player_id": player_id,
-        "food_type": food_type,
-        "harvested_at": datetime.now(timezone.utc).isoformat(),
-    })
-
-    # Post harvest to feed
-    try:
-        player_name = profile.get("name", "Someone")
-        food_label = "Meat" if food_type == "meat" else "Mejoberries"
-        ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
-        feed_sk = f"{ts}#{uuid.uuid4()}"
-        put_item({
-            "PK": "FEED",
-            "SK": feed_sk,
-            "type": "harvest",
-            "message": f"{player_name} harvested {food_label}!",
-            "player_name": player_name,
-        })
-        broadcast("feed", "new_entry", {
-            "id": feed_sk,
-            "type": "harvest",
-            "message": f"{player_name} harvested {food_label}!",
-            "player_name": player_name,
-            "timestamp": ts,
-        })
-    except Exception:
-        pass
-
+    """Award XP for harvesting food. Called on every scan."""
+    dino_result = award_xp(player_id, 5)
     return {
-        "first_time": True,
-        "xp_awarded": 10,
+        "xp_awarded": 5,
         "dino": dino_result,
-        "no_partner": no_partner,
+        "no_partner": dino_result is None,
     }
 
 
