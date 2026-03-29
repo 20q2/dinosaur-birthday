@@ -64,9 +64,9 @@ export class BossFightCanvas {
       godzillaCY:  h * 0.30,
       godzillaH:   h * 0.52,
       ellipseCX:   w * 0.5,
-      ellipseCY:   h * 0.55,
-      ellipseRX:   w * 0.42,
-      ellipseRY:   h * 0.20,
+      ellipseCY:   h * 0.52,
+      ellipseRX:   w * 0.32,
+      ellipseRY:   h * 0.15,
     };
     // Recompute slot positions after geometry change
     this._mySlots.forEach(s   => this._positionSlot(s));
@@ -263,7 +263,7 @@ export class BossFightCanvas {
     far.forEach(s => this._drawDino(s, elapsed, dt));
 
     // Draw Godzilla
-    this._drawGodzilla(dt);
+    this._drawGodzilla(elapsed, dt);
 
     // Draw particles (above Godzilla base, below near dinos)
     this._drawParticles();
@@ -274,12 +274,16 @@ export class BossFightCanvas {
 
   // ── Godzilla ──────────────────────────────────────────────────────────────
 
-  _drawGodzilla(dt) {
+  _drawGodzilla(elapsed, dt) {
     const ctx = this.ctx;
     const g   = this._geo;
     if (!this.godzillaImg || !this.godzillaImg.complete) return;
 
-    // Shake offset
+    // Idle animations — breathing (slow Y bob) + fighting sway (irregular X)
+    const breathY = Math.sin(elapsed * 1.1) * 5;
+    const swayX   = Math.sin(elapsed * 1.7) * 4 + Math.sin(elapsed * 2.9) * 2;
+
+    // Shake offset (on hit)
     let shakeX = 0, shakeY = 0;
     if (this.shaking) {
       this.shakeTimer -= dt;
@@ -296,8 +300,8 @@ export class BossFightCanvas {
     const imgH  = this.godzillaImg.naturalHeight || 1;
     const drawH = g.godzillaH;
     const drawW = (imgW / imgH) * drawH;
-    const drawX = g.godzillaCX - drawW / 2 + shakeX;
-    const drawY = g.godzillaCY - drawH / 2 + shakeY;
+    const drawX = g.godzillaCX - drawW / 2 + swayX + shakeX;
+    const drawY = g.godzillaCY - drawH / 2 + breathY + shakeY;
 
     ctx.save();
     ctx.filter = this._defeated
