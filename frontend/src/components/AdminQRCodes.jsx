@@ -12,6 +12,7 @@ const QR_GROUPS = [
       { label: 'Parasaurolophus', route: '/scan/dino/parasaurolophus', sub: 'Herbivore', subColor: '#22c55e' },
       { label: 'Ankylosaurus', route: '/scan/dino/ankylosaurus', sub: 'Herbivore', subColor: '#22c55e' },
       { label: 'Triceratops', route: '/scan/dino/triceratops', sub: 'Herbivore', subColor: '#22c55e' },
+      { label: 'Godzilla', route: '/scan/dino/godzilla', sub: 'Boss Reward', subColor: '#f59e0b' },
     ],
   },
   {
