@@ -5,6 +5,7 @@ let reconnectTimer = null;
 let reconnectDelay = 1000;
 const MAX_RECONNECT_DELAY = 30000;
 const messageHandlers = new Map();
+const pendingSubscriptions = new Set();
 
 export const ws = {
   connect() {
@@ -20,6 +21,11 @@ export const ws = {
     socket.onopen = () => {
       console.log('[WS] Connected');
       reconnectDelay = 1000;
+      // Replay any subscriptions that were requested while disconnected
+      for (const channel of pendingSubscriptions) {
+        socket.send(JSON.stringify({ action: 'subscribe', channel }));
+      }
+      pendingSubscriptions.clear();
     };
 
     socket.onmessage = (event) => {
@@ -62,6 +68,8 @@ export const ws = {
   subscribe(channel) {
     if (socket && socket.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify({ action: 'subscribe', channel }));
+    } else {
+      pendingSubscriptions.add(channel);
     }
   },
 

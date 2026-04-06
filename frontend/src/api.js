@@ -42,6 +42,9 @@ export const api = {
   createLobby: (playerId) =>
     request('POST', '/lobby', { player_id: playerId }),
 
+  getLobby: (code) =>
+    request('GET', `/lobby/${code}`),
+
   joinLobby: (playerId, code) =>
     request('POST', `/lobby/${code}/join`, { player_id: playerId }),
 

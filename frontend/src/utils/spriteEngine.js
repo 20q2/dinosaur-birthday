@@ -212,6 +212,17 @@ export function getRecolored(species, colors, regions) {
 }
 
 /**
+ * Get a recolored sprite canvas WITHOUT caching.
+ * Used for animated effects (rainbow, prismatic) that change hue every frame.
+ */
+export function getRecoloredUncached(species, colors, regions) {
+  const img = rawImages[species];
+  if (!img) return null;
+  const hues = regions.map(r => colors[r] ?? 120);
+  return recolorImage(img, hues);
+}
+
+/**
  * Clear the recolor cache (useful after paint changes).
  */
 export function clearCache(species) {

@@ -3,6 +3,7 @@ import { useStore } from '../router.jsx';
 import { store } from '../store.js';
 import { api } from '../api.js';
 import { TitleBar } from './TitleBar.jsx';
+import { NoteViewer } from './NoteViewer.jsx';
 
 function resizeImage(file, maxSize = 200) {
   return new Promise((resolve) => {
@@ -60,34 +61,50 @@ function StatBox({ value, label }) {
   );
 }
 
+
 function NotesTracker({ notes }) {
-  const found = (notes || []).length;
+  const [viewingNote, setViewingNote] = useState(null);
+  const noteList = notes || [];
+  const found = noteList.length;
   const pct = Math.round((found / TOTAL_NOTES) * 100);
+
   return (
     <div style={styles.section}>
       <h3 style={styles.sectionTitle}>Explorer's Notes</h3>
       <div style={styles.notesRow}>
-        {Array.from({ length: TOTAL_NOTES }, (_, i) => (
-          <div
-            key={i}
-            style={{
-              ...styles.noteSlot,
-              background: i < found ? '#22c55e' : '#1a1a2e',
-              border: `2px solid ${i < found ? '#16a34a' : '#2a2a3e'}`,
-            }}
-          >
-            {i < found ? (
-              <span style={{ fontSize: '18px' }}>📜</span>
-            ) : (
-              <span style={{ fontSize: '16px', color: '#444' }}>?</span>
-            )}
-          </div>
-        ))}
+        {Array.from({ length: TOTAL_NOTES }, (_, i) => {
+          const noteId = `note${i + 1}`;
+          const isFound = noteList.includes(noteId);
+          return (
+            <div
+              key={i}
+              onClick={isFound ? () => setViewingNote(noteId) : undefined}
+              style={{
+                ...styles.noteSlot,
+                background: isFound ? '#22c55e' : '#1a1a2e',
+                border: `2px solid ${isFound ? '#16a34a' : '#2a2a3e'}`,
+                cursor: isFound ? 'pointer' : 'default',
+              }}
+            >
+              {isFound ? (
+                <span style={{ fontSize: '18px' }}>📜</span>
+              ) : (
+                <span style={{ fontSize: '16px', color: '#444' }}>?</span>
+              )}
+            </div>
+          );
+        })}
       </div>
       <div style={styles.progressBarBg}>
         <div style={{ ...styles.progressBarFill, width: `${pct}%` }} />
       </div>
-      <p style={styles.notesCount}>{found} / {TOTAL_NOTES} notes found</p>
+      <p style={styles.notesCount}>
+        {found} / {TOTAL_NOTES} notes found
+        {found > 0 && <span style={{ color: '#6366f1', marginLeft: '8px' }}>tap to view</span>}
+      </p>
+      {viewingNote && (
+        <NoteViewer noteId={viewingNote} onClose={() => setViewingNote(null)} />
+      )}
     </div>
   );
 }
@@ -368,5 +385,6 @@ const styles = {
     color: '#888',
     textAlign: 'right',
   },
+
 
 };

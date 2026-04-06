@@ -158,6 +158,14 @@ def join_lobby_handler(event, context):
     except Exception:
         pass
 
+    # Notify plaza so other players see the two dinos playing together
+    try:
+        broadcast("plaza", "play_together", {
+            "player_ids": [host_id, player_id],
+        })
+    except Exception:
+        pass
+
     return success({
         "code": code,
         "trivia": {
@@ -270,6 +278,14 @@ def answer_lobby_handler(event, context):
     except Exception:
         pass
 
+    # Notify plaza that play session ended
+    try:
+        broadcast("plaza", "play_ended", {
+            "player_ids": [host_id, guest_id],
+        })
+    except Exception:
+        pass
+
     # Fetch partner info for cooldown save on the frontend
     partner_id = guest_id if player_id == host_id else host_id
     try:
@@ -290,6 +306,39 @@ def answer_lobby_handler(event, context):
     })
 
 
+# ── Handler: GET /lobby/{code} ───────────────────────────────────────────────
+
+def get_lobby_handler(event, context):
+    """GET /lobby/{code} — Check lobby status (used for host polling fallback)."""
+    code = event["pathParameters"]["code"]
+    lobby = get_item(f"LOBBY#{code}", "META")
+    if not lobby:
+        return error("Lobby not found", 404)
+
+    result = {"code": code, "status": lobby.get("status", "waiting")}
+
+    # If a guest has joined, include the trivia and dino data so the host can start
+    if lobby.get("status") == "active" and lobby.get("guest_id"):
+        trivia = lobby.get("trivia_question", {})
+        result["trivia"] = {"question": trivia.get("question", ""), "options": trivia.get("options", [])}
+
+        def _get_partner_dino(pid):
+            dinos = query_pk(f"PLAYER#{pid}", "DINO#")
+            partner = next((d for d in dinos if d.get("is_partner") and d.get("tamed")), None)
+            if not partner:
+                return {"species": "", "colors": {}, "hat": "", "name": ""}
+            return {
+                "species": partner["SK"].replace("DINO#", ""),
+                "colors": partner.get("colors", {}),
+                "hat": partner.get("hat", ""),
+                "name": partner.get("name", ""),
+            }
+
+        result["guest_dino"] = _get_partner_dino(lobby["guest_id"])
+
+    return success(result)
+
+
 # ── Main Router ───────────────────────────────────────────────────────────────
 
 def handler(event, context):
@@ -305,5 +354,9 @@ def handler(event, context):
 
     if "/answer" in resource and method == "POST":
         return answer_lobby_handler(event, context)
+
+    # GET /lobby/{code} — host polls for guest join
+    if method == "GET" and "code" in (event.get("pathParameters") or {}):
+        return get_lobby_handler(event, context)
 
     return error("Not found", 404)

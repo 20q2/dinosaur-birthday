@@ -43,6 +43,7 @@ export function PartnerFloat() {
       <DinoSprite
         species={partner.species}
         colors={partner.colors || {}}
+        hat={partner.hat || null}
         scale={1.5}
         style={{ marginTop: '-50%', marginLeft: '15%', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.7))' }}
       />

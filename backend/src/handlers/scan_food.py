@@ -6,6 +6,7 @@ from ..shared.response import success, error
 from ..shared.game_data import SPECIES
 from ..shared.xp import award_xp
 from ..shared.ws_broadcast import broadcast
+from ..shared.rare_paints import grant_rare_paint
 
 
 def _harvest(player_id, food_type, profile, perfects=0, goods=0):
@@ -18,6 +19,14 @@ def _harvest(player_id, food_type, profile, perfects=0, goods=0):
         "dino": dino_result,
         "no_partner": dino_result is None,
     }
+
+
+def _check_all_tamed(player_id):
+    """Grant prismatic rare paint when the player has tamed all 7 species."""
+    all_dinos = query_pk(f"PLAYER#{player_id}", sk_prefix="DINO#")
+    tamed_count = sum(1 for d in all_dinos if d.get("tamed"))
+    if tamed_count >= len(SPECIES):
+        grant_rare_paint(player_id, "prismatic")
 
 
 def _auto_set_partner(player_id, species, profile):
@@ -120,6 +129,9 @@ def handler(event, context):
         except Exception:
             pass
 
+        # Grant prismatic paint if all 7 species are now tamed
+        _check_all_tamed(player_id)
+
         return success({"tamed": True, "species": species, "harvest": harvest, "first_partner": first_partner})
 
     # If no species specified, find untamed dinos that eat this food
@@ -176,5 +188,8 @@ def handler(event, context):
         })
     except Exception:
         pass
+
+    # Grant prismatic paint if all 7 species are now tamed
+    _check_all_tamed(player_id)
 
     return success({"tamed": True, "species": species, "harvest": harvest, "first_partner": first_partner})

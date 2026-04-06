@@ -82,11 +82,16 @@ export function PlayTogether() {
   const hasPartner = player?.dinos?.some(d => d.is_partner && d.tamed);
 
   // -- WebSocket subscription --
+  // Use a ref to track the current role so the WS handler always has the latest value
+  const roleRef = useRef(role);
+  useEffect(() => { roleRef.current = role; }, [role]);
+
   useEffect(() => {
     if (!lobbyCode) return;
 
     const unsub1 = ws.on(`lobby:${lobbyCode}`, 'trivia_start', (data) => {
-      const myPartnerDino = role === 'host' ? data.guest_dino : data.host_dino;
+      const currentRole = roleRef.current;
+      const myPartnerDino = currentRole === 'host' ? data.guest_dino : data.host_dino;
       if (myPartnerDino && sceneRef.current) {
         sceneRef.current.setPartnerDino(myPartnerDino);
         setPartnerDinoData(myPartnerDino);
@@ -112,7 +117,27 @@ export function PlayTogether() {
       unsub1();
       unsub2();
     };
-  }, [lobbyCode, role]);
+  }, [lobbyCode]);
+
+  // -- Host polling fallback (in case WebSocket misses the trivia_start) --
+  useEffect(() => {
+    if (phase !== 'lobby' || role !== 'host' || !lobbyCode) return;
+    const iv = setInterval(async () => {
+      try {
+        const data = await api.getLobby(lobbyCode);
+        if (data.status === 'active' && data.trivia) {
+          clearInterval(iv);
+          if (data.guest_dino && sceneRef.current) {
+            sceneRef.current.setPartnerDino(data.guest_dino);
+            setPartnerDinoData(data.guest_dino);
+          }
+          setTrivia(data.trivia);
+          setPhase('countdown');
+        }
+      } catch {}
+    }, 3000);
+    return () => clearInterval(iv);
+  }, [phase, role, lobbyCode]);
 
   // Countdown timer
   useEffect(() => {
@@ -137,6 +162,9 @@ export function PlayTogether() {
     setError('');
     try {
       const data = await api.createLobby(store.playerId);
+      // Subscribe to lobby channel immediately so the host receives broadcasts
+      // (the effect also subscribes, but this ensures we don't miss early messages)
+      ws.subscribe(`lobby:${data.code}`);
       setLobbyCode(data.code);
       setLobbySymbols(data.symbols);
       setHostTrivia(data.trivia || null);

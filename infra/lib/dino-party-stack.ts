@@ -207,6 +207,7 @@ export class DinoPartyStack extends Stack {
     const lobbyFn = makeFn(this, 'LobbyFn', 'src.handlers.lobby.handler');
     grantBroadcast(lobbyFn);
     addRoute(lobbyFn, 'POST', '/lobby');
+    addRoute(lobbyFn, 'GET', '/lobby/{code}');
     addRoute(lobbyFn, 'POST', '/lobby/{code}/join');
     addRoute(lobbyFn, 'POST', '/lobby/{code}/answer');
 

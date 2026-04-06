@@ -220,9 +220,9 @@ def test_customize_paint_consumes_item():
     body = json.loads(resp["body"])
     assert body["colors"]["body"] == 0
 
-    # Paint item should be consumed
-    consumed = get_item("PLAYER#p9", "ITEM#paint001")
-    assert consumed is None
+    # Paint item should still exist (paints are reusable)
+    still_exists = get_item("PLAYER#p9", "ITEM#paint001")
+    assert still_exists is not None
 
 
 # ── customize: paint requires inventory item ──────────────────────────────────

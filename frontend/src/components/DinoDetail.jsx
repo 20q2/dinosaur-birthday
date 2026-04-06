@@ -1,4 +1,4 @@
-import { useState } from 'preact/hooks';
+import { useState, useRef } from 'preact/hooks';
 import { store } from '../store.js';
 import { useStore } from '../router.jsx';
 import { api } from '../api.js';
@@ -70,6 +70,7 @@ export function DinoDetail({ species }) {
   const dino = (player?.dinos || []).find(d => d.species === species);
   const speciesData = SPECIES[species] || {};
 
+  const portraitRef = useRef(null);
   const [renaming, setRenaming] = useState(false);
   const [nameInput, setNameInput] = useState('');
   const [showHats, setShowHats] = useState(false);
@@ -152,11 +153,11 @@ export function DinoDetail({ species }) {
   function handleEquipHat(hatId) {
     doAction(async () => {
       await api.customizeDino(store.playerId, species, { hat: hatId });
-      setShowHats(false);
       if (hatId) {
         setHatPop(true);
         setTimeout(() => setHatPop(false), 400);
       }
+      portraitRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   }
 
@@ -189,19 +190,18 @@ export function DinoDetail({ species }) {
   }
 
   // Compute backdrop for full page background
-  const pageBg = (() => {
-    if (!dino.tamed && WILD_BG[species]) {
-      return { backgroundImage: `url(${WILD_BG[species]})`, backgroundSize: 'cover', backgroundPosition: 'center top' };
-    }
+  const bgImg = (() => {
+    if (!dino.tamed && WILD_BG[species]) return WILD_BG[species];
     if (dino.tamed && dino.background) {
       const bg = BG_OPTIONS.find(b => b.id === dino.background);
-      if (bg?.img) return { backgroundImage: `url(${bg.img})`, backgroundSize: 'cover', backgroundPosition: 'center top' };
+      if (bg?.img) return bg.img;
     }
-    return {};
+    return null;
   })();
 
   return (
-    <div style={{ ...styles.page, ...pageBg }}>
+    <div style={styles.page}>
+      {bgImg && <div style={{ ...styles.bgLayer, backgroundImage: `url(${bgImg})` }} />}
       <TitleBar
         title={`${speciesData.name || species} ${dino.gender === 'male' ? '\u2642' : '\u2640'}`}
         back="/dinos"
@@ -221,7 +221,7 @@ export function DinoDetail({ species }) {
       `}</style>
 
       {/* Dino portrait */}
-      <div style={styles.portrait}>
+      <div ref={portraitRef} style={styles.portrait}>
         <DinoSprite species={species} colors={previewColors} scale={4} hat={dino.tamed ? dino.hat : null} style={{ filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.9)) drop-shadow(0 0 20px rgba(0,0,0,0.7))', animation: `dino-wobble 3s ease-in-out infinite${hatPop ? ', hat-pop 0.4s cubic-bezier(0.34,1.56,0.64,1)' : ''}`, transformOrigin: 'center bottom' }} />
         {dino.shiny && <div style={styles.shinyLabel}>✨ SHINY</div>}
         {!dino.tamed && <div style={styles.wildLabel}>WILD</div>}
@@ -292,7 +292,7 @@ export function DinoDetail({ species }) {
       {dino.tamed && !selectedPaint && (
         <div style={styles.dualRow}>
           <div
-            style={{ ...styles.card, flex: 1, cursor: 'pointer' }}
+            style={{ ...styles.card, flex: 1, cursor: 'pointer', ...(showHats ? styles.cardActive : {}) }}
             onClick={() => { setShowHats(!showHats); setShowPaints(false); }}
           >
             <div style={styles.statRow}>
@@ -302,7 +302,7 @@ export function DinoDetail({ species }) {
           </div>
           {hasPaints && (
             <div
-              style={{ ...styles.card, flex: 1, cursor: 'pointer' }}
+              style={{ ...styles.card, flex: 1, cursor: 'pointer', ...(showPaints ? styles.cardActive : {}) }}
               onClick={() => { setShowPaints(!showPaints); setShowHats(false); }}
             >
               <div style={styles.statRow}>
@@ -515,8 +515,13 @@ export function DinoDetail({ species }) {
 }
 
 const styles = {
-  page: { display: 'flex', flexDirection: 'column', paddingBottom: '80px', background: '#0a0a0a', minHeight: '100dvh' },
-  content: { display: 'flex', flexDirection: 'column', gap: '12px', padding: '16px' },
+  page: { position: 'relative', display: 'flex', flexDirection: 'column', paddingBottom: '80px', background: '#0a0a0a', minHeight: '100dvh' },
+  bgLayer: {
+    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+    backgroundSize: 'cover', backgroundPosition: 'center top',
+    zIndex: 0, pointerEvents: 'none',
+  },
+  content: { position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: '12px', padding: '16px' },
   center: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '70dvh', gap: '16px' },
   portrait: {
     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px',
@@ -565,7 +570,11 @@ const styles = {
   },
   card: {
     background: '#16213e', borderRadius: '12px', padding: '14px',
+    border: '1px solid #2a3a5e',
     display: 'flex', flexDirection: 'column', gap: '8px',
+  },
+  cardActive: {
+    borderColor: '#6366f1', background: '#1e2750',
   },
   sectionTitle: { fontSize: '14px', color: '#e0e0e0', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' },
   statRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
@@ -648,6 +657,7 @@ const styles = {
   partnerNote: {
     textAlign: 'center', color: '#4ade80', fontSize: '13px',
     background: '#16213e', borderRadius: '10px', padding: '8px 14px',
+    border: '1px solid #2a3a5e',
   },
   untamedNote: {
     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',

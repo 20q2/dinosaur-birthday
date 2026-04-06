@@ -1,6 +1,7 @@
-import { getRecolored, getPlazaBackground } from '../utils/spriteEngine.js';
+import { getRecolored, getRecoloredUncached, getPlazaBackground } from '../utils/spriteEngine.js';
 import { SPECIES } from '../data/species.js';
 import { getHatImage, getHatAnchor } from '../data/hatImages.js';
+import { resolveColors, hasEffects } from '../dinoColors.js';
 
 const BASE_SPRITE_SCALE = 1.25;
 const SCALE_MIN = 0.7;
@@ -55,6 +56,9 @@ export class PlazaCanvas {
     this.shadowPulseTimer = 0;  // countdown to next pulse toggle
 
     this.cooldownSet = new Set();
+
+    // Playing-together pairs: Map<playerId, partnerId>
+    this.playingPairs = new Map();
 
     this._initDinos();
     this._resize();
@@ -313,6 +317,36 @@ export class PlazaCanvas {
       if (d.tapJump === 0) this._spawnLandingPoof(d);
     }
 
+    // ── Playing-together override ──────────────────────────────────────────
+    if (d.playPartner) {
+      const other = this.dinos.find(o => o.partner.player_id === d.playPartner);
+      if (other) {
+        const dx = d.targetX - d.worldX;
+        const dy = d.targetY - d.worldY;
+        const dist = Math.hypot(dx, dy);
+
+        if (dist > ARRIVE_DIST && d.state === 'walking') {
+          // Still walking to meetup point
+          const targetHeading = Math.atan2(dy, dx);
+          let diff = targetHeading - d.heading;
+          while (diff > Math.PI) diff -= Math.PI * 2;
+          while (diff < -Math.PI) diff += Math.PI * 2;
+          d.heading += diff * Math.min(1, HEADING_LERP * dt);
+          const step = d.speed * dt;
+          d.worldX += Math.cos(d.heading) * step;
+          d.worldY += Math.sin(d.heading) * step;
+          d.facingLeft = Math.cos(d.heading) < 0;
+        } else {
+          // Arrived at meetup — face partner and do play idle
+          d.state = 'playing';
+          d.facingLeft = other.worldX < d.worldX;
+          d.playPhase = (d.playPhase || 0) + dt;
+        }
+      }
+      return;
+    }
+
+    // ── Normal AI ──────────────────────────────────────────────────────────
     switch (d.state) {
       case 'idling': {
         d.idleTimer -= dt;
@@ -444,6 +478,59 @@ export class PlazaCanvas {
     this.cooldownSet = new Set(playerIds);
   }
 
+  // ── Play-together state ───────────────────────────────────────────────────
+
+  setPlayingTogether(playerIds) {
+    // playerIds = [idA, idB]
+    if (!playerIds || playerIds.length < 2) return;
+    const [a, b] = playerIds;
+    this.playingPairs.set(a, b);
+    this.playingPairs.set(b, a);
+
+    // Find both dinos and set them walking toward each other
+    const dinoA = this.dinos.find(d => d.partner.player_id === a);
+    const dinoB = this.dinos.find(d => d.partner.player_id === b);
+    if (dinoA && dinoB) {
+      // Pick a midpoint between them for the meetup
+      const midX = (dinoA.worldX + dinoB.worldX) / 2;
+      const midY = (dinoA.worldY + dinoB.worldY) / 2;
+      const gap = 35; // half the gap between them
+
+      const angle = Math.atan2(dinoB.worldY - dinoA.worldY, dinoB.worldX - dinoA.worldX);
+      dinoA.targetX = midX - Math.cos(angle) * gap;
+      dinoA.targetY = midY - Math.sin(angle) * gap;
+      dinoB.targetX = midX + Math.cos(angle) * gap;
+      dinoB.targetY = midY + Math.sin(angle) * gap;
+
+      dinoA.state = 'walking';
+      dinoA.speed = 50;
+      dinoB.state = 'walking';
+      dinoB.speed = 50;
+
+      dinoA.playPartner = b;
+      dinoA.playPhase = 0;
+      dinoB.playPartner = a;
+      dinoB.playPhase = 0;
+    }
+  }
+
+  clearPlayingTogether(playerIds) {
+    if (!playerIds || playerIds.length < 2) return;
+    const [a, b] = playerIds;
+    this.playingPairs.delete(a);
+    this.playingPairs.delete(b);
+
+    // Release both dinos back to normal AI
+    for (const d of this.dinos) {
+      if (d.partner.player_id === a || d.partner.player_id === b) {
+        d.playPartner = null;
+        d.playPhase = 0;
+        d.state = 'idling';
+        d.idleTimer = 1 + Math.random() * 2;
+      }
+    }
+  }
+
   // ── Start / Stop ──────────────────────────────────────────────────────────
 
   start() {
@@ -570,7 +657,10 @@ export class PlazaCanvas {
 
     // Hop animation — discrete hops when moving, gentle breathing when idle
     let hopY = 0;
-    if (d.state === 'walking') {
+    if (d.state === 'playing') {
+      // Playful alternating hops — bouncy and excited
+      hopY = -Math.abs(Math.sin(elapsed * 4.5 + d.hopPhase)) * 8;
+    } else if (d.state === 'walking') {
       hopY = -Math.abs(Math.sin(elapsed * d.hopSpeed * 3 + d.hopPhase)) * 5;
     } else if (d.state === 'sprinting') {
       hopY = -Math.abs(Math.sin(elapsed * d.hopSpeed * 4.5 + d.hopPhase)) * 7;
@@ -684,6 +774,24 @@ export class PlazaCanvas {
         ctx.fillText('\u2726', spx, spy);
         ctx.restore();
       }
+    }
+
+    // Play-together emoji above head
+    if (d.state === 'playing') {
+      const playEmojis = ['\u{1F3B2}', '\u2764\uFE0F', '\u{1F389}', '\u2B50'];
+      // Cycle through emojis every 1.5s
+      const emojiIdx = Math.floor((elapsed + d.hopPhase) / 1.5) % playEmojis.length;
+      const emojiY = y - halfH + hopY - (d.partner.hat ? 22 : 14);
+      // Gentle float
+      const floatY = Math.sin(elapsed * 2.5 + d.hopPhase) * 3;
+      const emojiAlpha = 0.7 + 0.3 * Math.sin(elapsed * 3 + d.hopPhase);
+      ctx.save();
+      ctx.globalAlpha = emojiAlpha;
+      ctx.font = `${Math.round(10 * d.scale)}px serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText(playEmojis[emojiIdx], x, emojiY + floatY);
+      ctx.restore();
     }
 
     // ── Nameplate ──────────────────────────────────────────────────────────

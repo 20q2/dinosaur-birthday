@@ -101,9 +101,6 @@ def customize_handler(event, context):
         if not paint_item:
             return error(f"No {paint_id} paint in inventory")
 
-        # Consume the paint item
-        delete_item(f"PLAYER#{player_id}", paint_item["SK"])
-
         # Merge the paint's hue into the dino's existing colors
         hue = PAINT_MAP[paint_id]["hue"]
         existing_colors = dict(dino.get("colors", {}))

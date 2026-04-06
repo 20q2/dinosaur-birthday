@@ -1,8 +1,14 @@
 import json
+import uuid
+from datetime import datetime, timezone
 from ..shared.db import get_item, put_item, query_pk
 from ..shared.response import success, error
 from ..shared.game_data import EXPLORER_NOTES
 from ..shared.rare_paints import grant_rare_paint
+from ..shared.xp import award_xp
+from ..shared.ws_broadcast import broadcast
+
+NOTE_XP = 40
 
 
 def handler(event, context):
@@ -43,6 +49,9 @@ def handler(event, context):
         "note_id": note_id,
     })
 
+    # Award XP to partner dino
+    dino_result = award_xp(player_id, NOTE_XP)
+
     # Count total notes found (including this one)
     found_notes = query_pk(f"PLAYER#{player_id}", "NOTE#")
 
@@ -50,10 +59,37 @@ def handler(event, context):
     if len(found_notes) == len(EXPLORER_NOTES):
         grant_rare_paint(player_id, "metallic")
 
+    # Post to feed
+    try:
+        player_name = profile.get("name", "Someone")
+        note_num = note_id.replace("note", "")
+        feed_message = f"{player_name} discovered Explorer Note #{note_num}!"
+
+        ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
+        feed_sk = f"{ts}#{uuid.uuid4()}"
+        put_item({
+            "PK": "FEED",
+            "SK": feed_sk,
+            "type": "note",
+            "message": feed_message,
+            "player_name": player_name,
+        })
+        broadcast("feed", "new_entry", {
+            "id": feed_sk,
+            "type": "note",
+            "message": feed_message,
+            "player_name": player_name,
+            "timestamp": ts,
+        })
+    except Exception:
+        pass
+
     return success({
         "found": True,
         "note_id": note_id,
         "note_text": note_text,
         "notes_found": len(found_notes),
         "notes_total": len(EXPLORER_NOTES),
+        "xp_awarded": NOTE_XP,
+        "dino": dino_result,
     })

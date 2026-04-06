@@ -89,10 +89,10 @@ def test_note_player_not_found():
     assert resp["statusCode"] == 404
 
 
-# ── test_no_xp_awarded ────────────────────────────────────────────────────────
+# ── test_xp_awarded_for_notes ─────────────────────────────────────────────────
 
-def test_no_xp_awarded_for_notes():
-    """Notes give no XP — pure flavor."""
+def test_xp_awarded_for_notes():
+    """Discovering a new note awards 40 XP to partner dino."""
     _make_profile("nt5", "Oscar")
     put_item({
         "PK": "PLAYER#nt5",
@@ -111,10 +111,40 @@ def test_no_xp_awarded_for_notes():
 
     resp = handler(_event("note3", {"player_id": "nt5"}), None)
     assert resp["statusCode"] == 200
+    body = json.loads(resp["body"])
+    assert body["xp_awarded"] == 40
+    assert body["dino"]["species"] == "trex"
 
-    # Dino XP should be unchanged
+    # Dino XP should be 40
     dino = get_item("PLAYER#nt5", "DINO#trex")
-    assert int(dino["xp"]) == 0
+    assert int(dino["xp"]) == 40
+
+
+# ── test_no_xp_on_rescan ─────────────────────────────────────────────────────
+
+def test_no_xp_on_rescan():
+    """Rescanning an already-found note does not award XP again."""
+    _make_profile("nt7", "Quinn")
+    put_item({
+        "PK": "PLAYER#nt7",
+        "SK": "DINO#trex",
+        "name": "Trex",
+        "colors": {"body": 100},
+        "gender": "male",
+        "nature": "Bold",
+        "hat": "",
+        "xp": 0,
+        "level": 1,
+        "is_partner": True,
+        "tamed": True,
+        "shiny": False,
+    })
+
+    handler(_event("note1", {"player_id": "nt7"}), None)
+    handler(_event("note1", {"player_id": "nt7"}), None)
+
+    dino = get_item("PLAYER#nt7", "DINO#trex")
+    assert int(dino["xp"]) == 40  # only once
 
 
 # ── test_all_five_notes_findable ─────────────────────────────────────────────
