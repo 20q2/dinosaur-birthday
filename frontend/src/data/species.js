@@ -34,6 +34,11 @@ export const SPECIES = {
     regions: ['body', 'armor', 'club'],
     flavor: "Built like a tank.",
   },
+  godzilla: {
+    id: 'godzilla', name: 'Godzilla', diet: 'carnivore', food: 'meat',
+    regions: ['body', 'spines', 'belly'],
+    flavor: "Former city destroyer, now party guest.",
+  },
 };
 
 export const SPECIES_LIST = Object.values(SPECIES);
