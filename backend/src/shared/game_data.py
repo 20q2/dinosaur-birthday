@@ -8,7 +8,11 @@ SPECIES = {
     "parasaurolophus": {"name": "Parasaurolophus", "diet": "herbivore", "food": "mejoberries", "regions": ["body", "crest", "belly"]},
     "triceratops": {"name": "Triceratops", "diet": "herbivore", "food": "mejoberries", "regions": ["body", "frill", "horns"]},
     "ankylosaurus": {"name": "Ankylosaurus", "diet": "herbivore", "food": "mejoberries", "regions": ["body", "armor", "club"]},
+    "godzilla": {"name": "Godzilla", "diet": "carnivore", "food": "meat", "regions": ["body", "spines", "belly"]},
 }
+
+# The 7 base species — godzilla is a bonus and excluded from completionist checks
+BASE_SPECIES_COUNT = 7
 
 HATS = [
     {"id": "party_hat", "name": "Party Hat", "rarity": "common"},

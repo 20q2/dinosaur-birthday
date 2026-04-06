@@ -16,7 +16,7 @@ def test_all_species_have_required_fields():
 
 
 def test_species_count():
-    assert len(SPECIES) == 7
+    assert len(SPECIES) == 8
 
 
 def test_droppable_hats_excludes_legendary():
