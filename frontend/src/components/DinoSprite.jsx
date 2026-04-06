@@ -120,17 +120,33 @@ function _drawEffectOverlays(ctx, colors, regions, sprite, sw, sh, hatRise, scal
       ctx.fillRect(0, hatRise * scale, sw * scale, sh * scale);
       ctx.restore();
     } else if (effect === 'starry_night') {
-      // Twinkling star dots
+      // Dense galaxy overlay — lots of small twinkling stars with nebula glow
       ctx.save();
       ctx.globalCompositeOperation = 'source-atop';
-      for (let i = 0; i < 8; i++) {
-        const sx = ((Math.sin(i * 7.3 + now * 0.7) * 0.5 + 0.5) * sw * scale);
-        const sy = hatRise * scale + ((Math.cos(i * 5.1 + now * 0.5) * 0.5 + 0.5) * sh * scale);
-        const alpha = 0.4 + 0.6 * Math.sin(now * 3 + i * 2.1);
-        ctx.globalAlpha = Math.max(0, alpha);
-        ctx.fillStyle = '#fff';
+      // Subtle nebula wash
+      const nebGrad = ctx.createRadialGradient(
+        sw * scale * 0.4, (hatRise + sh * 0.4) * scale, 0,
+        sw * scale * 0.4, (hatRise + sh * 0.4) * scale, sw * scale * 0.5
+      );
+      nebGrad.addColorStop(0, 'rgba(100, 60, 180, 0.15)');
+      nebGrad.addColorStop(0.5, 'rgba(40, 80, 160, 0.08)');
+      nebGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = nebGrad;
+      ctx.fillRect(0, hatRise * scale, sw * scale, sh * scale);
+      // Dense star field
+      const starColors = ['#fff', '#fff', '#c8d8ff', '#ffe8a0', '#a0c0ff', '#ffd0e0'];
+      for (let i = 0; i < 28; i++) {
+        // Deterministic but varied positions using golden ratio scatter
+        const px = ((i * 0.618033 + 0.1) % 1);
+        const py = ((i * 0.773 + 0.05) % 1);
+        const sx = px * sw * scale;
+        const sy = hatRise * scale + py * sh * scale;
+        const twinkle = 0.3 + 0.7 * Math.abs(Math.sin(now * (1.5 + i * 0.37) + i * 1.9));
+        ctx.globalAlpha = twinkle;
+        ctx.fillStyle = starColors[i % starColors.length];
+        const size = (i % 5 === 0 ? 1.2 : i % 3 === 0 ? 0.9 : 0.6) * scale;
         ctx.beginPath();
-        ctx.arc(sx, sy, 1.5 * scale, 0, Math.PI * 2);
+        ctx.arc(sx, sy, size, 0, Math.PI * 2);
         ctx.fill();
       }
       ctx.restore();

@@ -23,7 +23,7 @@ def _give_reward(player_id):
             "name": hat["name"],
             "details": {"hat_id": hat["id"], "rarity": hat["rarity"]},
         })
-        return {"type": "hat", "name": hat["name"]}
+        return {"type": "hat", "name": hat["name"], "hat_id": hat["id"]}
     else:
         put_item({
             "PK": f"PLAYER#{player_id}",
@@ -234,7 +234,7 @@ def answer_lobby_handler(event, context):
         put_item({
             "PK": f"COOLDOWN#{pair_key}",
             "SK": "META",
-            "ttl": now + 900,
+            "ttl": now + 0,
         })
 
         if guest_id:
@@ -276,7 +276,7 @@ def answer_lobby_handler(event, context):
         "correct": is_correct,
         "correct_index": correct_index,
         "xp_awarded": xp_amount,
-        "reward": item_reward["name"] if item_reward else None,
+        "reward": item_reward if item_reward else None,
         "my_dino": my_dino,
         "partner_id": partner_id,
         "partner_name": partner_name,

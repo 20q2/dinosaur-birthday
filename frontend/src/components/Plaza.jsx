@@ -63,6 +63,21 @@ export function Plaza() {
       });
     });
 
+    const offPartnerUpdate = ws.on('plaza', 'partner_update', (data) => {
+      setPartners(prev => {
+        const updated = prev.map(p =>
+          p.player_id === data.player_id
+            ? { ...p, ...data }
+            : p
+        );
+        if (plazaRef.current) {
+          plazaRef.current.updatePartners(updated);
+          plazaRef.current.boingDino(data.player_id);
+        }
+        return updated;
+      });
+    });
+
     const offPlayTogether = ws.on('plaza', 'play_together', (data) => {
       if (plazaRef.current && data.player_ids) {
         plazaRef.current.setPlayingTogether(data.player_ids);
@@ -74,7 +89,7 @@ export function Plaza() {
       }
     });
 
-    return () => { offArrive(); offLeave(); offPlayTogether(); offPlayEnded(); };
+    return () => { offArrive(); offLeave(); offPartnerUpdate(); offPlayTogether(); offPlayEnded(); };
   }, []);
 
   // Boss buildup — fetch persisted phase on mount, then listen for WS updates

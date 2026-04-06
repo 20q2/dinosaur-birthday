@@ -152,6 +152,27 @@ def customize_handler(event, context):
                     "species": species,
                     **plaza_updates,
                 })
+
+                # Post style update to feed
+                player_name = profile.get("name", "Someone") if profile else "Someone"
+                dino_name = updated_dino.get("name") or SPECIES[species]["name"]
+                feed_message = f"{player_name} updated {dino_name}'s style!"
+                ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
+                feed_sk = f"{ts}#{uuid.uuid4()}"
+                put_item({
+                    "PK": "FEED",
+                    "SK": feed_sk,
+                    "type": "customize",
+                    "message": feed_message,
+                    "player_name": player_name,
+                })
+                broadcast("feed", "new_entry", {
+                    "id": feed_sk,
+                    "type": "customize",
+                    "message": feed_message,
+                    "player_name": player_name,
+                    "timestamp": ts,
+                })
         except Exception:
             pass
 

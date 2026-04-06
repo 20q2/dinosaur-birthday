@@ -109,6 +109,15 @@ export function Inventory() {
     }
   }
 
+  function handleRarePaintTap(effect) {
+    if (tamedDinos.length === 0) return;
+    if (tamedDinos.length === 1) {
+      setModal({ type: 'rarePaint', effect, step: 'region', species: tamedDinos[0].species });
+    } else {
+      setModal({ type: 'rarePaint', effect, step: 'dino' });
+    }
+  }
+
   function handlePaintDinoPick(species) {
     setModal({ ...modal, step: 'region', species });
   }
@@ -119,10 +128,11 @@ export function Inventory() {
 
   function handlePaintConfirm() {
     setBusySpecies(modal.species);
+    const paintPayload = modal.type === 'rarePaint'
+      ? { region: modal.region, effect: modal.effect }
+      : { region: modal.region, paint_id: modal.paintId };
     doAction(() =>
-      api.customizeDino(store.playerId, modal.species, {
-        paint: { region: modal.region, paint_id: modal.paintId },
-      })
+      api.customizeDino(store.playerId, modal.species, { paint: paintPayload })
     );
   }
 
@@ -226,9 +236,11 @@ export function Inventory() {
                 <div style={{ fontSize: '11px', color: '#f59e0b', letterSpacing: '1px', marginBottom: '2px' }}>RARE</div>
                 <div style={styles.paintGrid}>
                   {ownedRarePaints.map(rp => (
-                    <div
+                    <button
                       key={rp.effect}
-                      style={{ ...styles.paintItem, borderColor: '#f59e0b', cursor: 'default' }}
+                      style={{ ...styles.paintItem, borderColor: '#f59e0b' }}
+                      onClick={() => handleRarePaintTap(rp.effect)}
+                      disabled={tamedDinos.length === 0}
                     >
                       <div style={{
                         width: '36px', height: '36px', borderRadius: '8px',
@@ -239,7 +251,7 @@ export function Inventory() {
                         {RARE_EMOJI[rp.effect] || '\u2728'}
                       </div>
                       <span style={{ ...styles.paintItemName, color: '#f59e0b' }}>{rp.name}</span>
-                    </div>
+                    </button>
                   ))}
                 </div>
               </>
@@ -316,13 +328,17 @@ export function Inventory() {
               </>
             )}
 
-            {/* Region picker (paint) */}
+            {/* Region picker (paint or rarePaint) */}
             {modal.step === 'region' && (() => {
               const currentColors = (tamedDinos.find(d => d.species === modal.species) || {}).colors || {};
+              const isRare = modal.type === 'rarePaint';
+              const paintName = isRare
+                ? ownedRarePaints.find(r => r.effect === modal.effect)?.name || 'Rare Paint'
+                : `${PAINT_MAP[modal.paintId]?.name} Paint`;
               return (
                 <>
                   <div style={styles.modalTitle}>
-                    Apply {PAINT_MAP[modal.paintId]?.name} Paint
+                    Apply {paintName}
                   </div>
                   <div style={styles.modalDinoPreview}>
                     <DinoSprite species={modal.species} colors={currentColors} scale={3} />
@@ -331,24 +347,29 @@ export function Inventory() {
                     Pick a region to paint
                   </div>
                   <div style={styles.regionRow}>
-                    {(SPECIES[modal.species]?.regions || []).map(r => (
-                      <button
-                        key={r}
-                        style={styles.regionBtn}
-                        onClick={() => handlePaintRegionPick(r)}
-                        disabled={busy}
-                      >
-                        <span style={{
-                          width: '14px', height: '14px', borderRadius: '3px',
-                          background: currentColors[r] != null
-                            ? `hsl(${currentColors[r]}, 70%, 50%)`
-                            : '#444',
-                          border: '1px solid rgba(255,255,255,0.2)',
-                          flexShrink: 0,
-                        }} />
-                        {r}
-                      </button>
-                    ))}
+                    {(SPECIES[modal.species]?.regions || []).map(r => {
+                      const cv = currentColors[r];
+                      const isEffect = cv && typeof cv === 'object';
+                      const swatchBg = isEffect
+                        ? (RARE_PREVIEW_BG[cv.effect] || '#444')
+                        : (cv != null ? `hsl(${cv}, 70%, 50%)` : '#444');
+                      return (
+                        <button
+                          key={r}
+                          style={styles.regionBtn}
+                          onClick={() => handlePaintRegionPick(r)}
+                          disabled={busy}
+                        >
+                          <span style={{
+                            width: '14px', height: '14px', borderRadius: '3px',
+                            background: swatchBg,
+                            border: '1px solid rgba(255,255,255,0.2)',
+                            flexShrink: 0,
+                          }} />
+                          {r}
+                        </button>
+                      );
+                    })}
                   </div>
                 </>
               );
@@ -357,12 +378,17 @@ export function Inventory() {
             {/* Paint preview + confirm */}
             {modal.step === 'confirm' && (() => {
               const currentColors = (tamedDinos.find(d => d.species === modal.species) || {}).colors || {};
-              const paintHue = PAINT_MAP[modal.paintId]?.hue ?? 120;
-              const previewColors = { ...currentColors, [modal.region]: paintHue };
+              const isRare = modal.type === 'rarePaint';
+              const previewColors = isRare
+                ? { ...currentColors, [modal.region]: { effect: modal.effect } }
+                : { ...currentColors, [modal.region]: PAINT_MAP[modal.paintId]?.hue ?? 120 };
+              const paintName = isRare
+                ? ownedRarePaints.find(r => r.effect === modal.effect)?.name || 'Rare Paint'
+                : PAINT_MAP[modal.paintId]?.name;
               return (
                 <>
                   <div style={styles.modalTitle}>
-                    {PAINT_MAP[modal.paintId]?.name} on {modal.region}
+                    {paintName} on {modal.region}
                   </div>
                   <div style={styles.previewRow}>
                     <div style={styles.previewCol}>

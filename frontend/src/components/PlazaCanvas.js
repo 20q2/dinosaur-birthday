@@ -71,10 +71,9 @@ export class PlazaCanvas {
 
   // ── Initialization ────────────────────────────────────────────────────────
 
-  _buildDinoData(partner, i, maxLevel, reuse) {
+  _buildDinoData(partner, i, reuse) {
     const level = partner.level || 1;
     const scale = SCALE_MIN + ((level - 1) / (MAX_LEVEL - 1)) * (SCALE_MAX - SCALE_MIN);
-    const isChampion = level === maxLevel;
 
     const speciesData = SPECIES[partner.species];
     const regions = speciesData ? speciesData.regions : ['body', 'belly', 'stripes'];
@@ -114,7 +113,6 @@ export class PlazaCanvas {
       ...anim,
       partner,
       scale,
-      isChampion,
       spriteCanvas,
       ownerPhoto,
       animated,
@@ -134,9 +132,8 @@ export class PlazaCanvas {
   }
 
   _initDinos() {
-    const maxLevel = this.partners.reduce((m, p) => Math.max(m, p.level || 1), 1);
     this.dinos = this.partners.map((partner, i) =>
-      this._buildDinoData(partner, i, maxLevel, null)
+      this._buildDinoData(partner, i, null)
     );
   }
 
@@ -462,11 +459,9 @@ export class PlazaCanvas {
       if (d.partner.player_id) existing.set(d.partner.player_id, d);
     });
 
-    const maxLevel = partners.reduce((m, p) => Math.max(m, p.level || 1), 1);
-
     this.dinos = partners.map((partner, i) => {
       const prev = partner.player_id && existing.get(partner.player_id);
-      return this._buildDinoData(partner, i, maxLevel, prev || null);
+      return this._buildDinoData(partner, i, prev || null);
     });
   }
 
@@ -487,6 +482,15 @@ export class PlazaCanvas {
 
   setCooldowns(playerIds) {
     this.cooldownSet = new Set(playerIds);
+  }
+
+  // Trigger a boing (tap-jump) animation on a specific dino by player ID
+  boingDino(playerId) {
+    const d = this.dinos.find(d => d.partner.player_id === playerId);
+    if (d) {
+      d.tapJump = 0.45;
+      d.tapJumpHeight = 20 + Math.random() * 16;
+    }
   }
 
   // ── Play-together state ───────────────────────────────────────────────────
@@ -721,7 +725,53 @@ export class PlazaCanvas {
 
     // Rare paint effect overlays
     if (d.animated) {
-      this._drawEffectOverlay(d, x, y, hopY, halfW, halfH, drawScale, elapsed);
+      const colors = d.partner.colors || {};
+      let effect = null;
+      for (const v of Object.values(colors)) {
+        if (v && typeof v === 'object' && v.effect) { effect = v.effect; break; }
+      }
+      if (effect === 'metallic') {
+        ctx.save();
+        ctx.globalCompositeOperation = 'source-atop';
+        const shinePos = ((elapsed * 0.4) % 1.6 - 0.3);
+        const shineX = x - halfW + shinePos * halfW * 2;
+        const grad = ctx.createLinearGradient(shineX - 8, 0, shineX + 8, 0);
+        grad.addColorStop(0, 'rgba(255,255,255,0)');
+        grad.addColorStop(0.5, 'rgba(255,255,255,0.3)');
+        grad.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(x - halfW, y - halfH + hopY, halfW * 2, halfH * 2);
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.restore();
+      } else if (effect === 'starry_night') {
+        ctx.save();
+        const starColors = ['#fff', '#fff', '#c8d8ff', '#ffe8a0', '#a0c0ff'];
+        for (let i = 0; i < 18; i++) {
+          const px = ((i * 0.618033 + 0.1) % 1);
+          const py = ((i * 0.773 + 0.05) % 1);
+          const sx = x - halfW + px * halfW * 2;
+          const sy = y - halfH + hopY + py * halfH * 2;
+          const twinkle = 0.3 + 0.7 * Math.abs(Math.sin(elapsed * (1.5 + i * 0.37) + i * 1.9));
+          ctx.globalAlpha = twinkle;
+          ctx.fillStyle = starColors[i % starColors.length];
+          const size = (i % 5 === 0 ? 1.8 : i % 3 === 0 ? 1.2 : 0.8) * d.scale;
+          ctx.beginPath();
+          ctx.arc(sx, sy, size, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      } else if (effect === 'rainbow' || effect === 'prismatic') {
+        ctx.save();
+        const hue = effect === 'rainbow'
+          ? Math.floor((elapsed * 18) % 360)
+          : Math.floor((elapsed * 10 + 180) % 360);
+        ctx.globalAlpha = 0.15;
+        ctx.fillStyle = `hsl(${hue}, 100%, 70%)`;
+        ctx.beginPath();
+        ctx.ellipse(x, y + hopY, halfW * 0.9, halfH * 0.7, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
     }
 
     // Hat image above dino
@@ -766,41 +816,16 @@ export class PlazaCanvas {
       }
     }
 
-    // Champion crown + cooldown icon
-    const aboveHatOffset = d.partner.hat ? 14 : 6;
+    // Cooldown icon
     const onCooldown = this.cooldownSet.has(d.partner.player_id);
-    if (d.isChampion || onCooldown) {
+    if (onCooldown) {
+      const aboveHatOffset = d.partner.hat ? 14 : 6;
       const baseY = y - halfH + hopY - aboveHatOffset;
       const iconSize = Math.round(8 * d.scale);
       ctx.font = `${iconSize}px serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'bottom';
-      if (d.isChampion && onCooldown) {
-        ctx.fillText('\u{1F451}', x - iconSize * 0.6, baseY);
-        ctx.fillText('\u23F3', x + iconSize * 0.6, baseY);
-      } else if (d.isChampion) {
-        ctx.fillText('\u{1F451}', x, baseY);
-      } else {
-        ctx.fillText('\u23F3', x, baseY);
-      }
-    }
-
-    // Champion sparkles
-    if (d.isChampion) {
-      const sparkR = Math.max(halfW, halfH) + 3;
-      for (let si = 0; si < 4; si++) {
-        const angle = (si / 4) * Math.PI * 2 + elapsed * 1.8 + d.sparklePhase;
-        const spx = x + Math.cos(angle) * sparkR;
-        const spy = y + Math.sin(angle) * sparkR;
-        const alpha = 0.5 + 0.5 * Math.sin(elapsed * 3 + si * 1.5 + d.sparklePhase);
-        ctx.save();
-        ctx.globalAlpha = alpha;
-        ctx.font = '6px serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('\u2726', spx, spy);
-        ctx.restore();
-      }
+      ctx.fillText('\u23F3', x, baseY);
     }
 
     // Play-together emoji above head
@@ -808,7 +833,7 @@ export class PlazaCanvas {
       const playEmojis = ['\u{1F3B2}', '\u2764\uFE0F', '\u{1F389}', '\u2B50'];
       // Cycle through emojis every 1.5s
       const emojiIdx = Math.floor((elapsed + d.hopPhase) / 1.5) % playEmojis.length;
-      const emojiY = y - halfH + hopY - (d.partner.hat ? 22 : 14);
+      const emojiY = y - halfH + hopY - (d.partner.hat ? 14 : 6);
       // Gentle float
       const floatY = Math.sin(elapsed * 2.5 + d.hopPhase) * 3;
       const emojiAlpha = 0.7 + 0.3 * Math.sin(elapsed * 3 + d.hopPhase);
@@ -825,57 +850,6 @@ export class PlazaCanvas {
     this._drawNameplate(d, x, y + halfH * 0.85 + 10, d.nameplateScale);
   }
 
-  _drawEffectOverlay(d, x, y, hopY, halfW, halfH, drawScale, elapsed) {
-    const ctx = this.ctx;
-    const colors = d.partner.colors || {};
-    let effect = null;
-    for (const v of Object.values(colors)) {
-      if (v && typeof v === 'object' && v.effect) { effect = v.effect; break; }
-    }
-    if (!effect) return;
-
-    if (effect === 'metallic') {
-      // Sweeping shine band across dino
-      ctx.save();
-      ctx.globalCompositeOperation = 'source-atop';
-      const shinePos = ((elapsed * 0.4) % 1.6 - 0.3);
-      const shineX = x - halfW + shinePos * halfW * 2;
-      const grad = ctx.createLinearGradient(shineX - 8, 0, shineX + 8, 0);
-      grad.addColorStop(0, 'rgba(255,255,255,0)');
-      grad.addColorStop(0.5, 'rgba(255,255,255,0.3)');
-      grad.addColorStop(1, 'rgba(255,255,255,0)');
-      ctx.fillStyle = grad;
-      ctx.fillRect(x - halfW, y - halfH + hopY, halfW * 2, halfH * 2);
-      ctx.globalCompositeOperation = 'source-over';
-      ctx.restore();
-    } else if (effect === 'starry_night') {
-      // Twinkling stars
-      ctx.save();
-      for (let i = 0; i < 6; i++) {
-        const sx = x + (Math.sin(i * 7.3 + elapsed * 0.7) * halfW * 0.8);
-        const sy = y + hopY + (Math.cos(i * 5.1 + elapsed * 0.5) * halfH * 0.6);
-        const alpha = 0.4 + 0.6 * Math.sin(elapsed * 3 + i * 2.1);
-        ctx.globalAlpha = Math.max(0, alpha);
-        ctx.font = `${Math.round(4 * d.scale)}px serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('\u2726', sx, sy);
-      }
-      ctx.restore();
-    } else if (effect === 'rainbow' || effect === 'prismatic') {
-      // Subtle colored glow behind dino
-      ctx.save();
-      const hue = effect === 'rainbow'
-        ? Math.floor((elapsed * 18) % 360)
-        : Math.floor((elapsed * 10 + 180) % 360);
-      ctx.globalAlpha = 0.2;
-      ctx.fillStyle = `hsl(${hue}, 100%, 70%)`;
-      ctx.beginPath();
-      ctx.ellipse(x, y + hopY, halfW * 0.9, halfH * 0.7, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-    }
-  }
 
   _drawNameplate(d, cx, topY, scale = 1) {
     const ctx = this.ctx;

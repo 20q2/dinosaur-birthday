@@ -8,8 +8,10 @@ import { TitleBar } from './TitleBar.jsx';
 import { Gamepad2, Handshake } from 'lucide-preact';
 
 import { LOBBY_SYMBOLS } from '../data/lobbySymbols.js';
+import { getHatImage } from '../data/hatImages.js';
+import paintUrl from '../assets/items/paint.png';
 
-const COOLDOWN_MS = 15 * 60 * 1000;
+const COOLDOWN_MS = 0;
 const RECENT_PLAYS_KEY = 'dino_party_recent_plays';
 
 function SymbolDisplay({ sym, size = '28px' }) {
@@ -318,14 +320,14 @@ function MenuPhase({ hasPartner, loading, recentPlays, onHost, onJoin }) {
       <button
         onClick={onHost}
         disabled={loading || !hasPartner}
-        style={{ ...styles.actionBtn, ...styles.hostBtn, opacity: hasPartner ? 1 : 0.5 }}
+        style={{ ...styles.actionBtn, ...styles.hostBtn, opacity: (hasPartner && !loading) ? 1 : 0.5 }}
       >
         <div style={styles.actionBtnIcon}><Gamepad2 size={28} color="#4ade80" /></div>
         <div>
-          <div style={styles.actionBtnTitle}>Host a Lobby</div>
-          <div style={styles.actionBtnSub}>Get a code, share with a friend</div>
+          <div style={styles.actionBtnTitle}>{loading ? 'Creating Lobby...' : 'Host a Lobby'}</div>
+          <div style={styles.actionBtnSub}>{loading ? 'Generating your code' : 'Get a code, share with a friend'}</div>
         </div>
-        <span style={styles.chevron}>{'\u203A'}</span>
+        <span style={styles.chevron}>{loading ? '\u23F3' : '\u203A'}</span>
       </button>
 
       <button
@@ -520,7 +522,18 @@ function ResultsPhase({ result, role, onBack }) {
         {result.reward && (
           <div style={styles.rewardRow}>
             <span style={{ color: '#d1d5db' }}>Reward</span>
-            <span style={{ color: '#a78bfa', fontWeight: 'bold' }}>{result.reward}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              {result.reward.type === 'hat' && (() => {
+                const hatImg = getHatImage(result.reward.hat_id);
+                return hatImg?.loaded
+                  ? <img src={hatImg.img.src} style={{ width: '24px', height: '24px', imageRendering: 'pixelated', objectFit: 'contain' }} />
+                  : null;
+              })()}
+              {result.reward.type === 'paint' && (
+                <img src={paintUrl} style={{ width: '24px', height: '24px', imageRendering: 'pixelated', objectFit: 'contain' }} />
+              )}
+              <span style={{ color: '#a78bfa', fontWeight: 'bold' }}>{result.reward.name}</span>
+            </div>
           </div>
         )}
       </div>
