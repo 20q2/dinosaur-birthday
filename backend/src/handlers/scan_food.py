@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime, timezone
 from ..shared.db import get_item, put_item, update_item, query_pk
 from ..shared.response import success, error
-from ..shared.game_data import SPECIES
+from ..shared.game_data import SPECIES, BASE_SPECIES_COUNT
 from ..shared.xp import award_xp
 from ..shared.ws_broadcast import broadcast
 from ..shared.rare_paints import grant_rare_paint
@@ -22,10 +22,10 @@ def _harvest(player_id, food_type, profile, perfects=0, goods=0):
 
 
 def _check_all_tamed(player_id):
-    """Grant prismatic rare paint when the player has tamed all 7 species."""
+    """Grant prismatic rare paint when the player has tamed all 7 base species."""
     all_dinos = query_pk(f"PLAYER#{player_id}", sk_prefix="DINO#")
-    tamed_count = sum(1 for d in all_dinos if d.get("tamed"))
-    if tamed_count >= len(SPECIES):
+    tamed_base = sum(1 for d in all_dinos if d.get("tamed") and d["SK"].replace("DINO#", "") != "godzilla")
+    if tamed_base >= BASE_SPECIES_COUNT:
         grant_rare_paint(player_id, "prismatic")
 
 

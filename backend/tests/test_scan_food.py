@@ -76,6 +76,22 @@ def test_harvest_awards_base_xp_with_no_score():
     assert body2["harvest"]["xp_awarded"] == 3  # repeatable
 
 
+def test_prismatic_granted_with_all_base_species():
+    """Prismatic triggers when all 7 base species are tamed, even without godzilla."""
+    from src.handlers.scan_food import _check_all_tamed
+    from src.shared.db import query_pk
+
+    put_item({"PK": "PLAYER#ppr", "SK": "PROFILE", "name": "Collector"})
+    for sp in ["trex", "spinosaurus", "dilophosaurus", "pachycephalosaurus", "parasaurolophus", "triceratops", "ankylosaurus"]:
+        put_item({"PK": "PLAYER#ppr", "SK": f"DINO#{sp}", "tamed": True})
+
+    _check_all_tamed("ppr")
+
+    items = query_pk("PLAYER#ppr", sk_prefix="ITEM#")
+    paints = [i for i in items if i.get("type") == "paint" and i.get("details", {}).get("effect") == "prismatic"]
+    assert len(paints) == 1
+
+
 def test_harvest_xp_scales_with_score():
     put_item({"PK": "PLAYER#p10", "SK": "PROFILE", "name": "Eve"})
 
