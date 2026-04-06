@@ -1,7 +1,13 @@
-import { getRecolored, getRecoloredUncached, getPlazaBackground } from '../utils/spriteEngine.js';
+import { getRecolored, getRecoloredUncached, getPlazaBackground, getRegionMask } from '../utils/spriteEngine.js';
 import { SPECIES } from '../data/species.js';
 import { getHatImage, getHatAnchor } from '../data/hatImages.js';
 import { resolveColors, hasEffects } from '../dinoColors.js';
+import starryNightUrl from '../assets/effects/starry_night.jpg';
+
+const _starryImg = new Image();
+_starryImg.src = starryNightUrl;
+let _starryLoaded = false;
+_starryImg.onload = () => { _starryLoaded = true; };
 
 const BASE_SPRITE_SCALE = 1.25;
 const SCALE_MIN = 0.7;
@@ -654,12 +660,16 @@ export class PlazaCanvas {
     this.dinos.sort((a, b) => a.worldY - b.worldY);
     this._drawParticles();
 
-    // Re-resolve animated dino sprites each frame
+    // Re-resolve animated dino sprites each frame and bake effect overlays
     const now = Date.now();
     this.dinos.forEach(d => {
       if (d.animated) {
         const resolved = resolveColors(d.partner.colors || {}, now);
         d.spriteCanvas = getRecoloredUncached(d.partner.species, resolved, d.regions);
+        // Bake effect overlays directly onto the sprite canvas (clipped to pixels)
+        if (d.spriteCanvas) {
+          this._bakeEffectOnSprite(d, elapsed);
+        }
       }
     });
 
@@ -722,57 +732,6 @@ export class PlazaCanvas {
     }
     ctx.imageSmoothingEnabled = true;
     ctx.restore();
-
-    // Rare paint effect overlays
-    if (d.animated) {
-      const colors = d.partner.colors || {};
-      let effect = null;
-      for (const v of Object.values(colors)) {
-        if (v && typeof v === 'object' && v.effect) { effect = v.effect; break; }
-      }
-      if (effect === 'metallic') {
-        ctx.save();
-        ctx.globalCompositeOperation = 'source-atop';
-        const shinePos = ((elapsed * 0.4) % 1.6 - 0.3);
-        const shineX = x - halfW + shinePos * halfW * 2;
-        const grad = ctx.createLinearGradient(shineX - 8, 0, shineX + 8, 0);
-        grad.addColorStop(0, 'rgba(255,255,255,0)');
-        grad.addColorStop(0.5, 'rgba(255,255,255,0.3)');
-        grad.addColorStop(1, 'rgba(255,255,255,0)');
-        ctx.fillStyle = grad;
-        ctx.fillRect(x - halfW, y - halfH + hopY, halfW * 2, halfH * 2);
-        ctx.globalCompositeOperation = 'source-over';
-        ctx.restore();
-      } else if (effect === 'starry_night') {
-        ctx.save();
-        const starColors = ['#fff', '#fff', '#c8d8ff', '#ffe8a0', '#a0c0ff'];
-        for (let i = 0; i < 18; i++) {
-          const px = ((i * 0.618033 + 0.1) % 1);
-          const py = ((i * 0.773 + 0.05) % 1);
-          const sx = x - halfW + px * halfW * 2;
-          const sy = y - halfH + hopY + py * halfH * 2;
-          const twinkle = 0.3 + 0.7 * Math.abs(Math.sin(elapsed * (1.5 + i * 0.37) + i * 1.9));
-          ctx.globalAlpha = twinkle;
-          ctx.fillStyle = starColors[i % starColors.length];
-          const size = (i % 5 === 0 ? 1.8 : i % 3 === 0 ? 1.2 : 0.8) * d.scale;
-          ctx.beginPath();
-          ctx.arc(sx, sy, size, 0, Math.PI * 2);
-          ctx.fill();
-        }
-        ctx.restore();
-      } else if (effect === 'rainbow' || effect === 'prismatic') {
-        ctx.save();
-        const hue = effect === 'rainbow'
-          ? Math.floor((elapsed * 18) % 360)
-          : Math.floor((elapsed * 10 + 180) % 360);
-        ctx.globalAlpha = 0.15;
-        ctx.fillStyle = `hsl(${hue}, 100%, 70%)`;
-        ctx.beginPath();
-        ctx.ellipse(x, y + hopY, halfW * 0.9, halfH * 0.7, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-      }
-    }
 
     // Hat image above dino
     if (d.partner.hat) {
@@ -850,6 +809,167 @@ export class PlazaCanvas {
     this._drawNameplate(d, x, y + halfH * 0.85 + 10, d.nameplateScale);
   }
 
+
+  _bakeEffectOnSprite(d, elapsed) {
+    const canvas = d.spriteCanvas;
+    const sc = canvas.getContext('2d');
+    const w = canvas.width;
+    const h = canvas.height;
+    const colors = d.partner.colors || {};
+    const regions = d.regions;
+
+    // Group region indices by effect
+    const effectRegions = {};
+    for (let i = 0; i < regions.length; i++) {
+      const val = colors[regions[i]];
+      if (val && typeof val === 'object' && val.effect) {
+        if (!effectRegions[val.effect]) effectRegions[val.effect] = [];
+        effectRegions[val.effect].push(i);
+      }
+    }
+
+    for (const [effect, regionIdxs] of Object.entries(effectRegions)) {
+      const mask = getRegionMask(d.partner.species, regionIdxs);
+      if (!mask) continue;
+
+      // Offscreen: mask + effect via source-in
+      const tmp = document.createElement('canvas');
+      tmp.width = w;
+      tmp.height = h;
+      const tc = tmp.getContext('2d');
+      tc.imageSmoothingEnabled = false;
+      tc.drawImage(mask, 0, 0);
+      tc.globalCompositeOperation = 'source-in';
+
+      if (effect === 'metallic') {
+        const shineX = ((elapsed * 0.4) % 1.6 - 0.3) * w;
+        const grad = tc.createLinearGradient(shineX - 4, 0, shineX + 4, 0);
+        grad.addColorStop(0, 'rgba(255,255,255,0)');
+        grad.addColorStop(0.5, 'rgba(255,255,255,0.35)');
+        grad.addColorStop(1, 'rgba(255,255,255,0)');
+        tc.fillStyle = grad;
+        tc.fillRect(0, 0, w, h);
+      } else if (effect === 'starry_night' && _starryLoaded) {
+        tc.imageSmoothingEnabled = true;
+        tc.globalAlpha = 0.6;
+        const texW = _starryImg.naturalWidth;
+        const texH = _starryImg.naturalHeight;
+        const cx = texW * 0.25;
+        const cy = texH * 0.25;
+        const range = texW * 0.08;
+        const panX = cx + Math.sin(elapsed * 0.15) * range;
+        const panY = cy + Math.cos(elapsed * 0.1) * range * 0.6;
+        tc.drawImage(_starryImg, panX, panY, texW * 0.4, texH * 0.4, 0, 0, w, h);
+      } else if (effect === 'rainbow') {
+        const bandHalf = w * 0.5;
+        const sweepX = ((elapsed * 0.35) % 1.6 - 0.3) * w;
+        const baseHue = Math.floor((elapsed * 50) % 360);
+        const grad = tc.createLinearGradient(sweepX - bandHalf, 0, sweepX + bandHalf, 0);
+        grad.addColorStop(0, 'rgba(255,255,255,0)');
+        grad.addColorStop(0.2, `hsla(${baseHue}, 100%, 65%, 0.35)`);
+        grad.addColorStop(0.5, `hsla(${(baseHue + 120) % 360}, 100%, 65%, 0.4)`);
+        grad.addColorStop(0.8, `hsla(${(baseHue + 240) % 360}, 100%, 65%, 0.35)`);
+        grad.addColorStop(1, 'rgba(255,255,255,0)');
+        tc.fillStyle = grad;
+        tc.fillRect(0, 0, w, h);
+      } else if (effect === 'prismatic') {
+        tc.globalAlpha = 0.12;
+        const hue = Math.floor((elapsed * 10 + 180) % 360);
+        tc.fillStyle = `hsl(${hue}, 100%, 70%)`;
+        tc.fillRect(0, 0, w, h);
+      }
+
+      // Composite masked effect onto the sprite canvas
+      sc.save();
+      sc.globalCompositeOperation = 'source-atop';
+      sc.drawImage(tmp, 0, 0);
+      sc.restore();
+    }
+  }
+
+  // Legacy method kept for reference — replaced by _bakeEffectOnSprite
+  _drawEffectOverlay(ctx, d, x, y, hopY, halfW, halfH, spriteW, spriteH, elapsed) {
+    const colors = d.partner.colors || {};
+    const regions = d.regions;
+
+    // Group region indices by effect
+    const effectRegions = {};
+    for (let i = 0; i < regions.length; i++) {
+      const val = colors[regions[i]];
+      if (val && typeof val === 'object' && val.effect) {
+        if (!effectRegions[val.effect]) effectRegions[val.effect] = [];
+        effectRegions[val.effect].push(i);
+      }
+    }
+
+    const drawX = x - halfW;
+    const drawY = y - halfH + hopY;
+
+    for (const [effect, regionIdxs] of Object.entries(effectRegions)) {
+      const mask = getRegionMask(d.partner.species, regionIdxs);
+      if (!mask) continue;
+
+      // Off-screen canvas: draw mask scaled, then effect with source-in to clip
+      const tmp = document.createElement('canvas');
+      tmp.width = spriteW;
+      tmp.height = spriteH;
+      const tc = tmp.getContext('2d');
+      tc.imageSmoothingEnabled = false;
+      tc.drawImage(mask, 0, 0, spriteW, spriteH);
+      tc.globalCompositeOperation = 'source-in';
+
+      if (effect === 'metallic') {
+        const shinePos = ((elapsed * 0.4) % 1.6 - 0.3);
+        const shineX = shinePos * spriteW;
+        const grad = tc.createLinearGradient(shineX - 8, 0, shineX + 8, 0);
+        grad.addColorStop(0, 'rgba(255,255,255,0)');
+        grad.addColorStop(0.5, 'rgba(255,255,255,0.3)');
+        grad.addColorStop(1, 'rgba(255,255,255,0)');
+        tc.fillStyle = grad;
+        tc.fillRect(0, 0, spriteW, spriteH);
+      } else if (effect === 'starry_night' && _starryLoaded) {
+        tc.imageSmoothingEnabled = true;
+        tc.globalAlpha = 0.6;
+        const texW = _starryImg.naturalWidth;
+        const texH = _starryImg.naturalHeight;
+        const cx = texW * 0.25;
+        const cy = texH * 0.25;
+        const range = texW * 0.08;
+        const panX = cx + Math.sin(elapsed * 0.15) * range;
+        const panY = cy + Math.cos(elapsed * 0.1) * range * 0.6;
+        tc.drawImage(_starryImg, panX, panY, texW * 0.4, texH * 0.4, 0, 0, spriteW, spriteH);
+      } else if (effect === 'rainbow') {
+        const sweepPos = ((elapsed * 0.35) % 1.6 - 0.3);
+        const sweepX = sweepPos * spriteW;
+        const baseHue = Math.floor((elapsed * 50) % 360);
+        const grad = tc.createLinearGradient(sweepX - 10, 0, sweepX + 10, 0);
+        grad.addColorStop(0, 'rgba(255,255,255,0)');
+        grad.addColorStop(0.2, `hsla(${baseHue}, 100%, 65%, 0.35)`);
+        grad.addColorStop(0.5, `hsla(${(baseHue + 120) % 360}, 100%, 65%, 0.4)`);
+        grad.addColorStop(0.8, `hsla(${(baseHue + 240) % 360}, 100%, 65%, 0.35)`);
+        grad.addColorStop(1, 'rgba(255,255,255,0)');
+        tc.fillStyle = grad;
+        tc.fillRect(0, 0, spriteW, spriteH);
+      } else if (effect === 'prismatic') {
+        tc.globalAlpha = 0.12;
+        const hue = Math.floor((elapsed * 10 + 180) % 360);
+        tc.fillStyle = `hsl(${hue}, 100%, 70%)`;
+        tc.fillRect(0, 0, spriteW, spriteH);
+      }
+
+      // Draw masked effect onto the main canvas, respecting facing direction
+      ctx.save();
+      ctx.imageSmoothingEnabled = false;
+      if (!d.facingLeft) {
+        ctx.translate(x, y + hopY);
+        ctx.scale(-1, 1);
+        ctx.drawImage(tmp, -halfW, -halfH);
+      } else {
+        ctx.drawImage(tmp, drawX, drawY);
+      }
+      ctx.restore();
+    }
+  }
 
   _drawNameplate(d, cx, topY, scale = 1) {
     const ctx = this.ctx;

@@ -24,11 +24,20 @@ const RARE_PREVIEW_BG = {
   metallic: 'linear-gradient(135deg, #94a3b8, #e2e8f0, #64748b)',
   starry_night: 'linear-gradient(135deg, #1e1b4b, #312e81, #1e1b4b)',
 };
-const RARE_EMOJI = {
-  rainbow: '\uD83C\uDF08',
-  prismatic: '\uD83D\uDC8E',
-  metallic: '\u2699\uFE0F',
-  starry_night: '\u2B50',
+const RARE_PAINT_MODE = {
+  rainbow: 'rainbow',
+  prismatic: 'prismatic',
+  metallic: 'metallic',
+  starry_night: null,  // standard hue shift
+};
+const RARE_PAINT_HUE = {
+  starry_night: 240,
+};
+const RARE_PAINT_DESC = {
+  prismatic: 'Tame all 7 species',
+  metallic: 'Collect all 5 explorer notes',
+  starry_night: 'Play with 10 unique partners',
+  rainbow: "Receive Alex's blessing",
 };
 
 export function Inventory() {
@@ -238,19 +247,13 @@ export function Inventory() {
                   {ownedRarePaints.map(rp => (
                     <button
                       key={rp.effect}
-                      style={{ ...styles.paintItem, borderColor: '#f59e0b' }}
+                      style={{ ...styles.paintItem, borderColor: 'rgba(245,158,11,0.35)' }}
                       onClick={() => handleRarePaintTap(rp.effect)}
                       disabled={tamedDinos.length === 0}
                     >
-                      <div style={{
-                        width: '36px', height: '36px', borderRadius: '8px',
-                        background: RARE_PREVIEW_BG[rp.effect] || '#333',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '18px',
-                      }}>
-                        {RARE_EMOJI[rp.effect] || '\u2728'}
-                      </div>
+                      <PaintSprite hue={RARE_PAINT_HUE[rp.effect] ?? 0} mode={RARE_PAINT_MODE[rp.effect]} scale={0.18} />
                       <span style={{ ...styles.paintItemName, color: '#f59e0b' }}>{rp.name}</span>
+                      <span style={styles.rarePaintDesc}>{RARE_PAINT_DESC[rp.effect]}</span>
                     </button>
                   ))}
                 </div>
@@ -510,6 +513,9 @@ const styles = {
   paintItemCount: {
     position: 'absolute', top: '2px', right: '4px',
     fontSize: '10px', color: '#888', fontWeight: 'bold',
+  },
+  rarePaintDesc: {
+    fontSize: '9px', color: '#9ca3af', textAlign: 'center', lineHeight: '1.2',
   },
 
   // Modal

@@ -223,6 +223,53 @@ export function getRecoloredUncached(species, colors, regions) {
 }
 
 /**
+ * Get a mask canvas where only pixels belonging to the given region indices are opaque (white).
+ * Used to clip effect overlays to specific color regions.
+ * @param {string} species
+ * @param {number[]} regionIndices - e.g. [0] for body, [1] for secondary, [0,2] for body+accent
+ * @returns {HTMLCanvasElement|null}
+ */
+const regionMaskCache = new Map();
+
+export function getRegionMask(species, regionIndices) {
+  const img = rawImages[species];
+  if (!img) return null;
+
+  const key = `${species}-mask-${regionIndices.join(',')}`;
+  if (regionMaskCache.has(key)) return regionMaskCache.get(key);
+
+  const w = img.naturalWidth || img.width;
+  const h = img.naturalHeight || img.height;
+
+  const src = document.createElement('canvas');
+  src.width = w;
+  src.height = h;
+  const srcCtx = src.getContext('2d');
+  srcCtx.drawImage(img, 0, 0);
+
+  const imageData = srcCtx.getImageData(0, 0, w, h);
+  const data = imageData.data;
+  const regionSet = new Set(regionIndices);
+
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i], g = data[i + 1], b = data[i + 2], a = data[i + 3];
+    const region = classifyPixel(r, g, b, a);
+    if (regionSet.has(region)) {
+      data[i] = 255; data[i + 1] = 255; data[i + 2] = 255; data[i + 3] = 255;
+    } else {
+      data[i] = 0; data[i + 1] = 0; data[i + 2] = 0; data[i + 3] = 0;
+    }
+  }
+
+  const out = document.createElement('canvas');
+  out.width = w;
+  out.height = h;
+  out.getContext('2d').putImageData(imageData, 0, 0);
+  regionMaskCache.set(key, out);
+  return out;
+}
+
+/**
  * Clear the recolor cache (useful after paint changes).
  */
 export function clearCache(species) {

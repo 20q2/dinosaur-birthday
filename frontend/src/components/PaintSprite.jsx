@@ -18,11 +18,11 @@ function loadPaintImage() {
   return paintLoadPromise;
 }
 
-/** Cache recolored canvases by hue */
+/** Cache recolored canvases by key */
 const paintCache = new Map();
 
-function recolorPaint(img, targetHue) {
-  const key = String(targetHue);
+function recolorPaint(img, targetHue, mode) {
+  const key = mode || String(targetHue);
   if (paintCache.has(key)) return paintCache.get(key);
 
   const w = img.naturalWidth || img.width;
@@ -43,9 +43,39 @@ function recolorPaint(img, targetHue) {
 
     const hsv = rgbToHsv(r, g, b);
 
-    // Shift green/yellow-green pixels (the liquid and glow)
+    // Only recolor the green/yellow-green liquid pixels
     if (hsv.h >= 50 && hsv.h <= 170 && hsv.s > 0.15 && hsv.v > 0.15) {
-      const [nr, ng, nb] = hsvToRgb(targetHue, hsv.s, hsv.v);
+      if (mode === 'rainbow' || mode === 'prismatic') {
+        // Rainbow gradient based on pixel y-position
+        const t = i / 4;
+        const py = Math.floor(t / w);
+        const px = t % w;
+        const hueShift = mode === 'rainbow'
+          ? ((px + py * 2) / (w + h)) * 360
+          : ((px * 3 + py * 2) / (w + h)) * 360 + 180;
+        const [nr, ng, nb] = hsvToRgb(hueShift % 360, Math.max(hsv.s, 0.7), Math.min(hsv.v * 1.2, 1));
+        data[i] = nr;
+        data[i + 1] = ng;
+        data[i + 2] = nb;
+      } else if (mode === 'metallic') {
+        // Desaturated bright silver/chrome
+        const v = Math.min(hsv.v * 1.4, 1);
+        const [nr, ng, nb] = hsvToRgb(210, 0.08, v);
+        data[i] = nr;
+        data[i + 1] = ng;
+        data[i + 2] = nb;
+      } else {
+        const [nr, ng, nb] = hsvToRgb(targetHue, hsv.s, hsv.v);
+        data[i] = nr;
+        data[i + 1] = ng;
+        data[i + 2] = nb;
+      }
+    }
+
+    // For metallic, also brighten the bucket body for a shiny look
+    if (mode === 'metallic' && hsv.h >= 20 && hsv.h <= 50 && hsv.s > 0.15) {
+      const v = Math.min(hsv.v * 1.3, 1);
+      const [nr, ng, nb] = hsvToRgb(hsv.h, hsv.s * 0.6, v);
       data[i] = nr;
       data[i + 1] = ng;
       data[i + 2] = nb;
@@ -66,13 +96,13 @@ function recolorPaint(img, targetHue) {
  * @param {number} hue - Target hue (0-359)
  * @param {number} scale - Pixel scale multiplier (default 2)
  */
-export function PaintSprite({ hue, scale = 2, style = {} }) {
+export function PaintSprite({ hue, mode, scale = 2, style = {} }) {
   const canvasRef = useRef(null);
 
   useEffect(() => {
     loadPaintImage().then(img => {
       if (!img || !canvasRef.current) return;
-      const recolored = recolorPaint(img, hue);
+      const recolored = recolorPaint(img, hue, mode);
       const w = recolored.width * scale;
       const h = recolored.height * scale;
       canvasRef.current.width = w;
@@ -81,7 +111,7 @@ export function PaintSprite({ hue, scale = 2, style = {} }) {
       ctx.imageSmoothingEnabled = false;
       ctx.drawImage(recolored, 0, 0, w, h);
     });
-  }, [hue, scale]);
+  }, [hue, mode, scale]);
 
   return (
     <canvas

@@ -1,8 +1,15 @@
 import { useRef, useEffect, useState } from 'preact/hooks';
-import { getRecolored, getRecoloredUncached, getRawImage } from '../utils/spriteEngine.js';
+import { getRecolored, getRecoloredUncached, getRawImage, getRegionMask } from '../utils/spriteEngine.js';
 import { SPECIES } from '../data/species.js';
 import { getHatImage, getHatAnchor } from '../data/hatImages.js';
 import { resolveColors, hasEffects } from '../dinoColors.js';
+import starryNightUrl from '../assets/effects/starry_night.jpg';
+
+// Preload starry night texture
+const _starryImg = new Image();
+_starryImg.src = starryNightUrl;
+let _starryLoaded = false;
+_starryImg.onload = () => { _starryLoaded = true; };
 
 /**
  * Renders a recolored dino sprite on a <canvas> element with pixelated scaling.
@@ -62,7 +69,7 @@ export function DinoSprite({ species, colors = {}, scale = 3, style = {}, hat = 
       }
 
       // Overlay effects for rare paints
-      _drawEffectOverlays(ctx, colors, regions, spriteSource, sw, sh, hatRise, scale);
+      _drawEffectOverlays(ctx, species, colors, regions, spriteSource, sw, sh, hatRise, scale);
     }
 
     draw();
@@ -98,71 +105,85 @@ export function DinoSprite({ species, colors = {}, scale = 3, style = {}, hat = 
 
 /**
  * Draw shimmer/sparkle overlays for rare paint effects.
- * Only draws over non-transparent sprite pixels.
+ * Region-aware: only draws on the specific regions that have the effect applied.
  */
-function _drawEffectOverlays(ctx, colors, regions, sprite, sw, sh, hatRise, scale) {
+function _drawEffectOverlays(ctx, species, colors, regions, sprite, sw, sh, hatRise, scale) {
   const now = Date.now() / 1000;
 
-  for (const [region, value] of Object.entries(colors || {})) {
-    if (!value || typeof value !== 'object') continue;
-    const effect = value.effect;
+  // Group region indices by effect
+  const effectRegions = {};
+  for (let i = 0; i < regions.length; i++) {
+    const val = colors[regions[i]];
+    if (val && typeof val === 'object' && val.effect) {
+      if (!effectRegions[val.effect]) effectRegions[val.effect] = [];
+      effectRegions[val.effect].push(i);
+    }
+  }
+
+  const dstW = sw * scale;
+  const dstH = sh * scale;
+  const dstY = hatRise * scale;
+
+  for (const [effect, regionIdxs] of Object.entries(effectRegions)) {
+    // Get a mask for just the affected regions
+    const mask = getRegionMask(species, regionIdxs);
+    if (!mask) continue;
+
+    // Create temp canvas: draw mask scaled up, then draw effect with source-in to clip
+    const tmp = document.createElement('canvas');
+    tmp.width = ctx.canvas.width;
+    tmp.height = ctx.canvas.height;
+    const tc = tmp.getContext('2d');
+    tc.imageSmoothingEnabled = false;
+    tc.drawImage(mask, 0, dstY, dstW, dstH);
+
+    // Now draw the effect clipped to the mask via source-in
+    tc.globalCompositeOperation = 'source-in';
 
     if (effect === 'metallic') {
-      // Sweeping shine highlight
-      ctx.save();
-      ctx.globalCompositeOperation = 'source-atop';
-      const shineX = ((now * 0.4) % 1.6 - 0.3) * sw * scale;
-      const grad = ctx.createLinearGradient(shineX - 15, 0, shineX + 15, 0);
+      const shineX = ((now * 0.4) % 1.6 - 0.3) * dstW;
+      const grad = tc.createLinearGradient(shineX - 15, 0, shineX + 15, 0);
       grad.addColorStop(0, 'rgba(255,255,255,0)');
       grad.addColorStop(0.5, 'rgba(255,255,255,0.35)');
       grad.addColorStop(1, 'rgba(255,255,255,0)');
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, hatRise * scale, sw * scale, sh * scale);
-      ctx.restore();
-    } else if (effect === 'starry_night') {
-      // Dense galaxy overlay — lots of small twinkling stars with nebula glow
-      ctx.save();
-      ctx.globalCompositeOperation = 'source-atop';
-      // Subtle nebula wash
-      const nebGrad = ctx.createRadialGradient(
-        sw * scale * 0.4, (hatRise + sh * 0.4) * scale, 0,
-        sw * scale * 0.4, (hatRise + sh * 0.4) * scale, sw * scale * 0.5
-      );
-      nebGrad.addColorStop(0, 'rgba(100, 60, 180, 0.15)');
-      nebGrad.addColorStop(0.5, 'rgba(40, 80, 160, 0.08)');
-      nebGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-      ctx.fillStyle = nebGrad;
-      ctx.fillRect(0, hatRise * scale, sw * scale, sh * scale);
-      // Dense star field
-      const starColors = ['#fff', '#fff', '#c8d8ff', '#ffe8a0', '#a0c0ff', '#ffd0e0'];
-      for (let i = 0; i < 28; i++) {
-        // Deterministic but varied positions using golden ratio scatter
-        const px = ((i * 0.618033 + 0.1) % 1);
-        const py = ((i * 0.773 + 0.05) % 1);
-        const sx = px * sw * scale;
-        const sy = hatRise * scale + py * sh * scale;
-        const twinkle = 0.3 + 0.7 * Math.abs(Math.sin(now * (1.5 + i * 0.37) + i * 1.9));
-        ctx.globalAlpha = twinkle;
-        ctx.fillStyle = starColors[i % starColors.length];
-        const size = (i % 5 === 0 ? 1.2 : i % 3 === 0 ? 0.9 : 0.6) * scale;
-        ctx.beginPath();
-        ctx.arc(sx, sy, size, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      ctx.restore();
-    } else if (effect === 'rainbow' || effect === 'prismatic') {
-      // Subtle hue-shifting glow overlay
-      ctx.save();
-      ctx.globalCompositeOperation = 'source-atop';
-      ctx.globalAlpha = 0.12;
-      const hue = effect === 'rainbow'
-        ? Math.floor((now * 18) % 360)
-        : Math.floor((now * 10 + 180) % 360);
-      ctx.fillStyle = `hsl(${hue}, 100%, 70%)`;
-      ctx.fillRect(0, hatRise * scale, sw * scale, sh * scale);
-      ctx.restore();
+      tc.fillStyle = grad;
+      tc.fillRect(0, dstY, dstW, dstH);
+    } else if (effect === 'starry_night' && _starryLoaded) {
+      tc.imageSmoothingEnabled = true;
+      tc.imageSmoothingQuality = 'high';
+      tc.globalAlpha = 0.6;
+      const texW = _starryImg.naturalWidth;
+      const texH = _starryImg.naturalHeight;
+      // Gentle back-and-forth drift within a small window of the texture
+      const cx = texW * 0.25;
+      const cy = texH * 0.25;
+      const range = texW * 0.08;
+      const panX = cx + Math.sin(now * 0.15) * range;
+      const panY = cy + Math.cos(now * 0.1) * range * 0.6;
+      tc.drawImage(_starryImg, panX, panY, texW * 0.4, texH * 0.4, 0, dstY, dstW, dstH);
+    } else if (effect === 'rainbow') {
+      const bandHalf = dstW * 0.5;
+      const sweepX = ((now * 0.35) % 1.6 - 0.3) * dstW;
+      const baseHue = Math.floor((now * 50) % 360);
+      const grad = tc.createLinearGradient(sweepX - bandHalf, 0, sweepX + bandHalf, 0);
+      grad.addColorStop(0, 'rgba(255,255,255,0)');
+      grad.addColorStop(0.2, `hsla(${baseHue}, 100%, 65%, 0.35)`);
+      grad.addColorStop(0.5, `hsla(${(baseHue + 120) % 360}, 100%, 65%, 0.4)`);
+      grad.addColorStop(0.8, `hsla(${(baseHue + 240) % 360}, 100%, 65%, 0.35)`);
+      grad.addColorStop(1, 'rgba(255,255,255,0)');
+      tc.fillStyle = grad;
+      tc.fillRect(0, dstY, dstW, dstH);
+    } else if (effect === 'prismatic') {
+      tc.globalAlpha = 0.12;
+      const hue = Math.floor((now * 10 + 180) % 360);
+      tc.fillStyle = `hsl(${hue}, 100%, 70%)`;
+      tc.fillRect(0, dstY, dstW, dstH);
     }
 
-    break; // one overlay per dino is enough (effects apply to whole sprite)
+    // Composite the masked effect onto the main canvas
+    ctx.save();
+    ctx.globalCompositeOperation = 'source-atop';
+    ctx.drawImage(tmp, 0, 0);
+    ctx.restore();
   }
 }
