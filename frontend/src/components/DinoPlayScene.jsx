@@ -1,9 +1,15 @@
 import { useEffect, useRef, useImperativeHandle } from 'preact/hooks';
 import { forwardRef } from 'preact/compat';
-import { getRecolored, getRecoloredUncached } from '../utils/spriteEngine.js';
+import { getRecolored, getRecoloredUncached, getRegionMask } from '../utils/spriteEngine.js';
 import { getHatImage, getHatAnchor } from '../data/hatImages.js';
 import { SPECIES } from '../data/species.js';
 import { resolveColors, hasEffects } from '../dinoColors.js';
+import starryNightUrl from '../assets/effects/starry_night.jpg';
+
+const _starryImg = new Image();
+_starryImg.src = starryNightUrl;
+let _starryLoaded = false;
+_starryImg.onload = () => { _starryLoaded = true; };
 
 import bgRocks from '../assets/backgrounds/dino_find_rocks.png';
 import bgSwamp from '../assets/backgrounds/dino_find_swamp.png';
@@ -116,11 +122,85 @@ function updateDino(dino, dt, canvasW) {
   }
 }
 
+function _bakeEffects(dino, elapsed) {
+  const canvas = dino.sprite;
+  const sc = canvas.getContext('2d');
+  const w = canvas.width;
+  const h = canvas.height;
+  const colors = dino.data.colors || {};
+  const regions = dino.regions;
+
+  const effectRegions = {};
+  for (let i = 0; i < regions.length; i++) {
+    const val = colors[regions[i]];
+    if (val && typeof val === 'object' && val.effect) {
+      if (!effectRegions[val.effect]) effectRegions[val.effect] = [];
+      effectRegions[val.effect].push(i);
+    }
+  }
+
+  for (const [effect, regionIdxs] of Object.entries(effectRegions)) {
+    const mask = getRegionMask(dino.data.species, regionIdxs);
+    if (!mask) continue;
+
+    const tmp = document.createElement('canvas');
+    tmp.width = w;
+    tmp.height = h;
+    const tc = tmp.getContext('2d');
+    tc.imageSmoothingEnabled = false;
+    tc.drawImage(mask, 0, 0);
+    tc.globalCompositeOperation = 'source-in';
+
+    if (effect === 'metallic') {
+      const shineX = ((elapsed * 0.4) % 1.6 - 0.3) * w;
+      const grad = tc.createLinearGradient(shineX - 4, 0, shineX + 4, 0);
+      grad.addColorStop(0, 'rgba(255,255,255,0)');
+      grad.addColorStop(0.5, 'rgba(255,255,255,0.35)');
+      grad.addColorStop(1, 'rgba(255,255,255,0)');
+      tc.fillStyle = grad;
+      tc.fillRect(0, 0, w, h);
+    } else if (effect === 'starry_night' && _starryLoaded) {
+      tc.imageSmoothingEnabled = true;
+      tc.globalAlpha = 0.6;
+      const texW = _starryImg.naturalWidth;
+      const texH = _starryImg.naturalHeight;
+      const cx = texW * 0.25, cy = texH * 0.25;
+      const range = texW * 0.08;
+      const panX = cx + Math.sin(elapsed * 0.15) * range;
+      const panY = cy + Math.cos(elapsed * 0.1) * range * 0.6;
+      tc.drawImage(_starryImg, panX, panY, texW * 0.4, texH * 0.4, 0, 0, w, h);
+    } else if (effect === 'rainbow') {
+      const sweepX = ((elapsed * 0.35) % 1.6 - 0.3) * w;
+      const baseHue = Math.floor((elapsed * 50) % 360);
+      const bw = w * 0.5;
+      const grad = tc.createLinearGradient(sweepX - bw, 0, sweepX + bw, 0);
+      grad.addColorStop(0, 'rgba(255,255,255,0)');
+      grad.addColorStop(0.2, `hsla(${baseHue}, 100%, 65%, 0.35)`);
+      grad.addColorStop(0.5, `hsla(${(baseHue + 120) % 360}, 100%, 65%, 0.4)`);
+      grad.addColorStop(0.8, `hsla(${(baseHue + 240) % 360}, 100%, 65%, 0.35)`);
+      grad.addColorStop(1, 'rgba(255,255,255,0)');
+      tc.fillStyle = grad;
+      tc.fillRect(0, 0, w, h);
+    } else if (effect === 'prismatic') {
+      tc.globalAlpha = 0.12;
+      const hue = Math.floor((elapsed * 10 + 180) % 360);
+      tc.fillStyle = `hsl(${hue}, 100%, 70%)`;
+      tc.fillRect(0, 0, w, h);
+    }
+
+    sc.save();
+    sc.globalCompositeOperation = 'source-atop';
+    sc.drawImage(tmp, 0, 0);
+    sc.restore();
+  }
+}
+
 function drawDino(ctx, dino, elapsed, canvasW) {
-  // Refresh sprite for animated effects
+  // Refresh sprite for animated effects and bake overlays
   if (dino.animated) {
     const resolved = resolveColors(dino.data.colors || {}, Date.now());
     dino.sprite = getRecoloredUncached(dino.data.species, resolved, dino.regions);
+    if (dino.sprite) _bakeEffects(dino, elapsed);
   }
   if (!dino.sprite) return;
 

@@ -147,11 +147,11 @@ def customize_handler(event, context):
             }
             if plaza_updates:
                 update_item("PLAZA", f"PARTNER#{player_id}", plaza_updates)
-                broadcast("plaza", "partner_update", {
+                broadcast("plaza", "partner_update", _to_native({
                     "player_id": player_id,
                     "species": species,
                     **plaza_updates,
-                })
+                }))
 
                 # Post style update to feed
                 player_name = profile.get("name", "Someone") if profile else "Someone"

@@ -5,7 +5,7 @@ import { HAT_MAP } from '../data/hats.js';
 import { DinoSprite } from './DinoSprite.jsx';
 import { TitleBar } from './TitleBar.jsx';
 
-const TOTAL_SPECIES = Object.keys(SPECIES).length;
+const TOTAL_SPECIES = Object.values(SPECIES).filter(s => !s.secret).length;
 const XP_PER_LEVEL = 100;
 const MAX_LEVEL = 5;
 
@@ -67,7 +67,7 @@ function DinoCard({ dino }) {
   );
 }
 
-const ALL_SPECIES = Object.keys(SPECIES);
+const ALL_SPECIES = Object.keys(SPECIES).filter(k => !SPECIES[k].secret);
 
 function UnknownCard({ speciesKey }) {
   const speciesData = SPECIES[speciesKey] || {};
@@ -98,12 +98,13 @@ export function MyDinos() {
     return aName.localeCompare(bName);
   });
 
+  const nonSecretDinos = dinos.filter(d => !SPECIES[d.species]?.secret);
   const undiscovered = ALL_SPECIES.filter(s => !discoveredKeys.has(s));
   const tamedCount = dinos.filter(d => d.tamed).length;
 
   return (
     <div style={styles.page}>
-      <TitleBar title="My Dinos" subtitle={`${dinos.length}/${TOTAL_SPECIES} discovered · ${tamedCount} tamed`} />
+      <TitleBar title="My Dinos" subtitle={`${nonSecretDinos.length}/${TOTAL_SPECIES} discovered · ${tamedCount} tamed`} />
       <div style={styles.list}>
         {sorted.map(dino => (
           <DinoCard key={dino.species} dino={dino} />

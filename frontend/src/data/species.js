@@ -38,6 +38,7 @@ export const SPECIES = {
     id: 'godzilla', name: 'Godzilla', diet: 'carnivore', food: 'meat',
     regions: ['body', 'spines', 'belly'],
     flavor: "Former city destroyer, now party guest.",
+    secret: true,
   },
 };
 
