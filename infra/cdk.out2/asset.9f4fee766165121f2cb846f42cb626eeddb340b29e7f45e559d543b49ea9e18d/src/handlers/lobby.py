@@ -146,6 +146,12 @@ def join_lobby_handler(event, context):
     host_dino = _get_partner_dino(host_id)
     guest_dino = _get_partner_dino(player_id)
 
+    # Fetch player names for display
+    host_profile = get_item(f"PLAYER#{host_id}", "PROFILE")
+    guest_profile = get_item(f"PLAYER#{player_id}", "PROFILE")
+    host_name = host_profile.get("name", "") if host_profile else ""
+    guest_name = guest_profile.get("name", "") if guest_profile else ""
+
     # Broadcast trivia to the lobby channel so both players receive it
     try:
         broadcast(f"lobby:{code}", "trivia_start", {
@@ -154,6 +160,8 @@ def join_lobby_handler(event, context):
             "options": trivia["options"],
             "host_dino": host_dino,
             "guest_dino": guest_dino,
+            "host_name": host_name,
+            "guest_name": guest_name,
         })
     except Exception:
         pass
@@ -174,6 +182,8 @@ def join_lobby_handler(event, context):
         },
         "host_dino": host_dino,
         "guest_dino": guest_dino,
+        "host_name": host_name,
+        "guest_name": guest_name,
     })
 
 

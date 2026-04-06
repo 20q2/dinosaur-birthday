@@ -79,7 +79,9 @@ export class PlazaCanvas {
     const speciesData = SPECIES[partner.species];
     const regions = speciesData ? speciesData.regions : ['body', 'belly', 'stripes'];
     const colors = partner.colors || {};
-    const spriteCanvas = getRecolored(partner.species, colors, regions);
+    const animated = hasEffects(colors);
+    const resolved = resolveColors(colors, Date.now());
+    const spriteCanvas = getRecolored(partner.species, resolved, regions);
 
     // Load owner photo
     const photoUrl = partner.owner_photo || '';
@@ -104,6 +106,8 @@ export class PlazaCanvas {
       worldY: MARGIN + Math.random() * (WORLD_H - MARGIN * 2),
       tapJump: 0, // remaining tap-jump time (seconds)
       tapJumpHeight: 0, // peak height in world-pixels for current tap jump
+      nameplateScale: 1, // current nameplate scale (animated)
+      nameplateBig: 0, // remaining seconds for enlarged nameplate
     };
 
     return {
@@ -113,6 +117,8 @@ export class PlazaCanvas {
       isChampion,
       spriteCanvas,
       ownerPhoto,
+      animated,
+      regions,
     };
   }
 
@@ -316,6 +322,11 @@ export class PlazaCanvas {
       d.tapJump = Math.max(0, d.tapJump - dt);
       if (d.tapJump === 0) this._spawnLandingPoof(d);
     }
+
+    // Smoothly animate nameplate scale
+    if (d.nameplateBig > 0) d.nameplateBig = Math.max(0, d.nameplateBig - dt);
+    const targetNpScale = d.nameplateBig > 0 ? 1.6 : 1;
+    d.nameplateScale += (targetNpScale - d.nameplateScale) * Math.min(1, dt * 5);
 
     // ── Playing-together override ──────────────────────────────────────────
     if (d.playPartner) {
@@ -577,6 +588,7 @@ export class PlazaCanvas {
         d.tapJumpHeight = 14 + Math.random() * 22; // 14–36px variable height
         d.state = 'idling';
         d.idleTimer = 3.5 + Math.random() * 2.0; // stay put 3.5–5.5s after tap
+        d.nameplateBig = 3; // enlarged nameplate for 3s
         this.onSelect(d.partner);
         return;
       }
@@ -637,6 +649,16 @@ export class PlazaCanvas {
     this._updateParticles(dt);
     this.dinos.sort((a, b) => a.worldY - b.worldY);
     this._drawParticles();
+
+    // Re-resolve animated dino sprites each frame
+    const now = Date.now();
+    this.dinos.forEach(d => {
+      if (d.animated) {
+        const resolved = resolveColors(d.partner.colors || {}, now);
+        d.spriteCanvas = getRecoloredUncached(d.partner.species, resolved, d.regions);
+      }
+    });
+
     this.dinos.forEach(d => this._drawDino(d, elapsed));
 
     ctx.restore();
@@ -696,6 +718,11 @@ export class PlazaCanvas {
     }
     ctx.imageSmoothingEnabled = true;
     ctx.restore();
+
+    // Rare paint effect overlays
+    if (d.animated) {
+      this._drawEffectOverlay(d, x, y, hopY, halfW, halfH, drawScale, elapsed);
+    }
 
     // Hat image above dino
     if (d.partner.hat) {
@@ -795,16 +822,68 @@ export class PlazaCanvas {
     }
 
     // ── Nameplate ──────────────────────────────────────────────────────────
-    this._drawNameplate(d, x, y + halfH * 0.85 + 10);
+    this._drawNameplate(d, x, y + halfH * 0.85 + 10, d.nameplateScale);
   }
 
-  _drawNameplate(d, cx, topY) {
+  _drawEffectOverlay(d, x, y, hopY, halfW, halfH, drawScale, elapsed) {
+    const ctx = this.ctx;
+    const colors = d.partner.colors || {};
+    let effect = null;
+    for (const v of Object.values(colors)) {
+      if (v && typeof v === 'object' && v.effect) { effect = v.effect; break; }
+    }
+    if (!effect) return;
+
+    if (effect === 'metallic') {
+      // Sweeping shine band across dino
+      ctx.save();
+      ctx.globalCompositeOperation = 'source-atop';
+      const shinePos = ((elapsed * 0.4) % 1.6 - 0.3);
+      const shineX = x - halfW + shinePos * halfW * 2;
+      const grad = ctx.createLinearGradient(shineX - 8, 0, shineX + 8, 0);
+      grad.addColorStop(0, 'rgba(255,255,255,0)');
+      grad.addColorStop(0.5, 'rgba(255,255,255,0.3)');
+      grad.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(x - halfW, y - halfH + hopY, halfW * 2, halfH * 2);
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.restore();
+    } else if (effect === 'starry_night') {
+      // Twinkling stars
+      ctx.save();
+      for (let i = 0; i < 6; i++) {
+        const sx = x + (Math.sin(i * 7.3 + elapsed * 0.7) * halfW * 0.8);
+        const sy = y + hopY + (Math.cos(i * 5.1 + elapsed * 0.5) * halfH * 0.6);
+        const alpha = 0.4 + 0.6 * Math.sin(elapsed * 3 + i * 2.1);
+        ctx.globalAlpha = Math.max(0, alpha);
+        ctx.font = `${Math.round(4 * d.scale)}px serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('\u2726', sx, sy);
+      }
+      ctx.restore();
+    } else if (effect === 'rainbow' || effect === 'prismatic') {
+      // Subtle colored glow behind dino
+      ctx.save();
+      const hue = effect === 'rainbow'
+        ? Math.floor((elapsed * 18) % 360)
+        : Math.floor((elapsed * 10 + 180) % 360);
+      ctx.globalAlpha = 0.2;
+      ctx.fillStyle = `hsl(${hue}, 100%, 70%)`;
+      ctx.beginPath();
+      ctx.ellipse(x, y + hopY, halfW * 0.9, halfH * 0.7, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  _drawNameplate(d, cx, topY, scale = 1) {
     const ctx = this.ctx;
     const p = d.partner;
 
-    const photoSize = 12;
-    const gap = 3;
-    const padH = 5;
+    const photoSize = 12 * scale;
+    const gap = 3 * scale;
+    const padH = 5 * scale;
 
     // Build text
     const gender = p.gender || '';
@@ -812,24 +891,26 @@ export class PlazaCanvas {
     const line1 = (p.name || 'Unnamed') + genderSymbol;
     const line2 = p.owner_name ? `Owner: ${p.owner_name}` : '';
 
-    ctx.font = 'bold 6px sans-serif';
+    const fontSize1 = Math.round(6 * scale);
+    const fontSize2 = Math.round(5 * scale);
+    ctx.font = `bold ${fontSize1}px sans-serif`;
     const line1W = ctx.measureText(line1).width;
-    ctx.font = '5px sans-serif';
+    ctx.font = `${fontSize2}px sans-serif`;
     const line2W = line2 ? ctx.measureText(line2).width : 0;
 
     const textW = Math.max(line1W, line2W);
     const pillW = photoSize + gap + textW + padH * 2;
-    const pillH = line2 ? 16 : 12;
+    const pillH = (line2 ? 16 : 12) * scale;
     const pillX = cx - pillW / 2;
     const pillY = topY;
 
     // Pill background
     ctx.fillStyle = 'rgba(0,0,0,0.65)';
     ctx.beginPath();
-    ctx.roundRect(pillX, pillY, pillW, pillH, 4);
+    ctx.roundRect(pillX, pillY, pillW, pillH, 4 * scale);
     ctx.fill();
     ctx.strokeStyle = 'rgba(74,222,128,0.3)';
-    ctx.lineWidth = 0.5;
+    ctx.lineWidth = 0.5 * scale;
     ctx.stroke();
 
     // Owner photo circle
@@ -851,7 +932,7 @@ export class PlazaCanvas {
       ctx.fillStyle = '#4ade80';
       ctx.fillRect(photoX - photoR, photoY - photoR, photoSize, photoSize);
       ctx.fillStyle = '#fff';
-      ctx.font = 'bold 6px sans-serif';
+      ctx.font = `bold ${fontSize1}px sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       const initial = (p.owner_name || '?')[0].toUpperCase();
@@ -861,30 +942,29 @@ export class PlazaCanvas {
 
     // Line 1: Dino name + gender
     const textLeft = pillX + padH + photoSize + gap;
-    ctx.font = 'bold 6px sans-serif';
+    ctx.font = `bold ${fontSize1}px sans-serif`;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
 
+    const line1Y = line2 ? pillY + 6 * scale : pillY + pillH / 2;
     if (genderSymbol) {
       // Draw name in white, gender symbol in color
       const nameOnly = p.name || 'Unnamed';
       const nameW = ctx.measureText(nameOnly).width;
-      const line1Y = line2 ? pillY + 6 : pillY + pillH / 2;
       ctx.fillStyle = '#f0fdf4';
       ctx.fillText(nameOnly, textLeft, line1Y);
       ctx.fillStyle = gender === 'male' ? '#60a5fa' : '#f472b6';
       ctx.fillText(genderSymbol, textLeft + nameW, line1Y);
     } else {
-      const line1Y = line2 ? pillY + 6 : pillY + pillH / 2;
       ctx.fillStyle = '#f0fdf4';
       ctx.fillText(line1, textLeft, line1Y);
     }
 
     // Line 2: Owner name
     if (line2) {
-      ctx.font = '5px sans-serif';
+      ctx.font = `${fontSize2}px sans-serif`;
       ctx.fillStyle = '#86efac';
-      ctx.fillText(line2, textLeft, pillY + 12);
+      ctx.fillText(line2, textLeft, pillY + 12 * scale);
     }
   }
 }

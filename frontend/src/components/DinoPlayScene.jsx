@@ -1,8 +1,9 @@
 import { useEffect, useRef, useImperativeHandle } from 'preact/hooks';
 import { forwardRef } from 'preact/compat';
-import { getRecolored } from '../utils/spriteEngine.js';
+import { getRecolored, getRecoloredUncached } from '../utils/spriteEngine.js';
 import { getHatImage, getHatAnchor } from '../data/hatImages.js';
 import { SPECIES } from '../data/species.js';
+import { resolveColors, hasEffects } from '../dinoColors.js';
 
 import bgRocks from '../assets/backgrounds/dino_find_rocks.png';
 import bgSwamp from '../assets/backgrounds/dino_find_swamp.png';
@@ -25,11 +26,16 @@ const BREATHE_SPEED = 2;
 const BREATHE_HEIGHT = 1;
 const HEADING_LERP = 2.0;
 
-function makeDino(data, homeX, homeY) {
+function makeDino(data, homeX, homeY, ownerName) {
   const regions = SPECIES[data.species]?.regions || ['body', 'belly', 'stripes'];
+  const animated = hasEffects(data.colors);
+  const resolved = resolveColors(data.colors || {}, Date.now());
   return {
     data,
-    sprite: getRecolored(data.species, data.colors || {}, regions),
+    sprite: getRecolored(data.species, resolved, regions),
+    animated,
+    regions,
+    ownerName: ownerName || '',
     homeX,
     homeY,
     x: homeX,
@@ -111,6 +117,11 @@ function updateDino(dino, dt, canvasW) {
 }
 
 function drawDino(ctx, dino, elapsed, canvasW) {
+  // Refresh sprite for animated effects
+  if (dino.animated) {
+    const resolved = resolveColors(dino.data.colors || {}, Date.now());
+    dino.sprite = getRecoloredUncached(dino.data.species, resolved, dino.regions);
+  }
   if (!dino.sprite) return;
 
   dino.hopPhase += (dino.moving ? HOP_SPEED : BREATHE_SPEED) * (1 / 60);
@@ -159,6 +170,16 @@ function drawDino(ctx, dino, elapsed, canvasW) {
   }
 
   ctx.restore();
+
+  // Draw owner name below dino
+  if (dino.ownerName) {
+    ctx.save();
+    ctx.font = '600 11px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.fillText(dino.ownerName, dino.x, dino.y + 14);
+    ctx.restore();
+  }
 }
 
 // Dust particles
@@ -209,13 +230,13 @@ export const DinoPlayScene = forwardRef(function DinoPlayScene(props, ref) {
   });
 
   useImperativeHandle(ref, () => ({
-    setMyDino(data) {
+    setMyDino(data, ownerName) {
       const canvas = canvasRef.current;
       if (!canvas) return;
       const w = canvas.getBoundingClientRect().width;
       const homeX = w / 2;
       const homeY = canvas.getBoundingClientRect().height - 20;
-      stateRef.current.myDino = makeDino(data, homeX, homeY);
+      stateRef.current.myDino = makeDino(data, homeX, homeY, ownerName);
       // Load background image from partner dino's backdrop setting
       if (data.background && BG_MAP[data.background]) {
         const img = new Image();
@@ -223,7 +244,7 @@ export const DinoPlayScene = forwardRef(function DinoPlayScene(props, ref) {
         img.src = BG_MAP[data.background];
       }
     },
-    setPartnerDino(data) {
+    setPartnerDino(data, ownerName) {
       const canvas = canvasRef.current;
       if (!canvas) return;
       const w = canvas.getBoundingClientRect().width;
@@ -235,7 +256,7 @@ export const DinoPlayScene = forwardRef(function DinoPlayScene(props, ref) {
       }
       const homeX = w / 2 + 40;
       const homeY = h - 20;
-      const dino = makeDino(data, homeX, homeY);
+      const dino = makeDino(data, homeX, homeY, ownerName);
       // Start off-screen right and walk in
       dino.x = w + 60;
       dino.entering = true;

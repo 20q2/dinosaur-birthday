@@ -1,7 +1,8 @@
 // frontend/src/components/BossFightCanvas.js
-import { getRecolored } from '../utils/spriteEngine.js';
+import { getRecolored, getRecoloredUncached } from '../utils/spriteEngine.js';
 import { SPECIES } from '../data/species.js';
 import { getHatImage, getHatAnchor } from '../data/hatImages.js';
+import { resolveColors, hasEffects } from '../dinoColors.js';
 
 const BASE_SPRITE_SCALE = 1.25;
 const SCALE_MIN = 0.7;
@@ -140,7 +141,9 @@ export class BossFightCanvas {
   _makeSlot(partner, slotAngle, isMyDino) {
     const speciesData  = SPECIES[partner.species];
     const regions      = speciesData ? speciesData.regions : ['body', 'belly', 'stripes'];
-    const spriteCanvas = getRecolored(partner.species, partner.colors || {}, regions);
+    const resolved     = resolveColors(partner.colors || {}, Date.now());
+    const spriteCanvas = getRecolored(partner.species, resolved, regions);
+    const animated     = hasEffects(partner.colors);
 
     const photoUrl   = partner.owner_photo || '';
     const ownerPhoto = photoUrl ? this._loadPhoto(photoUrl) : null;
@@ -151,6 +154,8 @@ export class BossFightCanvas {
       isMyDino,
       spriteCanvas,
       ownerPhoto,
+      animated,
+      regions,
       // Slight radial jitter — gives crowd depth rather than a perfect ring
       radiusFactor: isMyDino ? 1 : 0.82 + Math.random() * 0.36,
       // Computed by _positionSlot (overwritten on first _layout call)
@@ -522,6 +527,12 @@ export class BossFightCanvas {
     ctx.ellipse(slot.sx, slot.sy + halfH * 0.85, halfW * 0.7, halfH * 0.15, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
+
+    // Refresh sprite for animated effects
+    if (slot.animated) {
+      const resolved = resolveColors(slot.partner.colors || {}, Date.now());
+      slot.spriteCanvas = getRecoloredUncached(slot.partner.species, resolved, slot.regions);
+    }
 
     // Sprite (sprites face left by default; flip for right-facing)
     ctx.save();

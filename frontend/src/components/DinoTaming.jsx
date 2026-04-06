@@ -67,14 +67,21 @@ export function DinoTaming({ foodType, prefetchedResult }) {
     setLoading(false);
   };
 
+  const [finishing, setFinishing] = useState(false);
+
   const handleFinish = async () => {
-    if (!name.trim()) return;
-    await api.customizeDino(store.playerId, selectedSpecies, {
-      name: name.trim(),
-      hat: selectedHat,
-    });
-    await store.refresh();
-    store.navigate('/dinos');
+    if (!name.trim() || finishing) return;
+    setFinishing(true);
+    try {
+      await api.customizeDino(store.playerId, selectedSpecies, {
+        name: name.trim(),
+        hat: selectedHat,
+      });
+      await store.refresh();
+      store.navigate('/dinos');
+    } catch {
+      setFinishing(false);
+    }
   };
 
   if (loading) return <div style={styles.loadingPage}><p>Feeding...</p></div>;
@@ -202,10 +209,10 @@ export function DinoTaming({ foodType, prefetchedResult }) {
 
           <button
             onClick={handleFinish}
-            disabled={!name.trim()}
-            style={{ ...styles.mainBtn, opacity: name.trim() ? 1 : 0.5 }}
+            disabled={!name.trim() || finishing}
+            style={{ ...styles.mainBtn, opacity: name.trim() && !finishing ? 1 : 0.5 }}
           >
-            WELCOME HOME!
+            {finishing ? 'Saving...' : 'WELCOME HOME!'}
           </button>
         </div>
       </div>

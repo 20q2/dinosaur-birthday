@@ -4,6 +4,7 @@ import berryImg from '../assets/items/berry.png';
 
 const FOOD_IMGS = { meat: meatImg, mejoberries: berryImg };
 const FOOD_LABELS = { meat: 'Meat', mejoberries: 'Mejoberries' };
+const FOOD_HARVEST_LABELS = { meat: 'a Pile of Meat', mejoberries: 'a Bunch of Mejoberries' };
 const TIMING_ROUNDS = 6;
 const ROUND_MS = 1500;
 const WHACK_MS = 10000;
@@ -367,7 +368,7 @@ function ResultsScreen({ score, total, foodType, xpEarned, apiResult, onComplete
       {/* Food obtained */}
       <img src={FOOD_IMGS[foodType]} style={{ width: '64px', height: '64px', imageRendering: 'pixelated', margin: '4px 0' }} />
       <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#e5e7eb', textAlign: 'center' }}>
-        You obtained {label}!
+        You obtained {FOOD_HARVEST_LABELS[foodType] || label}!
       </div>
       <div style={{ fontSize: '12px', color: '#6b7280', margin: '-6px 0 4px' }}>
         Added to your inventory

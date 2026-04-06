@@ -39,7 +39,7 @@ const styles = {
     display: 'flex', justifyContent: 'space-around',
     background: '#111', borderTop: '1px solid #333',
     padding: '8px 4px 12px', flexShrink: 0,
-    position: 'sticky', bottom: 0,
+    position: 'sticky', bottom: 0, zIndex: 10,
   },
   tab: {
     flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',

@@ -48,11 +48,11 @@ export function PlayTogether() {
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [result, setResult] = useState(null);
   const [partnerDinoData, setPartnerDinoData] = useState(null);
-  const [partnerAnswered, setPartnerAnswered] = useState(false);
+  const [answering, setAnswering] = useState(false);
   const [countdown, setCountdown] = useState(3);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const hasAnsweredRef = useRef(false);
+
 
   // Symbol picker state (for joining)
   const [joinSymbols, setJoinSymbols] = useState([]);
@@ -75,7 +75,7 @@ export function PlayTogether() {
         colors: partner.colors || {},
         hat: partner.hat || '',
         background: partner.background || '',
-      });
+      }, partner.name);
     }
   }, [player]);
 
@@ -93,29 +93,17 @@ export function PlayTogether() {
       const currentRole = roleRef.current;
       const myPartnerDino = currentRole === 'host' ? data.guest_dino : data.host_dino;
       if (myPartnerDino && sceneRef.current) {
-        sceneRef.current.setPartnerDino(myPartnerDino);
+        sceneRef.current.setPartnerDino(myPartnerDino, myPartnerDino.name);
         setPartnerDinoData(myPartnerDino);
       }
       setTrivia({ question: data.question, options: data.options });
       setPhase('countdown');
     });
 
-    const unsub2 = ws.on(`lobby:${lobbyCode}`, 'trivia_result', (data) => {
-      // Only auto-advance to results if this player has already submitted their answer.
-      // Otherwise show a "partner answered" indicator so they can still answer.
-      if (hasAnsweredRef.current) {
-        setResult(data);
-        setPhase('results');
-      } else {
-        setPartnerAnswered(true);
-      }
-    });
-
     ws.subscribe(`lobby:${lobbyCode}`);
 
     return () => {
       unsub1();
-      unsub2();
     };
   }, [lobbyCode]);
 
@@ -128,7 +116,7 @@ export function PlayTogether() {
         if (data.status === 'active' && data.trivia) {
           clearInterval(iv);
           if (data.guest_dino && sceneRef.current) {
-            sceneRef.current.setPartnerDino(data.guest_dino);
+            sceneRef.current.setPartnerDino(data.guest_dino, data.guest_dino.name);
             setPartnerDinoData(data.guest_dino);
           }
           setTrivia(data.trivia);
@@ -197,7 +185,7 @@ export function PlayTogether() {
       // Set partner dino from response
       const myPartnerDino = data.host_dino;
       if (myPartnerDino && sceneRef.current) {
-        sceneRef.current.setPartnerDino(myPartnerDino);
+        sceneRef.current.setPartnerDino(myPartnerDino, myPartnerDino.name);
         setPartnerDinoData(myPartnerDino);
       }
 
@@ -212,7 +200,7 @@ export function PlayTogether() {
   async function handleAnswer(index) {
     if (selectedAnswer !== null) return;
     setSelectedAnswer(index);
-    hasAnsweredRef.current = true;
+    setAnswering(true);
     try {
       const data = await api.answerTrivia(store.playerId, lobbyCode, index);
       setResult(data);
@@ -228,6 +216,7 @@ export function PlayTogether() {
       }
     } catch (err) {
       setError(err.message || 'Failed to submit answer');
+      setAnswering(false);
     }
   }
 
@@ -241,8 +230,7 @@ export function PlayTogether() {
     setSelectedAnswer(null);
     setResult(null);
     setPartnerDinoData(null);
-    setPartnerAnswered(false);
-    hasAnsweredRef.current = false;
+    setAnswering(false);
     setError('');
     store.lobbyRole = null;
     store.lobbyTrivia = null;
@@ -299,9 +287,8 @@ export function PlayTogether() {
           <TriviaPhase
             trivia={trivia}
             selectedAnswer={selectedAnswer}
+            answering={answering}
             onAnswer={handleAnswer}
-            partnerAnswered={partnerAnswered}
-            onSeeResults={() => { setResult({}); setPhase('results'); }}
           />
         )}
 
@@ -476,7 +463,7 @@ function GuestLobbyPhase({ symbols, setSymbols, loading, error, onSubmit, onCanc
   );
 }
 
-function TriviaPhase({ trivia, selectedAnswer, onAnswer, partnerAnswered, onSeeResults }) {
+function TriviaPhase({ trivia, selectedAnswer, answering, onAnswer }) {
   const labels = ['A', 'B', 'C', 'D'];
 
   return (
@@ -498,14 +485,8 @@ function TriviaPhase({ trivia, selectedAnswer, onAnswer, partnerAnswered, onSeeR
           <span>{opt}</span>
         </button>
       ))}
-      {selectedAnswer !== null && (
-        <div style={styles.waitingText}>Waiting for results...</div>
-      )}
-      {partnerAnswered && selectedAnswer === null && (
-        <div style={styles.partnerAnsweredBanner}>
-          <span>Your partner already answered!</span>
-          <button onClick={onSeeResults} style={styles.seeResultsBtn}>See Results</button>
-        </div>
+      {answering && (
+        <div style={styles.waitingText}>Submitting...</div>
       )}
     </div>
   );

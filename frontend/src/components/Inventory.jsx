@@ -18,6 +18,19 @@ const RARITY_COLORS = {
   legendary: '#f59e0b',
 };
 
+const RARE_PREVIEW_BG = {
+  rainbow: 'linear-gradient(135deg, #f00, #ff0, #0f0, #0ff, #00f, #f0f)',
+  prismatic: 'linear-gradient(135deg, #a78bfa, #38bdf8, #4ade80, #facc15)',
+  metallic: 'linear-gradient(135deg, #94a3b8, #e2e8f0, #64748b)',
+  starry_night: 'linear-gradient(135deg, #1e1b4b, #312e81, #1e1b4b)',
+};
+const RARE_EMOJI = {
+  rainbow: '\uD83C\uDF08',
+  prismatic: '\uD83D\uDC8E',
+  metallic: '\u2699\uFE0F',
+  starry_night: '\u2B50',
+};
+
 export function Inventory() {
   const { player } = useStore();
   const [modal, setModal] = useState(null);
@@ -41,13 +54,21 @@ export function Inventory() {
 
   // Paints: group by paint_id with counts
   const paintCountsMap = {};
-  items.filter(i => i.type === 'paint' && i.details?.paint_id).forEach(i => {
-    const pid = i.details.paint_id;
-    paintCountsMap[pid] = (paintCountsMap[pid] || 0) + 1;
+  const rarePaintMap = {};
+  items.filter(i => i.type === 'paint').forEach(i => {
+    const details = i.details || {};
+    if (details.paint_id) {
+      paintCountsMap[details.paint_id] = (paintCountsMap[details.paint_id] || 0) + 1;
+    } else if (details.effect) {
+      if (!rarePaintMap[details.effect]) {
+        rarePaintMap[details.effect] = { effect: details.effect, name: i.name };
+      }
+    }
   });
   const ownedPaints = Object.entries(paintCountsMap)
     .map(([id, count]) => ({ ...PAINT_MAP[id], count }))
     .filter(p => p.id);
+  const ownedRarePaints = Object.values(rarePaintMap);
 
   async function doAction(action) {
     setBusy(true);
@@ -196,25 +217,57 @@ export function Inventory() {
       {/* Paints */}
       <div style={styles.section}>
         <div style={styles.sectionHeader}>Paints</div>
-        {ownedPaints.length === 0 ? (
+        {ownedPaints.length === 0 && ownedRarePaints.length === 0 ? (
           <p style={styles.empty}>No paints yet! Visit events and play trivia to earn some.</p>
         ) : (
-          <div style={styles.paintGrid}>
-            {ownedPaints.map(paint => (
-              <button
-                key={paint.id}
-                style={styles.paintItem}
-                onClick={() => handlePaintTap(paint.id)}
-                disabled={tamedDinos.length === 0}
-              >
-                <PaintSprite hue={paint.hue} scale={0.18} />
-                <span style={styles.paintItemName}>{paint.name}</span>
-                {paint.count > 1 && (
-                  <span style={styles.paintItemCount}>x{paint.count}</span>
+          <>
+            {ownedRarePaints.length > 0 && (
+              <>
+                <div style={{ fontSize: '11px', color: '#f59e0b', letterSpacing: '1px', marginBottom: '2px' }}>RARE</div>
+                <div style={styles.paintGrid}>
+                  {ownedRarePaints.map(rp => (
+                    <div
+                      key={rp.effect}
+                      style={{ ...styles.paintItem, borderColor: '#f59e0b', cursor: 'default' }}
+                    >
+                      <div style={{
+                        width: '36px', height: '36px', borderRadius: '8px',
+                        background: RARE_PREVIEW_BG[rp.effect] || '#333',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '18px',
+                      }}>
+                        {RARE_EMOJI[rp.effect] || '\u2728'}
+                      </div>
+                      <span style={{ ...styles.paintItemName, color: '#f59e0b' }}>{rp.name}</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+            {ownedPaints.length > 0 && (
+              <>
+                {ownedRarePaints.length > 0 && (
+                  <div style={{ fontSize: '11px', color: '#888', letterSpacing: '1px', marginTop: '6px', marginBottom: '2px' }}>STANDARD</div>
                 )}
-              </button>
-            ))}
-          </div>
+                <div style={styles.paintGrid}>
+                  {ownedPaints.map(paint => (
+                    <button
+                      key={paint.id}
+                      style={styles.paintItem}
+                      onClick={() => handlePaintTap(paint.id)}
+                      disabled={tamedDinos.length === 0}
+                    >
+                      <PaintSprite hue={paint.hue} scale={0.18} />
+                      <span style={styles.paintItemName}>{paint.name}</span>
+                      {paint.count > 1 && (
+                        <span style={styles.paintItemCount}>x{paint.count}</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </>
         )}
       </div>
 

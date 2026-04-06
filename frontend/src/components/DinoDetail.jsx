@@ -7,6 +7,20 @@ import { HATS, HAT_MAP } from '../data/hats.js';
 import { PAINT_MAP } from '../data/paints.js';
 import { DinoSprite } from './DinoSprite.jsx';
 import { PaintSprite } from './PaintSprite.jsx';
+import { resolveColors } from '../dinoColors.js';
+
+const RARE_PREVIEW_BG = {
+  rainbow: 'linear-gradient(135deg, #f00, #ff0, #0f0, #0ff, #00f, #f0f)',
+  prismatic: 'linear-gradient(135deg, #a78bfa, #38bdf8, #4ade80, #facc15)',
+  metallic: 'linear-gradient(135deg, #94a3b8, #e2e8f0, #64748b)',
+  starry_night: 'linear-gradient(135deg, #1e1b4b, #312e81, #1e1b4b)',
+};
+const RARE_EMOJI = {
+  rainbow: '\uD83C\uDF08',
+  prismatic: '\uD83D\uDC8E',
+  metallic: '\u2699\uFE0F',
+  starry_night: '\u2B50',
+};
 import { TitleBar } from './TitleBar.jsx';
 import { getQuirk } from '../data/natureQuirks.js';
 import { getHatImage } from '../data/hatImages.js';
@@ -50,17 +64,22 @@ function xpProgress(xp, level) {
   return Math.min(100, Math.round((levelXp / XP_PER_LEVEL) * 100));
 }
 
-function ColorSwatch({ region, hue }) {
+function ColorSwatch({ region, value }) {
+  const isEffect = value && typeof value === 'object';
+  const label = isEffect ? value.effect.replace('_', ' ') : value;
+  const bg = isEffect
+    ? (RARE_PREVIEW_BG[value.effect] || '#555')
+    : `hsl(${value}, 70%, 50%)`;
   return (
     <div style={styles.swatchRow}>
       <span style={styles.swatchLabel}>{region}</span>
       <div
         style={{
           ...styles.swatch,
-          background: `hsl(${hue}, 70%, 50%)`,
+          background: bg,
         }}
       />
-      <span style={styles.swatchHue}>{hue}</span>
+      <span style={styles.swatchHue}>{label}</span>
     </div>
   );
 }
@@ -109,21 +128,30 @@ export function DinoDetail({ species }) {
 
   const availableHats = HATS.filter(h => ownedHatIds.has(h.id));
 
-  // Paint inventory grouped by paint_id
-  const paintItems = (player?.items || []).filter(i => i.type === 'paint' && i.details?.paint_id);
+  // Paint inventory: normal paints (by paint_id) and rare paints (by effect)
   const paintCounts = {};
-  paintItems.forEach(i => {
-    const pid = i.details.paint_id;
-    paintCounts[pid] = (paintCounts[pid] || 0) + 1;
+  const rarePaints = [];
+  (player?.items || []).filter(i => i.type === 'paint').forEach(i => {
+    const details = i.details || {};
+    if (details.paint_id) {
+      paintCounts[details.paint_id] = (paintCounts[details.paint_id] || 0) + 1;
+    } else if (details.effect) {
+      if (!rarePaints.find(r => r.effect === details.effect)) {
+        rarePaints.push({ effect: details.effect, name: i.name });
+      }
+    }
   });
-  const hasPaints = Object.keys(paintCounts).length > 0;
+  const hasPaints = Object.keys(paintCounts).length > 0 || rarePaints.length > 0;
 
   // Regions for this species
   const regions = speciesData.regions || [];
 
   // Preview colors during paint mode
+  const isRarePaint = selectedPaint?.startsWith('effect:');
   const previewColors = selectedPaint && paintRegion
-    ? { ...colors, [paintRegion]: PAINT_MAP[selectedPaint]?.hue ?? 120 }
+    ? isRarePaint
+      ? { ...colors, [paintRegion]: { effect: selectedPaint.replace('effect:', '') } }
+      : { ...colors, [paintRegion]: PAINT_MAP[selectedPaint]?.hue ?? 120 }
     : colors;
 
   async function doAction(action) {
@@ -176,9 +204,10 @@ export function DinoDetail({ species }) {
   function handleApplyPaint() {
     if (!selectedPaint || !paintRegion) return;
     doAction(async () => {
-      await api.customizeDino(store.playerId, species, {
-        paint: { region: paintRegion, paint_id: selectedPaint },
-      });
+      const paintPayload = isRarePaint
+        ? { region: paintRegion, effect: selectedPaint.replace('effect:', '') }
+        : { region: paintRegion, paint_id: selectedPaint };
+      await api.customizeDino(store.playerId, species, { paint: paintPayload });
       setSelectedPaint(null);
       setPaintRegion(null);
     });
@@ -363,6 +392,32 @@ export function DinoDetail({ species }) {
       {dino.tamed && showPaints && !selectedPaint && (
         <div style={styles.card}>
           <div style={styles.sectionTitle}>Choose a Paint</div>
+          {rarePaints.length > 0 && (
+            <>
+              <div style={{ fontSize: '11px', color: '#f59e0b', marginBottom: '6px', letterSpacing: '1px' }}>RARE</div>
+              <div style={styles.paintGrid}>
+                {rarePaints.map(rp => (
+                  <button
+                    key={rp.effect}
+                    onClick={() => handleSelectPaint(`effect:${rp.effect}`)}
+                    disabled={busy}
+                    style={{ ...styles.paintItem, borderColor: '#f59e0b' }}
+                  >
+                    <div style={{
+                      width: '36px', height: '36px', borderRadius: '8px',
+                      background: RARE_PREVIEW_BG[rp.effect] || '#333',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: '18px',
+                    }}>
+                      {RARE_EMOJI[rp.effect] || '\u2728'}
+                    </div>
+                    <span style={{ ...styles.paintItemName, color: '#f59e0b' }}>{rp.name}</span>
+                  </button>
+                ))}
+              </div>
+              <div style={{ fontSize: '11px', color: '#888', margin: '8px 0 6px', letterSpacing: '1px' }}>STANDARD</div>
+            </>
+          )}
           <div style={styles.paintGrid}>
             {Object.entries(paintCounts).map(([paintId, count]) => {
               const paintData = PAINT_MAP[paintId];
@@ -390,34 +445,54 @@ export function DinoDetail({ species }) {
       {dino.tamed && selectedPaint && (
         <div style={styles.card}>
           <div style={styles.sectionTitle}>
-            Apply {PAINT_MAP[selectedPaint]?.name} Paint
+            Apply {isRarePaint
+              ? rarePaints.find(r => r.effect === selectedPaint.replace('effect:', ''))?.name || 'Rare Paint'
+              : `${PAINT_MAP[selectedPaint]?.name} Paint`}
           </div>
           <div style={{ display: 'flex', justifyContent: 'center' }}>
-            <PaintSprite hue={PAINT_MAP[selectedPaint]?.hue ?? 120} scale={1} style={{ maxWidth: '48px', maxHeight: '48px' }} />
+            {isRarePaint ? (
+              <div style={{
+                width: '48px', height: '48px', borderRadius: '12px',
+                background: RARE_PREVIEW_BG[selectedPaint.replace('effect:', '')] || '#333',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '24px',
+              }}>
+                {RARE_EMOJI[selectedPaint.replace('effect:', '')] || '\u2728'}
+              </div>
+            ) : (
+              <PaintSprite hue={PAINT_MAP[selectedPaint]?.hue ?? 120} scale={1} style={{ maxWidth: '48px', maxHeight: '48px' }} />
+            )}
           </div>
           <div style={{ fontSize: '12px', color: '#888', textAlign: 'center' }}>
             Pick a region to paint
           </div>
           <div style={styles.regionRow}>
-            {regions.map(r => (
-              <button
-                key={r}
-                onClick={() => setPaintRegion(r)}
-                disabled={busy}
-                style={{
-                  ...styles.regionBtn,
-                  borderColor: paintRegion === r ? '#a78bfa' : '#333',
-                  background: paintRegion === r ? '#2d1b69' : '#0d1117',
-                }}
-              >
-                <div style={{
-                  width: '14px', height: '14px', borderRadius: '4px',
-                  background: colors[r] != null ? `hsl(${colors[r]}, 70%, 50%)` : '#555',
-                  flexShrink: 0,
-                }} />
-                <span style={{ textTransform: 'capitalize' }}>{r}</span>
-              </button>
-            ))}
+            {regions.map(r => {
+              const cv = colors[r];
+              const isEffect = cv && typeof cv === 'object';
+              const swatchBg = isEffect
+                ? (RARE_PREVIEW_BG[cv.effect] || '#555')
+                : (cv != null ? `hsl(${cv}, 70%, 50%)` : '#555');
+              return (
+                <button
+                  key={r}
+                  onClick={() => setPaintRegion(r)}
+                  disabled={busy}
+                  style={{
+                    ...styles.regionBtn,
+                    borderColor: paintRegion === r ? '#a78bfa' : '#333',
+                    background: paintRegion === r ? '#2d1b69' : '#0d1117',
+                  }}
+                >
+                  <div style={{
+                    width: '14px', height: '14px', borderRadius: '4px',
+                    background: swatchBg,
+                    flexShrink: 0,
+                  }} />
+                  <span style={{ textTransform: 'capitalize' }}>{r}</span>
+                </button>
+              );
+            })}
           </div>
           <div style={styles.btnRow}>
             <button
