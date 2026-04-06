@@ -146,6 +146,36 @@ export function DinoDetail({ species }) {
   });
   const hasPaints = Object.keys(paintCounts).length > 0 || rarePaints.length > 0;
 
+  // Backdrop unlock state: tamed = unlocked, discovered = locked, unknown = hidden
+  const allDinos = player?.dinos || [];
+  const tamedSpeciesSet = new Set(allDinos.filter(d => d.tamed).map(d => d.species));
+  const discoveredSpeciesSet = new Set(allDinos.map(d => d.species));
+
+  // Map backdrop IDs to their unlock state
+  const backdropState = {}; // backdrop_id -> 'unlocked' | 'locked'
+  for (const sp of Object.values(SPECIES)) {
+    if (!sp.backdrop) continue;
+    if (tamedSpeciesSet.has(sp.id)) {
+      backdropState[sp.backdrop] = 'unlocked';
+    } else if (discoveredSpeciesSet.has(sp.id)) {
+      backdropState[sp.backdrop] = 'locked';
+    }
+    // else: hidden (not in map)
+  }
+
+  // Filter BG_OPTIONS to only show default + discovered backdrops
+  const visibleBgOptions = BG_OPTIONS.filter(bg => {
+    if (bg.id === '') return true; // Default always visible
+    return backdropState[bg.id] != null; // discovered or tamed
+  });
+
+  // Auto-default: if no bg set and player has tamed dinos, use first tamed dino's backdrop
+  const autoDefaultBg = (() => {
+    if (dino.background) return null; // explicit choice exists
+    const firstTamed = allDinos.find(d => d.tamed && SPECIES[d.species]?.backdrop);
+    return firstTamed ? SPECIES[firstTamed.species].backdrop : null;
+  })();
+
   // Regions for this species
   const regions = speciesData.regions || [];
 
@@ -224,8 +254,9 @@ export function DinoDetail({ species }) {
   // Compute backdrop for full page background
   const bgImg = (() => {
     if (!dino.tamed && WILD_BG[species]) return WILD_BG[species];
-    if (dino.tamed && dino.background) {
-      const bg = BG_OPTIONS.find(b => b.id === dino.background);
+    if (dino.tamed) {
+      const bgId = dino.background || autoDefaultBg || '';
+      const bg = BG_OPTIONS.find(b => b.id === bgId);
       if (bg?.img) return bg.img;
     }
     return null;
@@ -520,25 +551,30 @@ export function DinoDetail({ species }) {
         <div style={styles.card}>
           <div style={styles.sectionTitle}>Backdrop</div>
           <div style={styles.bgRow}>
-            {BG_OPTIONS.map(bg => {
-              const current = dino.background || '';
-              const isSelected = current === bg.id;
+            {visibleBgOptions.map(bg => {
+              const effectiveBg = dino.background || autoDefaultBg || '';
+              const isSelected = effectiveBg === bg.id;
+              const isLocked = bg.id !== '' && backdropState[bg.id] === 'locked';
               return (
                 <button
                   key={bg.id || '_default'}
                   onClick={() => {
+                    if (isLocked) return;
                     if (isSelected) { setShowBg(false); return; }
                     doAction(() => api.customizeDino(store.playerId, species, { background: bg.id }));
                     setShowBg(false);
                   }}
-                  disabled={busy}
+                  disabled={busy || isLocked}
                   style={{
                     ...styles.bgThumb,
                     background: bg.img ? `url(${bg.img}) center/cover` : bg.color,
-                    borderColor: isSelected ? '#4ade80' : '#333',
+                    borderColor: isSelected ? '#4ade80' : isLocked ? '#222' : '#333',
+                    opacity: isLocked ? 0.4 : 1,
+                    cursor: isLocked ? 'not-allowed' : 'pointer',
                   }}
                 >
                   {isSelected && <span style={styles.bgCheck}>{'\u2713'}</span>}
+                  {isLocked && <span style={styles.bgLock}>{'\uD83D\uDD12'}</span>}
                 </button>
               );
             })}
@@ -550,7 +586,7 @@ export function DinoDetail({ species }) {
           <div style={styles.statRow}>
             <span style={styles.statLabel}>Backdrop</span>
             <span style={styles.statValue}>
-              {BG_OPTIONS.find(b => b.id === (dino.background || ''))?.label || 'Default'} <span style={{ fontSize: '11px', color: '#666' }}>{'\u25B8'}</span>
+              {BG_OPTIONS.find(b => b.id === (dino.background || autoDefaultBg || ''))?.label || 'Default'} <span style={{ fontSize: '11px', color: '#666' }}>{'\u25B8'}</span>
             </span>
           </div>
         </div>
@@ -717,6 +753,10 @@ const styles = {
   bgCheck: {
     color: '#4ade80', fontSize: '18px', fontWeight: 'bold',
     textShadow: '0 1px 3px rgba(0,0,0,0.8)',
+  },
+  bgLock: {
+    fontSize: '16px',
+    filter: 'grayscale(1)',
   },
   partnerNote: {
     textAlign: 'center', color: '#4ade80', fontSize: '13px',
