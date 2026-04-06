@@ -15,11 +15,14 @@ const RARE_PREVIEW_BG = {
   metallic: 'linear-gradient(135deg, #94a3b8, #e2e8f0, #64748b)',
   starry_night: 'linear-gradient(135deg, #1e1b4b, #312e81, #1e1b4b)',
 };
-const RARE_EMOJI = {
-  rainbow: '\uD83C\uDF08',
-  prismatic: '\uD83D\uDC8E',
-  metallic: '\u2699\uFE0F',
-  starry_night: '\u2B50',
+const RARE_PAINT_MODE = {
+  rainbow: 'rainbow',
+  prismatic: 'prismatic',
+  metallic: 'metallic',
+  starry_night: null,
+};
+const RARE_PAINT_HUE = {
+  starry_night: 240,
 };
 import { TitleBar } from './TitleBar.jsx';
 import { getQuirk } from '../data/natureQuirks.js';
@@ -32,18 +35,9 @@ import bgRiver from '../assets/backgrounds/dino_find_river.png';
 import bgGrass from '../assets/backgrounds/dino_find_tall_grass.png';
 import bgCave from '../assets/backgrounds/dino_find_cave.png';
 import bgCanyon from '../assets/backgrounds/dino_find_canyon.png';
+import bgVolcanic from '../assets/backgrounds/dino_find_volcanic.png';
 import meatImg from '../assets/items/meat.png';
 import berryImg from '../assets/items/berry.png';
-
-const WILD_BG = {
-  trex: bgRocks,
-  spinosaurus: bgSwamp,
-  dilophosaurus: bgGrass,
-  pachycephalosaurus: bgRocks,
-  parasaurolophus: bgRiver,
-  triceratops: bgGrass,
-  ankylosaurus: bgSwamp,
-};
 
 const BG_OPTIONS = [
   { id: '', label: 'Default', color: '#0a0a0a', img: null },
@@ -53,7 +47,16 @@ const BG_OPTIONS = [
   { id: 'grass', label: 'Tall Grass', color: null, img: bgGrass },
   { id: 'cave', label: 'Cave', color: null, img: bgCave },
   { id: 'canyon', label: 'Canyon', color: null, img: bgCanyon },
+  { id: 'volcanic', label: 'Volcanic', color: null, img: bgVolcanic },
 ];
+
+const BG_IMG_MAP = Object.fromEntries(BG_OPTIONS.filter(b => b.img).map(b => [b.id, b.img]));
+
+const WILD_BG = Object.fromEntries(
+  Object.values(SPECIES)
+    .filter(s => s.backdrop)
+    .map(s => [s.id, BG_IMG_MAP[s.backdrop]])
+);
 
 const XP_PER_LEVEL = 100;
 const MAX_LEVEL = 5;
@@ -403,14 +406,7 @@ export function DinoDetail({ species }) {
                     disabled={busy}
                     style={{ ...styles.paintItem, borderColor: '#f59e0b' }}
                   >
-                    <div style={{
-                      width: '36px', height: '36px', borderRadius: '8px',
-                      background: RARE_PREVIEW_BG[rp.effect] || '#333',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: '18px',
-                    }}>
-                      {RARE_EMOJI[rp.effect] || '\u2728'}
-                    </div>
+                    <PaintSprite hue={RARE_PAINT_HUE[rp.effect] ?? 0} mode={RARE_PAINT_MODE[rp.effect]} scale={1} style={{ maxWidth: '36px', maxHeight: '36px' }} />
                     <span style={{ ...styles.paintItemName, color: '#f59e0b' }}>{rp.name}</span>
                   </button>
                 ))}
@@ -451,14 +447,7 @@ export function DinoDetail({ species }) {
           </div>
           <div style={{ display: 'flex', justifyContent: 'center' }}>
             {isRarePaint ? (
-              <div style={{
-                width: '48px', height: '48px', borderRadius: '12px',
-                background: RARE_PREVIEW_BG[selectedPaint.replace('effect:', '')] || '#333',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '24px',
-              }}>
-                {RARE_EMOJI[selectedPaint.replace('effect:', '')] || '\u2728'}
-              </div>
+              <PaintSprite hue={RARE_PAINT_HUE[selectedPaint.replace('effect:', '')] ?? 0} mode={RARE_PAINT_MODE[selectedPaint.replace('effect:', '')]} scale={1} style={{ maxWidth: '48px', maxHeight: '48px' }} />
             ) : (
               <PaintSprite hue={PAINT_MAP[selectedPaint]?.hue ?? 120} scale={1} style={{ maxWidth: '48px', maxHeight: '48px' }} />
             )}
