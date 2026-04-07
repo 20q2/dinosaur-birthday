@@ -483,14 +483,16 @@ export function TamingRunner({ species, colors, foodType, onComplete }) {
   const gameRef = useRef(null);
   const rafRef = useRef(null);
 
-  // Canvas sizing — fill viewport in landscape orientation
+  const [isPortrait, setIsPortrait] = useState(false);
+
+  // Canvas sizing — always landscape resolution, CSS-rotated if portrait
   useEffect(() => {
     const vw = window.innerWidth;
     const vh = window.innerHeight;
-    // Use full viewport: wide dimension as width, short as height
     const w = Math.max(vw, vh);
     const h = Math.min(vw, vh);
     setCanvasSize({ w, h });
+    setIsPortrait(vh > vw);
   }, []);
 
   const canvasW = canvasSize.w;
@@ -847,21 +849,28 @@ export function TamingRunner({ species, colors, foodType, onComplete }) {
 
   const bonusXP = Math.min(10, Math.floor(score / 100));
 
+  const rotateStyle = isPortrait ? {
+    transform: 'rotate(90deg)',
+    transformOrigin: 'center center',
+    width: '100vh',
+    height: '100vw',
+  } : {};
+
   return (
     <div style={styles.container}>
-      <canvas
-        ref={canvasRef}
-        width={canvasW}
-        height={canvasH}
-        style={styles.canvas}
-      />
+      <div style={rotateStyle}>
+        <canvas
+          ref={canvasRef}
+          width={canvasW}
+          height={canvasH}
+          style={styles.canvas}
+        />
 
-      {phase === 'ready' && (
-        <div style={styles.readyOverlay} onClick={() => setPhase('running')}>
-          <div style={styles.rotateHint}>📱 Turn your phone sideways!</div>
-          <div style={styles.readyText}>TAP TO START</div>
-        </div>
-      )}
+        {phase === 'ready' && (
+          <div style={styles.readyOverlay} onClick={() => setPhase('running')}>
+            <div style={styles.readyText}>TAP TO START</div>
+          </div>
+        )}
 
       {phase === 'done' && (
         <div style={styles.overlay}>
@@ -875,6 +884,7 @@ export function TamingRunner({ species, colors, foodType, onComplete }) {
           </button>
         </div>
       )}
+      </div>
     </div>
   );
 }
@@ -919,11 +929,6 @@ const styles = {
     justifyContent: 'center',
     background: 'rgba(10, 10, 10, 0.75)',
     cursor: 'pointer',
-  },
-  rotateHint: {
-    color: '#9ca3af',
-    fontSize: '14px',
-    letterSpacing: '1px',
   },
   readyText: {
     color: '#e0e0e0',
