@@ -16,8 +16,9 @@ const JUMP_HEIGHT_FRAC = 0.35;
 const STUMBLE_DURATION = 300;
 const STUMBLE_SLOW = 0.4;
 const DINO_X_FRAC = 0.2;
-const SPRITE_SCALE = 2;
-const OBSTACLE_MIN_GAP = 180;
+const SPRITE_SCALE = 1.5;
+const OBSTACLE_MIN_GAP = 350;
+const OBSTACLE_GAP_VARIANCE = 250;
 const OBSTACLE_POOL_SIZE = 5;
 const BOB_INTERVAL = 150;
 const DEFAULT_REGIONS = ['body', 'belly', 'stripes'];
@@ -167,17 +168,23 @@ function drawDino(ctx, game, spriteCanvas, now) {
 
   ctx.save();
 
+  // Flip horizontally so dino faces right (sprites face left by default)
+  const drawW = dw * scaleX;
+  const drawH = dh * scaleY;
+  ctx.translate(x + drawW, y);
+  ctx.scale(-1, 1);
+
   // Stumble red flash
   if (game.stumbling) {
     const stT = (now - game.stumbleStart) / STUMBLE_DURATION;
     const flash = Math.sin(stT * Math.PI * 4) * 0.5 + 0.5;
 
     // Draw normal sprite
-    ctx.drawImage(spriteCanvas, x, y, dw * scaleX, dh * scaleY);
+    ctx.drawImage(spriteCanvas, 0, 0, drawW, drawH);
 
     // Red overlay using cached offscreen canvas with source-atop
-    const needW = Math.ceil(dw * scaleX);
-    const needH = Math.ceil(dh * scaleY);
+    const needW = Math.ceil(drawW);
+    const needH = Math.ceil(drawH);
     if (!_stumbleTmp) {
       _stumbleTmp = document.createElement('canvas');
       _stumbleTmpCtx = _stumbleTmp.getContext('2d');
@@ -196,9 +203,9 @@ function drawDino(ctx, game, spriteCanvas, now) {
     _stumbleTmpCtx.fillRect(0, 0, needW, needH);
 
     ctx.globalAlpha = 1;
-    ctx.drawImage(_stumbleTmp, x, y);
+    ctx.drawImage(_stumbleTmp, 0, 0);
   } else {
-    ctx.drawImage(spriteCanvas, x, y, dw * scaleX, dh * scaleY);
+    ctx.drawImage(spriteCanvas, 0, 0, drawW, drawH);
   }
 
   ctx.restore();
@@ -210,9 +217,31 @@ function drawObstacles(ctx, game) {
   }
 }
 
-function drawFood(ctx, game, canvasW) {
+function updateFood(game, canvasW) {
   if (!game.ending || !game.foodImg) return;
-  ctx.drawImage(game.foodImg, canvasW - 40, game.groundY - 24, 24, 24);
+  // Initialize food position on first ending frame
+  if (game.foodX == null) {
+    game.foodX = canvasW + 20;
+    game.foodY = game.groundY - game.groundY * 0.5; // start high in the air
+    game.foodTargetY = game.groundY - 28; // land near ground
+  }
+  // Float toward the dino: drift left and descend
+  const driftSpeed = game.speed * 0.6;
+  game.foodX -= driftSpeed;
+  // Ease Y toward target
+  game.foodY += (game.foodTargetY - game.foodY) * 0.03;
+  // Don't drift past the dino
+  const minX = game.dinoX + 10;
+  if (game.foodX < minX) game.foodX = minX;
+}
+
+function drawFood(ctx, game) {
+  if (!game.ending || !game.foodImg || game.foodX == null) return;
+  const size = 28;
+  // Gentle bob
+  const bob = Math.sin(performance.now() / 200) * 3;
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(game.foodImg, game.foodX, game.foodY + bob, size, size);
 }
 
 function spawnObstacle(game, canvasW) {
@@ -222,7 +251,7 @@ function spawnObstacle(game, canvasW) {
     x: canvasW + type.w,
     passed: false,
   });
-  game.nextObstacleX = canvasW + OBSTACLE_MIN_GAP + Math.random() * 100;
+  game.nextObstacleX = canvasW + OBSTACLE_MIN_GAP + Math.random() * OBSTACLE_GAP_VARIANCE;
 }
 
 function updateObstacles(game, canvasW, now) {
@@ -286,10 +315,13 @@ export function TamingRunner({ species, colors, foodType, onComplete }) {
   const gameRef = useRef(null);
   const rafRef = useRef(null);
 
-  // Canvas sizing — compute once on mount to avoid restarting game loop on resize
+  // Canvas sizing — fill viewport in landscape orientation
   useEffect(() => {
-    const w = Math.min(window.innerWidth, 600);
-    const h = Math.floor(w * 0.45);
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    // Use full viewport: wide dimension as width, short as height
+    const w = Math.max(vw, vh);
+    const h = Math.min(vw, vh);
     setCanvasSize({ w, h });
   }, []);
 
@@ -307,6 +339,58 @@ export function TamingRunner({ species, colors, foodType, onComplete }) {
     game.jumping = true;
     game.jumpStart = performance.now();
   }, []);
+
+  // ── Static preview frame for 'ready' phase ──────────────────────────────
+  useEffect(() => {
+    if (phase !== 'ready') return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+
+    const groundY = Math.floor(canvasH * GROUND_Y_FRAC);
+    const dinoX = Math.floor(canvasW * DINO_X_FRAC);
+
+    // Draw background gradient
+    const grad = ctx.createLinearGradient(0, 0, 0, canvasH);
+    grad.addColorStop(0, '#1a1a3e');
+    grad.addColorStop(0.6, '#0f0f2a');
+    grad.addColorStop(1, '#0a0a0a');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, canvasW, canvasH);
+
+    // Draw ground line
+    const previewGame = { groundY, groundOffset: 0 };
+    drawGround(ctx, previewGame, canvasW);
+
+    // Draw dino standing still
+    const resolved = animated ? resolveColors(colors, Date.now()) : colors;
+    const spriteCanvas = animated
+      ? getRecoloredUncached(species, resolved, regions)
+      : getRecolored(species, resolved, regions);
+    if (spriteCanvas) {
+      const sw = spriteCanvas.width;
+      const sh = spriteCanvas.height;
+      const dw = sw * SPRITE_SCALE;
+      const dh = sh * SPRITE_SCALE;
+      // Flip horizontally (facing right)
+      ctx.save();
+      ctx.translate(dinoX + dw / 2, groundY - dh);
+      ctx.scale(-1, 1);
+      ctx.drawImage(spriteCanvas, -dw / 2, 0, dw, dh);
+      ctx.restore();
+    }
+
+    // Scatter a few obstacles for visual interest
+    const previewObs = [
+      { type: OBSTACLE_TYPES[0], x: canvasW * 0.45 },
+      { type: OBSTACLE_TYPES[2], x: canvasW * 0.65 },
+      { type: OBSTACLE_TYPES[1], x: canvasW * 0.85 },
+    ];
+    for (const obs of previewObs) {
+      obs.type.draw(ctx, obs.x, groundY);
+    }
+  }, [phase, canvasSize, species, colors, regions, animated]);
 
   // ── Game loop (runs when phase='running') ────────────────────────────────
   useEffect(() => {
@@ -403,11 +487,12 @@ export function TamingRunner({ species, colors, foodType, onComplete }) {
           const finalScore = Math.floor(game.distance);
           setScore(finalScore);
           setPhase('done');
-        }, 1000);
+        }, 1500);
       }
 
-      // Update obstacles
+      // Update obstacles and food
       updateObstacles(game, canvasW, now);
+      updateFood(game, canvasW);
 
       // Resolve sprite
       const time = Date.now();
@@ -423,12 +508,20 @@ export function TamingRunner({ species, colors, foodType, onComplete }) {
 
       // ── Draw ──────────────────────────────────────────────────────────────
       ctx.clearRect(0, 0, canvasW, canvasH);
-      ctx.fillStyle = '#0a0a0a';
+      // Gradient sky background
+      if (!game._bgGrad) {
+        const grad = ctx.createLinearGradient(0, 0, 0, canvasH);
+        grad.addColorStop(0, '#1a1a3e');
+        grad.addColorStop(0.6, '#0f0f2a');
+        grad.addColorStop(1, '#0a0a0a');
+        game._bgGrad = grad;
+      }
+      ctx.fillStyle = game._bgGrad;
       ctx.fillRect(0, 0, canvasW, canvasH);
 
       drawGround(ctx, game, canvasW);
       drawObstacles(ctx, game);
-      drawFood(ctx, game, canvasW);
+      drawFood(ctx, game);
       drawHUD(ctx, game, elapsed, canvasW);
       drawDino(ctx, game, spriteCanvas, now);
 
@@ -487,8 +580,9 @@ export function TamingRunner({ species, colors, foodType, onComplete }) {
       />
 
       {phase === 'ready' && (
-        <div style={styles.overlay} onClick={() => setPhase('running')}>
-          <div style={styles.readyText}>TAP TO START!</div>
+        <div style={styles.readyOverlay} onClick={() => setPhase('running')}>
+          <div style={styles.rotateHint}>📱 Turn your phone sideways!</div>
+          <div style={styles.readyText}>TAP TO START</div>
         </div>
       )}
 
@@ -512,39 +606,54 @@ export function TamingRunner({ species, colors, foodType, onComplete }) {
 
 const styles = {
   container: {
-    position: 'relative',
-    width: '100%',
+    position: 'fixed',
+    inset: 0,
     display: 'flex',
-    flexDirection: 'column',
     alignItems: 'center',
+    justifyContent: 'center',
+    background: '#0a0a0a',
+    zIndex: 100,
   },
   canvas: {
     display: 'block',
     background: '#0a0a0a',
-    borderRadius: '8px',
-    maxWidth: '100%',
+    maxWidth: '100vw',
+    maxHeight: '100vh',
     imageRendering: 'pixelated',
     touchAction: 'none',
   },
+  readyOverlay: {
+    position: 'absolute',
+    inset: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '12px',
+    background: 'rgba(10, 10, 10, 0.45)',
+    cursor: 'pointer',
+  },
   overlay: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    inset: 0,
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
     background: 'rgba(10, 10, 10, 0.75)',
-    borderRadius: '8px',
     cursor: 'pointer',
+  },
+  rotateHint: {
+    color: '#9ca3af',
+    fontSize: '14px',
+    letterSpacing: '1px',
   },
   readyText: {
     color: '#e0e0e0',
-    fontSize: '24px',
-    fontWeight: 'bold',
-    textShadow: '0 0 12px #6366f1',
+    fontSize: '28px',
+    fontWeight: '900',
+    letterSpacing: '4px',
+    textShadow: '0 0 16px #6366f1, 0 0 32px #6366f180',
   },
   scoreText: {
     color: '#e0e0e0',

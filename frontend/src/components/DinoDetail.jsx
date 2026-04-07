@@ -552,8 +552,7 @@ export function DinoDetail({ species }) {
           <div style={styles.sectionTitle}>Backdrop</div>
           <div style={styles.bgRow}>
             {visibleBgOptions.map(bg => {
-              const effectiveBg = dino.background || autoDefaultBg || '';
-              const isSelected = effectiveBg === bg.id;
+              const isSelected = (dino.background || autoDefaultBg || '') === bg.id;
               const isLocked = bg.id !== '' && backdropState[bg.id] === 'locked';
               return (
                 <button

@@ -8,6 +8,7 @@ import bgRiver from '../assets/backgrounds/dino_find_river.png';
 import bgGrass from '../assets/backgrounds/dino_find_tall_grass.png';
 import bgCave from '../assets/backgrounds/dino_find_cave.png';
 import bgCanyon from '../assets/backgrounds/dino_find_canyon.png';
+import bgVolcanic from '../assets/backgrounds/dino_find_volcanic.png';
 
 const BG_MAP = {
   rocks: bgRocks,
@@ -16,6 +17,7 @@ const BG_MAP = {
   grass: bgGrass,
   cave: bgCave,
   canyon: bgCanyon,
+  volcanic: bgVolcanic,
 };
 
 /**

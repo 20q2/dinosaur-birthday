@@ -37,7 +37,8 @@
       "Read(//a//**)",
       "Read(//a/backend/**)",
       "Bash(find a:/Coding/AlexBirthdayDinos -type f -name *qr* -o -name *generate*)",
-      "Bash(find /a/Coding/AlexBirthdayDinos/frontend -type f \\\\\\(-name *.js -o -name *.jsx -o -name *.ts -o -name *.tsx \\\\\\))"
+      "Bash(find /a/Coding/AlexBirthdayDinos/frontend -type f \\\\\\(-name *.js -o -name *.jsx -o -name *.ts -o -name *.tsx \\\\\\))",
+      "Bash(git -C \"a:\\\\Coding\\\\AlexBirthdayDinos\" rev-parse HEAD)"
     ],
     "additionalDirectories": [
       "C:\\Users\\andje\\.claude\\projects\\a--Coding-AlexBirthdayDinos\\memory",

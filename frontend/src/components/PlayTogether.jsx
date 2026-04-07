@@ -348,7 +348,7 @@ function MenuPhase({ hasPartner, loading, recentPlays, onHost, onJoin }) {
         {[
           { num: '1', title: 'Pair up', desc: 'One player hosts, the other joins with the symbol code' },
           { num: '2', title: 'Answer trivia', desc: "While your dinos are off playing, you both get a dino trivia question \u2014 work together to answer correctly!" },
-          { num: '3', title: 'Earn rewards', desc: 'Your Plaza Partner earns XP and you might get a hat drop' },
+          { num: '3', title: 'Earn rewards', desc: 'Your Plaza Partner earns XP and you might get an item drop' },
         ].map(step => (
           <div key={step.num} style={styles.step}>
             <div style={styles.stepNum}>{step.num}</div>
