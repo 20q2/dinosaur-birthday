@@ -4,10 +4,10 @@ import { getRecolored, getRecoloredUncached } from '../utils/spriteEngine.js';
 import { resolveColors, hasEffects } from '../dinoColors.js';
 import meatImg from '../assets/items/meat.png';
 import berryImg from '../assets/items/berry.png';
-import forestBackdropUrl from '../assets/dinorun/forest_backdrop.png';
-import forestForegroundUrl from '../assets/dinorun/forest_foreground.png';
-import cactusUrl from '../assets/dinorun/cactus.png';
-import rockUrl from '../assets/dinorun/rock.png';
+import forestBackdropUrl from '../assets/dinoRun/forest_backdrop.png';
+import forestForegroundUrl from '../assets/dinoRun/forest_foreground.png';
+import cactusUrl from '../assets/dinoRun/cactus.png';
+import rockUrl from '../assets/dinoRun/rock.png';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
