@@ -41,6 +41,12 @@ export function DinoSprite({ species, colors = {}, scale = 3, style = {}, hat = 
       const sw = spriteSource.width || spriteSource.naturalWidth;
       const sh = spriteSource.height || spriteSource.naturalHeight;
 
+      // Normalize oversized sprites (e.g. godzilla 496x535) to match standard 64px dinos
+      const STANDARD_SIZE = 64;
+      const normScale = Math.max(sw, sh) > STANDARD_SIZE * 2
+        ? (STANDARD_SIZE / Math.max(sw, sh)) * scale
+        : scale;
+
       let hatRise = 0;
       const hatInfo = hat ? getHatImage(hat) : null;
       const anchor = hat ? getHatAnchor(species) : null;
@@ -51,25 +57,25 @@ export function DinoSprite({ species, colors = {}, scale = 3, style = {}, hat = 
         if (hatTopInSprite < 0) hatRise = Math.ceil(-hatTopInSprite);
       }
 
-      const w = sw * scale;
-      const h = (sh + hatRise) * scale;
+      const w = sw * normScale;
+      const h = (sh + hatRise) * normScale;
       canvas.width = w;
       canvas.height = h;
       const ctx = canvas.getContext('2d');
       ctx.imageSmoothingEnabled = false;
 
-      ctx.drawImage(spriteSource, 0, hatRise * scale, sw * scale, sh * scale);
+      ctx.drawImage(spriteSource, 0, hatRise * normScale, sw * normScale, sh * normScale);
 
       if (hatInfo?.loaded && anchor) {
-        const hatW = hatInfo.img.naturalWidth * scale;
-        const hatH = hatInfo.img.naturalHeight * scale;
-        const hatX = (anchor.x + (hatInfo.offsetX || 0)) * scale - hatW / 2;
-        const hatY = (anchor.y + hatRise + hatInfo.offsetY) * scale - hatH;
+        const hatW = hatInfo.img.naturalWidth * normScale;
+        const hatH = hatInfo.img.naturalHeight * normScale;
+        const hatX = (anchor.x + (hatInfo.offsetX || 0)) * normScale - hatW / 2;
+        const hatY = (anchor.y + hatRise + hatInfo.offsetY) * normScale - hatH;
         ctx.drawImage(hatInfo.img, hatX, hatY, hatW, hatH);
       }
 
       // Overlay effects for rare paints
-      _drawEffectOverlays(ctx, species, colors, regions, spriteSource, sw, sh, hatRise, scale);
+      _drawEffectOverlays(ctx, species, colors, regions, spriteSource, sw, sh, hatRise, normScale);
     }
 
     draw();

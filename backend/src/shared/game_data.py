@@ -8,7 +8,7 @@ SPECIES = {
     "parasaurolophus": {"name": "Parasaurolophus", "diet": "herbivore", "food": "mejoberries", "regions": ["body", "belly", "stripes"]},
     "triceratops": {"name": "Triceratops", "diet": "herbivore", "food": "mejoberries", "regions": ["body", "belly", "stripes"]},
     "ankylosaurus": {"name": "Ankylosaurus", "diet": "herbivore", "food": "mejoberries", "regions": ["body", "belly", "stripes"]},
-    "godzilla": {"name": "Godzilla", "diet": "carnivore", "food": "meat", "regions": ["body", "belly", "stripes"]},
+    "godzilla": {"name": "Godzilla", "diet": "carnivore", "food": "meat", "regions": ["body", "spines", "spines_dark"]},
 }
 
 # The 7 base species — godzilla is a bonus and excluded from completionist checks

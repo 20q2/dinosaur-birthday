@@ -21,6 +21,7 @@ import pachyUrl from '../assets/sprites/pachy.png';
 import parasaurUrl from '../assets/sprites/parasaur.png';
 import trikeUrl from '../assets/sprites/trike.png';
 import ankyUrl from '../assets/sprites/anky.png';
+import godzillaUrl from '../assets/sprites/godzilla.png';
 import plazaBgUrl from '../assets/plaza_background.png';
 
 const SPRITE_URLS = {
@@ -31,6 +32,12 @@ const SPRITE_URLS = {
   parasaurolophus: parasaurUrl,
   triceratops: trikeUrl,
   ankylosaurus: ankyUrl,
+  godzilla: godzillaUrl,
+};
+
+/** Species with custom color palettes — need specialized pixel classifiers */
+const CUSTOM_CLASSIFIERS = {
+  godzilla: classifyGodzillaPixel,
 };
 
 // ── Image cache ──────────────────────────────────────────────────────────────
@@ -79,6 +86,32 @@ function classifyPixel(r, g, b, a) {
   return -1;
 }
 
+/**
+ * Classify a Godzilla pixel into regions:
+ *   0 = body (blue-gray, hue 170-230)
+ *   1 = spines bright (green, hue 90-165, v > 0.45)
+ *   2 = spines dark (green, hue 90-165, v <= 0.45)
+ *  -1 = outline / not a marker pixel
+ */
+function classifyGodzillaPixel(r, g, b, a) {
+  if (a < 128) return -1;
+  const { h, s, v } = rgbToHsv(r, g, b);
+  if (s < 0.06) return -1;   // desaturated (near-gray/white/black)
+  if (v < 0.12) return -1;   // outline / very dark
+
+  // Green spines
+  if (h >= 90 && h <= 165) {
+    return v > 0.45 ? 1 : 2;
+  }
+
+  // Blue-gray body
+  if (h >= 170 && h <= 230) {
+    return 0;
+  }
+
+  return -1;
+}
+
 // ── Core recolor function ────────────────────────────────────────────────────
 
 /**
@@ -87,7 +120,8 @@ function classifyPixel(r, g, b, a) {
  * @param {number[]} targetHues - Array of 3 hue values [primary, secondary, accent]
  * @returns {HTMLCanvasElement} - Offscreen canvas with recolored sprite
  */
-function recolorImage(img, targetHues) {
+function recolorImage(img, targetHues, classifier) {
+  classifier = classifier || classifyPixel;
   const w = img.naturalWidth || img.width;
   const h = img.naturalHeight || img.height;
 
@@ -113,7 +147,7 @@ function recolorImage(img, targetHues) {
       continue;
     }
 
-    const region = classifyPixel(r, g, b, a);
+    const region = classifier(r, g, b, a);
 
     if (region === -1) continue;
 
@@ -200,13 +234,15 @@ export function getRecolored(species, colors, regions) {
   const img = rawImages[species];
   if (!img) return null;
 
+  const clf = CUSTOM_CLASSIFIERS[species] || null;
+
   // Build target hues array ordered by region index
   const hues = regions.map(r => colors[r] ?? 120);
   const key = `${species}-${hues.join('-')}`;
 
   if (recolorCache.has(key)) return recolorCache.get(key);
 
-  const canvas = recolorImage(img, hues);
+  const canvas = recolorImage(img, hues, clf);
   recolorCache.set(key, canvas);
   return canvas;
 }
@@ -218,8 +254,9 @@ export function getRecolored(species, colors, regions) {
 export function getRecoloredUncached(species, colors, regions) {
   const img = rawImages[species];
   if (!img) return null;
+  const clf = CUSTOM_CLASSIFIERS[species] || null;
   const hues = regions.map(r => colors[r] ?? 120);
-  return recolorImage(img, hues);
+  return recolorImage(img, hues, clf);
 }
 
 /**
@@ -238,6 +275,7 @@ export function getRegionMask(species, regionIndices) {
   const key = `${species}-mask-${regionIndices.join(',')}`;
   if (regionMaskCache.has(key)) return regionMaskCache.get(key);
 
+  const clf = CUSTOM_CLASSIFIERS[species] || classifyPixel;
   const w = img.naturalWidth || img.width;
   const h = img.naturalHeight || img.height;
 
@@ -253,7 +291,7 @@ export function getRegionMask(species, regionIndices) {
 
   for (let i = 0; i < data.length; i += 4) {
     const r = data[i], g = data[i + 1], b = data[i + 2], a = data[i + 3];
-    const region = classifyPixel(r, g, b, a);
+    const region = clf(r, g, b, a);
     if (regionSet.has(region)) {
       data[i] = 255; data[i + 1] = 255; data[i + 2] = 255; data[i + 3] = 255;
     } else {

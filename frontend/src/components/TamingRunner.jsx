@@ -850,10 +850,15 @@ export function TamingRunner({ species, colors, foodType, onComplete }) {
   const bonusXP = Math.min(10, Math.floor(score / 100));
 
   const rotateStyle = isPortrait ? {
+    position: 'absolute',
     transform: 'rotate(90deg)',
     transformOrigin: 'center center',
     width: '100vh',
     height: '100vw',
+    left: '50%',
+    top: '50%',
+    marginLeft: '-50vh',
+    marginTop: '-50vw',
   } : {};
 
   return (
@@ -904,8 +909,8 @@ const styles = {
   canvas: {
     display: 'block',
     background: '#0a0a0a',
-    maxWidth: '100vw',
-    maxHeight: '100vh',
+    width: '100%',
+    height: '100%',
     imageRendering: 'pixelated',
     touchAction: 'none',
   },

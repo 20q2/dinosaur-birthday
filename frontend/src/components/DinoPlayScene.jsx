@@ -319,12 +319,11 @@ export const DinoPlayScene = forwardRef(function DinoPlayScene(props, ref) {
       const homeX = w / 2;
       const homeY = canvas.getBoundingClientRect().height - 20;
       stateRef.current.myDino = makeDino(data, homeX, homeY, ownerName);
-      // Load background image from partner dino's backdrop setting
-      if (data.background && BG_MAP[data.background]) {
-        const img = new Image();
-        img.onload = () => { stateRef.current.bgImage = img; };
-        img.src = BG_MAP[data.background];
-      }
+      // Load background image from partner dino's backdrop setting (default: volcanic)
+      const bgKey = (data.background && BG_MAP[data.background]) ? data.background : 'volcanic';
+      const img = new Image();
+      img.onload = () => { stateRef.current.bgImage = img; };
+      img.src = BG_MAP[bgKey];
     },
     setPartnerDino(data, ownerName) {
       const canvas = canvasRef.current;

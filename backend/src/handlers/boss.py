@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime, timezone
 from decimal import Decimal
 
-from ..shared.db import get_item, put_item, query_pk, get_table
+from ..shared.db import get_item, put_item, query_pk, update_item, get_table
 from ..shared.response import success, error
 from ..shared.ws_broadcast import broadcast
 
@@ -102,9 +102,8 @@ def tap_handler(event, context):
 
 
 def _award_kaiju_slayer_hat(player_id):
-    """Award the Kaiju Slayer hat to a player's partner dino."""
+    """Award the Kaiju Slayer hat to a player's partner dino and update plaza."""
     try:
-        # Find the partner dino
         dinos = query_pk(f"PLAYER#{player_id}", "DINO#")
         for dino in dinos:
             if dino.get("is_partner") or dino.get("tamed"):
@@ -114,6 +113,17 @@ def _award_kaiju_slayer_hat(player_id):
                     UpdateExpression="SET hat = :hat",
                     ExpressionAttributeValues={":hat": "kaiju_slayer"},
                 )
+                # Update plaza entry so other players see the hat
+                if dino.get("is_partner"):
+                    try:
+                        update_item("PLAZA", f"PARTNER#{player_id}", {"hat": "kaiju_slayer"})
+                        broadcast("plaza", "partner_update", {
+                            "player_id": player_id,
+                            "species": species,
+                            "hat": "kaiju_slayer",
+                        })
+                    except Exception:
+                        pass
                 break
     except Exception:
         pass

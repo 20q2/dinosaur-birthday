@@ -5,6 +5,6 @@ export default defineConfig(({ command }) => ({
   plugins: [preact()],
   base: command === 'serve' ? '/' : '/dinosaur-birthday/',
   server: {
-    port: 3000,
+    port: 3001,
   },
 }));

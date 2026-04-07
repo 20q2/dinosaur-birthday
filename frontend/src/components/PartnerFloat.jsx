@@ -1,6 +1,7 @@
 import { store } from '../store.js';
 import { useStore } from '../router.jsx';
 import { DinoSprite } from './DinoSprite.jsx';
+import { SPECIES } from '../data/species.js';
 
 import bgRocks from '../assets/backgrounds/dino_find_rocks.png';
 import bgSwamp from '../assets/backgrounds/dino_find_swamp.png';
@@ -32,7 +33,8 @@ export function PartnerFloat() {
   const partner = player.dinos.find(d => d.is_partner);
   if (!partner) return null;
 
-  const bgImg = BG_MAP[partner.background];
+  const bgKey = partner.background || (SPECIES[partner.species] && SPECIES[partner.species].backdrop) || 'volcanic';
+  const bgImg = BG_MAP[bgKey];
   const bgStyle = bgImg
     ? { backgroundImage: `url(${bgImg})`, backgroundSize: 'cover', backgroundPosition: 'center' }
     : { background: '#1a2e1a' };

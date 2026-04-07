@@ -21,7 +21,9 @@ export function Plaza() {
   const canvasRef = useRef(null);
   const plazaRef = useRef(null);
   const [partners, setPartners] = useState([]);
-  const [feedEntries, setFeedEntries] = useState(store.feedEntries.slice(0, 7));
+  const [feedEntries, setFeedEntries] = useState(() =>
+    store.feedEntries.slice(0, 5).map(e => ({ ...e, arrivedAt: Date.now() }))
+  );
   const [cooldownIds, setCooldownIds] = useState(() => getActiveCooldownIds());
 
   // Initial load + canvas setup
@@ -117,13 +119,35 @@ export function Plaza() {
     return () => clearInterval(iv);
   }, []);
 
-  // Subscribe to live feed entries from store
+  // Subscribe to live feed entries from store — keep max 5, stamp arrival time
   useEffect(() => {
     const unsub = store.subscribe(() => {
-      setFeedEntries(store.feedEntries.slice(0, 7));
+      setFeedEntries(prev => {
+        const existingIds = new Set(prev.map(e => e.id));
+        const newOnes = store.feedEntries
+          .filter(e => !existingIds.has(e.id))
+          .map(e => ({ ...e, arrivedAt: Date.now() }));
+        if (newOnes.length === 0) return prev;
+        return [...newOnes, ...prev].slice(0, 5);
+      });
     });
     return unsub;
   }, []);
+
+  // Expire feed entries after 60s and re-render for fade effect
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (feedEntries.length === 0) return;
+    const iv = setInterval(() => {
+      const now = Date.now();
+      setFeedEntries(prev => {
+        const filtered = prev.filter(e => now - e.arrivedAt < 60000);
+        return filtered.length === prev.length ? prev : filtered;
+      });
+      setTick(t => t + 1); // force re-render for smooth opacity
+    }, 3000);
+    return () => clearInterval(iv);
+  }, [feedEntries.length > 0]);
 
   return (
     <div style={styles.container}>
@@ -143,8 +167,11 @@ export function Plaza() {
           <div style={styles.feedList}>
             {feedEntries.map(entry => {
               const FeedIcon = FEED_ICONS[entry.type] || Leaf;
+              const age = Date.now() - entry.arrivedAt;
+              // Start fading at 45s, fully gone at 60s
+              const opacity = age < 45000 ? 1 : Math.max(0, 1 - (age - 45000) / 15000);
               return (
-                <div key={entry.id} style={styles.feedItem}>
+                <div key={entry.id} style={{ ...styles.feedItem, opacity, transition: 'opacity 3s ease-out' }}>
                   <FeedIcon size={12} style={styles.feedIcon} />
                   <span style={styles.feedText}>{entry.message}</span>
                 </div>
