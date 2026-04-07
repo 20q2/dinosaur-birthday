@@ -4,6 +4,10 @@ import { getRecolored, getRecoloredUncached } from '../utils/spriteEngine.js';
 import { resolveColors, hasEffects } from '../dinoColors.js';
 import meatImg from '../assets/items/meat.png';
 import berryImg from '../assets/items/berry.png';
+import forestBackdropUrl from '../assets/dinorun/forest_backdrop.png';
+import forestForegroundUrl from '../assets/dinorun/forest_foreground.png';
+import cactusUrl from '../assets/dinorun/cactus.png';
+import rockUrl from '../assets/dinorun/rock.png';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -11,77 +15,62 @@ const RUN_DURATION = 20000;
 const GROUND_Y_FRAC = 0.75;
 const START_SPEED = 3;
 const END_SPEED = 4.5;
-const JUMP_DURATION = 500;
-const JUMP_HEIGHT_FRAC = 0.35;
+const GRAVITY = 0.5;
+const JUMP_VELOCITY = -7;       // initial upward velocity on tap
+const HOLD_GRAVITY = 0.25;      // reduced gravity while holding (floatier rise)
+const MAX_FALL_SPEED = 8;
 const STUMBLE_DURATION = 300;
 const STUMBLE_SLOW = 0.4;
 const DINO_X_FRAC = 0.2;
 const SPRITE_SCALE = 1.5;
-const OBSTACLE_MIN_GAP = 350;
-const OBSTACLE_GAP_VARIANCE = 250;
+const OBSTACLE_MIN_GAP = 420;
+const OBSTACLE_GAP_VARIANCE = 280;
 const OBSTACLE_POOL_SIZE = 5;
 const BOB_INTERVAL = 150;
+const BERRY_MIN_GAP = 250;
+const BERRY_GAP_VARIANCE = 300;
+const BERRY_SIZE = 24;
+const BERRY_MAX_POINTS = 50;
+const BERRY_MIN_POINTS = 10;
+const BERRY_DECAY_MS = 3000;     // time for points to decay from max to min
+const POPUP_DURATION = 800;       // how long +X floats up
+const POPUP_RISE = 40;            // pixels the popup rises
 const DEFAULT_REGIONS = ['body', 'belly', 'stripes'];
 
-// ── Obstacle Types ───────────────────────────────────────────────────────────
+// ── Obstacle sprites (preloaded at module level) ────────────────────────────
+
+const _cactusImg = new Image();
+_cactusImg.src = cactusUrl;
+const _rockImg = new Image();
+_rockImg.src = rockUrl;
+
+function spriteObstacle(img, scale) {
+  // Dimensions computed lazily once image loads
+  let w = 0, h = 0, ready = false;
+  function ensure() {
+    if (!ready && img.complete && img.naturalWidth > 0) {
+      w = Math.round(img.width * scale);
+      h = Math.round(img.height * scale);
+      ready = true;
+    }
+  }
+  return {
+    get w() { ensure(); return w || Math.round(16 * scale); },
+    get h() { ensure(); return h || Math.round(16 * scale); },
+    draw(ctx, x, groundY) {
+      ensure();
+      if (!ready) return;
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(img, x, groundY - h, w, h);
+    },
+  };
+}
 
 const OBSTACLE_TYPES = [
-  {
-    w: 12, h: 24,
-    draw(ctx, x, groundY) {
-      // Small cactus
-      ctx.fillStyle = '#22c55e';
-      ctx.fillRect(x + 4, groundY - 24, 4, 24); // trunk
-      ctx.fillRect(x, groundY - 16, 4, 8);       // left arm
-      ctx.fillRect(x + 8, groundY - 20, 4, 8);   // right arm
-    },
-  },
-  {
-    w: 14, h: 34,
-    draw(ctx, x, groundY) {
-      // Tall cactus
-      ctx.fillStyle = '#16a34a';
-      ctx.fillRect(x + 5, groundY - 34, 4, 34);
-      ctx.fillStyle = '#22c55e';
-      ctx.fillRect(x, groundY - 24, 5, 6);
-      ctx.fillRect(x + 9, groundY - 28, 5, 6);
-    },
-  },
-  {
-    w: 20, h: 14,
-    draw(ctx, x, groundY) {
-      // Rock
-      ctx.fillStyle = '#6b7280';
-      ctx.beginPath();
-      ctx.moveTo(x, groundY);
-      ctx.lineTo(x + 3, groundY - 12);
-      ctx.lineTo(x + 10, groundY - 14);
-      ctx.lineTo(x + 17, groundY - 10);
-      ctx.lineTo(x + 20, groundY);
-      ctx.closePath();
-      ctx.fill();
-      // highlight
-      ctx.fillStyle = '#9ca3af';
-      ctx.beginPath();
-      ctx.moveTo(x + 5, groundY - 8);
-      ctx.lineTo(x + 10, groundY - 13);
-      ctx.lineTo(x + 14, groundY - 9);
-      ctx.closePath();
-      ctx.fill();
-    },
-  },
-  {
-    w: 22, h: 26,
-    draw(ctx, x, groundY) {
-      // Double cactus
-      ctx.fillStyle = '#22c55e';
-      ctx.fillRect(x + 2, groundY - 22, 4, 22);
-      ctx.fillRect(x, groundY - 14, 3, 6);
-      ctx.fillStyle = '#16a34a';
-      ctx.fillRect(x + 14, groundY - 26, 4, 26);
-      ctx.fillRect(x + 18, groundY - 18, 4, 6);
-    },
-  },
+  spriteObstacle(_cactusImg, 2),
+  spriteObstacle(_cactusImg, 2.8),
+  spriteObstacle(_rockImg, 2),
+  spriteObstacle(_rockImg, 3),
 ];
 
 // ── Module-level drawing and game helpers ────────────────────────────────────
@@ -101,13 +90,19 @@ function drawGround(ctx, game, canvasW) {
 }
 
 function drawHUD(ctx, game, elapsed, canvasW) {
-  // Distance counter top-right
-  const meters = Math.floor(game.distance);
   ctx.save();
   ctx.font = 'bold 14px monospace';
-  ctx.fillStyle = '#e0e0e0';
+
+  // Berry score top-right
+  ctx.fillStyle = '#4ade80';
   ctx.textAlign = 'right';
-  ctx.fillText(`${meters}m`, canvasW - 8, 20);
+  ctx.fillText(`🪙 ${game.berryScore || 0}`, canvasW - 8, 20);
+
+  // Distance below score
+  const meters = Math.floor(game.distance);
+  ctx.fillStyle = '#9ca3af';
+  ctx.font = '12px monospace';
+  ctx.fillText(`${meters}m`, canvasW - 8, 36);
 
   // Timer bar at top
   const frac = Math.min(elapsed / RUN_DURATION, 1);
@@ -136,37 +131,36 @@ function drawDino(ctx, game, spriteCanvas, now) {
     bobY = game.bobFrame % 2 === 0 ? 0 : -2;
   }
 
-  // Jump Y offset
-  let jumpY = 0;
-  if (game.jumping) {
-    const t = Math.min((now - game.jumpStart) / JUMP_DURATION, 1);
-    jumpY = -Math.sin(t * Math.PI) * game.jumpHeight;
-  }
+  // Jump Y offset from physics
+  const jumpY = game.dinoYOffset || 0;
 
-  // Squash/stretch on jump
+  // Squash/stretch
   let scaleX = 1;
   let scaleY = 1;
   if (game.jumping) {
-    const t = (now - game.jumpStart) / JUMP_DURATION;
-    if (t < 0.15) {
-      // takeoff squash
-      scaleX = 1.15;
-      scaleY = 0.85;
-    } else if (t > 0.4 && t < 0.6) {
-      // mid-air stretch
+    if (game.velocityY < -4) {
+      // rising fast — stretch vertically
       scaleX = 0.9;
       scaleY = 1.15;
-    } else if (t > 0.85) {
-      // landing squash
+    } else if (game.velocityY > 4) {
+      // falling fast — squash
       scaleX = 1.15;
       scaleY = 0.85;
     }
+  } else if (game.landSquash > 0) {
+    // brief squash on landing
+    scaleX = 1.12;
+    scaleY = 0.88;
   }
 
   const x = game.dinoX - (dw * scaleX) / 2;
   const y = game.groundY - dh * scaleY + jumpY + bobY;
 
   ctx.save();
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+  ctx.shadowBlur = 8;
+  ctx.shadowOffsetX = 2;
+  ctx.shadowOffsetY = 2;
 
   // Flip horizontally so dino faces right (sprites face left by default)
   const drawW = dw * scaleX;
@@ -212,9 +206,15 @@ function drawDino(ctx, game, spriteCanvas, now) {
 }
 
 function drawObstacles(ctx, game) {
+  ctx.save();
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+  ctx.shadowBlur = 10;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 2;
   for (const obs of game.obstacles) {
-    obs.type.draw(ctx, obs.x, game.groundY);
+    obs.type.draw(ctx, obs.x, game.groundY - 4);
   }
+  ctx.restore();
 }
 
 function updateFood(game, canvasW) {
@@ -276,7 +276,7 @@ function updateObstacles(game, canvasW, now, progress) {
 }
 
 function checkCollisions(game, spriteCanvas) {
-  if (!spriteCanvas || game.jumping || game.stumbling) return;
+  if (!spriteCanvas || game.stumbling) return;
 
   const sw = spriteCanvas.width * SPRITE_SCALE;
   const sh = spriteCanvas.height * SPRITE_SCALE;
@@ -286,24 +286,190 @@ function checkCollisions(game, spriteCanvas) {
   const dinoH = sh * 0.8;
   const dinoLeft = game.dinoX - dinoW / 2;
   const dinoRight = dinoLeft + dinoW;
-  const dinoTop = game.groundY - dinoH;
-  const dinoBottom = game.groundY;
+  const dinoTop = game.groundY - dinoH + (game.dinoYOffset || 0);
+  const dinoBottom = game.groundY + (game.dinoYOffset || 0);
 
-  for (const obs of game.obstacles) {
-    if (obs.passed) continue;
-
-    const obsLeft = obs.x;
-    const obsRight = obs.x + obs.type.w;
-    const obsTop = game.groundY - obs.type.h;
-    const obsBottom = game.groundY;
-
-    // AABB overlap
-    if (dinoRight > obsLeft && dinoLeft < obsRight && dinoBottom > obsTop && dinoTop < obsBottom) {
-      game.stumbling = true;
-      game.stumbleStart = performance.now();
-      obs.passed = true;
-      return;
+  // Obstacle collisions (only when on ground)
+  if (!game.jumping) {
+    for (const obs of game.obstacles) {
+      if (obs.passed) continue;
+      const obsLeft = obs.x;
+      const obsRight = obs.x + obs.type.w;
+      const obsTop = game.groundY - obs.type.h;
+      const obsBottom = game.groundY;
+      if (dinoRight > obsLeft && dinoLeft < obsRight && dinoBottom > obsTop && dinoTop < obsBottom) {
+        game.stumbling = true;
+        game.stumbleStart = performance.now();
+        obs.passed = true;
+        return;
+      }
     }
+  }
+
+  // Berry collection (works in air too)
+  const half = BERRY_SIZE / 2;
+  for (let i = game.berries.length - 1; i >= 0; i--) {
+    const b = game.berries[i];
+    const bLeft = b.x - half;
+    const bRight = b.x + half;
+    const bTop = b.y - half;
+    const bBottom = b.y + half;
+    if (dinoRight > bLeft && dinoLeft < bRight && dinoBottom > bTop && dinoTop < bBottom) {
+      // Score: more points the faster you grab it
+      const age = performance.now() - b.spawnTime;
+      const t = Math.min(age / BERRY_DECAY_MS, 1);
+      const points = Math.round(BERRY_MAX_POINTS - (BERRY_MAX_POINTS - BERRY_MIN_POINTS) * t);
+      game.berryScore += points;
+      // Spawn popup
+      game.popups.push({ x: b.x, y: b.y, points, startTime: performance.now() });
+      game.berries.splice(i, 1);
+    }
+  }
+}
+
+function overlapsObstacle(game, x, y) {
+  const half = BERRY_SIZE / 2;
+  const pad = 8; // extra padding so coins don't sit right at the edge
+  for (const obs of game.obstacles) {
+    const obsL = obs.x - pad;
+    const obsR = obs.x + obs.type.w + pad;
+    const obsT = game.groundY - obs.type.h - pad;
+    if (x + half > obsL && x - half < obsR && y + half > obsT && y - half < game.groundY) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// Max jump height from physics: v²/(2g) using hold gravity (floatiest jump)
+const MAX_JUMP_PX = (JUMP_VELOCITY * JUMP_VELOCITY) / (2 * HOLD_GRAVITY);
+
+function spawnBerry(game, canvasW) {
+  const x = canvasW + BERRY_SIZE;
+  // Aerial coins spawn between 30-90% of max jump height
+  const groundLevel = game.groundY - BERRY_SIZE;
+  const minAir = game.groundY - MAX_JUMP_PX * 0.9;
+  const maxAir = game.groundY - MAX_JUMP_PX * 0.3;
+  const airLevel = minAir + Math.random() * (maxAir - minAir);
+  let y = Math.random() < 0.6 ? groundLevel : airLevel;
+
+  // If ground-level coin overlaps an obstacle, push it to air instead
+  if (y === groundLevel && overlapsObstacle(game, x, y)) {
+    y = minAir + Math.random() * (maxAir - minAir);
+  }
+
+  game.berries.push({
+    x,
+    y,
+    spawnTime: performance.now(),
+  });
+  game.nextBerryX = canvasW + BERRY_MIN_GAP + Math.random() * BERRY_GAP_VARIANCE;
+}
+
+function updateBerries(game, canvasW) {
+  if (!game.ending && game.nextBerryX <= canvasW) {
+    spawnBerry(game, canvasW);
+  }
+  game.nextBerryX -= game.speed;
+  // Move berries left and cull off-screen
+  for (let i = game.berries.length - 1; i >= 0; i--) {
+    game.berries[i].x -= game.speed;
+    if (game.berries[i].x + BERRY_SIZE < 0) {
+      game.berries.splice(i, 1);
+    }
+  }
+}
+
+function drawCoin(ctx, cx, cy, r) {
+  ctx.save();
+  // Squash horizontally for a narrower, angled-coin look
+  ctx.translate(cx, cy);
+  ctx.scale(0.65, 1);
+  // Outer gold
+  ctx.beginPath();
+  ctx.arc(0, 0, r, 0, Math.PI * 2);
+  ctx.fillStyle = '#fbbf24';
+  ctx.fill();
+  // Inner ring
+  ctx.beginPath();
+  ctx.arc(0, 0, r * 0.75, 0, Math.PI * 2);
+  ctx.strokeStyle = '#d97706';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  // Centre dot
+  ctx.beginPath();
+  ctx.arc(0, 0, r * 0.25, 0, Math.PI * 2);
+  ctx.fillStyle = '#d97706';
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawBerries(ctx, game) {
+  const half = BERRY_SIZE / 2;
+  const r = half - 2;
+  for (const b of game.berries) {
+    const bob = Math.sin((performance.now() + b.x * 3) / 250) * 2;
+    drawCoin(ctx, b.x, b.y + bob, r);
+  }
+}
+
+function drawPopups(ctx, game, now) {
+  for (let i = game.popups.length - 1; i >= 0; i--) {
+    const p = game.popups[i];
+    const t = (now - p.startTime) / POPUP_DURATION;
+    if (t >= 1) {
+      game.popups.splice(i, 1);
+      continue;
+    }
+    const alpha = 1 - t;
+    const rise = t * POPUP_RISE;
+    ctx.save();
+    ctx.font = 'bold 16px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = `rgba(74, 222, 128, ${alpha})`;
+    ctx.fillText(`+${p.points}`, p.x, p.y - rise);
+    ctx.restore();
+  }
+}
+
+// ── Dust particles ──────────────────────────────────────────────────────────
+
+const DUST_LIFE = 600; // ms
+
+function spawnDust(game, count, spread, extraVy) {
+  for (let i = 0; i < count; i++) {
+    game.dust.push({
+      x: game.dinoX + (Math.random() - 0.5) * spread,
+      y: game.groundY - Math.random() * 4,
+      vx: -(Math.random() * 2 + 0.5),
+      vy: -(Math.random() * 2 + 0.5) + (extraVy || 0),
+      life: DUST_LIFE,
+      born: performance.now(),
+      size: 2.5 + Math.random() * 3,
+    });
+  }
+}
+
+function updateDust(game, now) {
+  for (let i = game.dust.length - 1; i >= 0; i--) {
+    const d = game.dust[i];
+    d.x += d.vx;
+    d.y += d.vy;
+    d.vy += 0.03;
+    if (now - d.born >= d.life) {
+      game.dust.splice(i, 1);
+    }
+  }
+}
+
+function drawDust(ctx, game, now) {
+  for (const d of game.dust) {
+    const t = (now - d.born) / d.life;
+    const alpha = 1 - t;
+    ctx.beginPath();
+    ctx.arc(d.x, d.y, d.size * (1 - t * 0.5), 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(210, 200, 180, ${alpha * 0.8})`;
+    ctx.fill();
   }
 }
 
@@ -334,12 +500,20 @@ export function TamingRunner({ species, colors, foodType, onComplete }) {
   const regions = speciesData ? speciesData.regions : DEFAULT_REGIONS;
   const animated = hasEffects(colors);
 
-  // Jump handler
+  // Jump handlers
   const doJump = useCallback(() => {
     const game = gameRef.current;
     if (!game || game.jumping) return;
     game.jumping = true;
-    game.jumpStart = performance.now();
+    game.holdingJump = true;
+    game.velocityY = JUMP_VELOCITY;
+    game.landSquash = 0;
+  }, []);
+
+  const doRelease = useCallback(() => {
+    const game = gameRef.current;
+    if (!game) return;
+    game.holdingJump = false;
   }, []);
 
   // ── Static preview frame for 'ready' phase ──────────────────────────────
@@ -353,45 +527,77 @@ export function TamingRunner({ species, colors, foodType, onComplete }) {
     const groundY = Math.floor(canvasH * GROUND_Y_FRAC);
     const dinoX = Math.floor(canvasW * DINO_X_FRAC);
 
-    // Draw background gradient
-    const grad = ctx.createLinearGradient(0, 0, 0, canvasH);
-    grad.addColorStop(0, '#1a1a3e');
-    grad.addColorStop(0.6, '#0f0f2a');
-    grad.addColorStop(1, '#0a0a0a');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, canvasW, canvasH);
+    // Preload images for preview
+    const previewBg = new Image();
+    previewBg.src = forestBackdropUrl;
+    const previewFg = new Image();
+    previewFg.src = forestForegroundUrl;
 
-    // Draw ground line
-    const previewGame = { groundY, groundOffset: 0 };
-    drawGround(ctx, previewGame, canvasW);
+    let pending = 2;
+    function drawPreview() {
+      ctx.clearRect(0, 0, canvasW, canvasH);
 
-    // Draw dino standing still
-    const resolved = animated ? resolveColors(colors, Date.now()) : colors;
-    const spriteCanvas = animated
-      ? getRecoloredUncached(species, resolved, regions)
-      : getRecolored(species, resolved, regions);
-    if (spriteCanvas) {
-      const sw = spriteCanvas.width;
-      const sh = spriteCanvas.height;
-      const dw = sw * SPRITE_SCALE;
-      const dh = sh * SPRITE_SCALE;
-      // Flip horizontally (facing right)
-      ctx.save();
-      ctx.translate(dinoX + dw / 2, groundY - dh);
-      ctx.scale(-1, 1);
-      ctx.drawImage(spriteCanvas, -dw / 2, 0, dw, dh);
-      ctx.restore();
+      // Background
+      if (previewBg.complete && previewBg.naturalWidth > 0) {
+        const scale = canvasH / previewBg.height;
+        const drawW = previewBg.width * scale;
+        for (let x = 0; x < canvasW; x += drawW) {
+          ctx.drawImage(previewBg, x, 0, drawW, canvasH);
+        }
+        ctx.fillStyle = 'rgba(10, 10, 26, 0.45)';
+        ctx.fillRect(0, 0, canvasW, canvasH);
+      } else {
+        const grad = ctx.createLinearGradient(0, 0, 0, canvasH);
+        grad.addColorStop(0, '#1a1a3e');
+        grad.addColorStop(0.6, '#0f0f2a');
+        grad.addColorStop(1, '#0a0a0a');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, canvasW, canvasH);
+      }
+
+      // Ground line
+      drawGround(ctx, { groundY, groundOffset: 0 }, canvasW);
+
+      // Foreground foliage — fill from ground line to bottom
+      if (previewFg.complete && previewFg.naturalWidth > 0) {
+        const fgH = canvasH - groundY + Math.floor(canvasH * 0.02);
+        const fgScale = fgH / previewFg.height;
+        const fgW = previewFg.width * fgScale;
+        const fgY = groundY - Math.floor(canvasH * 0.02);
+        const tileW = Math.ceil(fgW) + 1;
+        for (let x = 0; x < canvasW; x += fgW) {
+          ctx.drawImage(previewFg, Math.floor(x), fgY, tileW, fgH);
+        }
+      }
+
+      // Obstacles
+      const previewObs = [
+        { type: OBSTACLE_TYPES[0], x: canvasW * 0.45 },
+        { type: OBSTACLE_TYPES[2], x: canvasW * 0.65 },
+        { type: OBSTACLE_TYPES[1], x: canvasW * 0.85 },
+      ];
+      for (const obs of previewObs) obs.type.draw(ctx, obs.x, groundY - 4);
+
+      // Dino
+      const resolved = animated ? resolveColors(colors, Date.now()) : colors;
+      const sc = animated
+        ? getRecoloredUncached(species, resolved, regions)
+        : getRecolored(species, resolved, regions);
+      if (sc) {
+        const dw = sc.width * SPRITE_SCALE;
+        const dh = sc.height * SPRITE_SCALE;
+        ctx.save();
+        ctx.translate(dinoX + dw / 2, groundY - dh);
+        ctx.scale(-1, 1);
+        ctx.drawImage(sc, -dw / 2, 0, dw, dh);
+        ctx.restore();
+      }
     }
 
-    // Scatter a few obstacles for visual interest
-    const previewObs = [
-      { type: OBSTACLE_TYPES[0], x: canvasW * 0.45 },
-      { type: OBSTACLE_TYPES[2], x: canvasW * 0.65 },
-      { type: OBSTACLE_TYPES[1], x: canvasW * 0.85 },
-    ];
-    for (const obs of previewObs) {
-      obs.type.draw(ctx, obs.x, groundY);
-    }
+    drawPreview();
+    const onLoad = () => { if (--pending <= 0) drawPreview(); };
+    previewBg.onload = onLoad;
+    previewFg.onload = onLoad;
   }, [phase, canvasSize, species, colors, regions, animated]);
 
   // ── Game loop (runs when phase='running') ────────────────────────────────
@@ -403,40 +609,62 @@ export function TamingRunner({ species, colors, foodType, onComplete }) {
     const ctx = canvas.getContext('2d');
     ctx.imageSmoothingEnabled = false;
 
-    // Load food image
+    // Load food image (end-of-run)
     const foodImg = new Image();
     foodImg.src = foodType === 'meat' ? meatImg : berryImg;
 
+    // Load backdrop and foreground
+    const backdropImg = new Image();
+    backdropImg.src = forestBackdropUrl;
+    const foregroundImg = new Image();
+    foregroundImg.src = forestForegroundUrl;
+
     const groundY = Math.floor(canvasH * GROUND_Y_FRAC);
     const dinoX = Math.floor(canvasW * DINO_X_FRAC);
-    const jumpHeight = Math.floor(canvasH * JUMP_HEIGHT_FRAC);
 
     const game = {
       startTime: performance.now(),
       distance: 0,
       speed: START_SPEED,
       groundOffset: 0,
-      dinoY: groundY,
+      bgOffset: 0,
+      fgOffset: 0,
+      dinoYOffset: 0,
+      velocityY: 0,
       jumping: false,
-      jumpStart: 0,
+      holdingJump: false,
+      landSquash: 0,
       bobFrame: 0,
       lastBob: 0,
       stumbling: false,
       stumbleStart: 0,
       obstacles: [],
       nextObstacleX: canvasW + 100,
+      berries: [],
+      nextBerryX: canvasW + 200,
+      berryScore: 0,
+      popups: [],
+      dust: [],
       groundY,
       dinoX,
-      jumpHeight,
       foodImg: null,
+      backdropImg: null,
+      foregroundImg: null,
       ending: false,
       ended: false,
     };
 
     foodImg.onload = () => { game.foodImg = foodImg; };
-    // If already cached/loaded
     if (foodImg.complete && foodImg.naturalWidth > 0) {
       game.foodImg = foodImg;
+    }
+    backdropImg.onload = () => { game.backdropImg = backdropImg; };
+    if (backdropImg.complete && backdropImg.naturalWidth > 0) {
+      game.backdropImg = backdropImg;
+    }
+    foregroundImg.onload = () => { game.foregroundImg = foregroundImg; };
+    if (foregroundImg.complete && foregroundImg.naturalWidth > 0) {
+      game.foregroundImg = foregroundImg;
     }
 
     gameRef.current = game;
@@ -466,19 +694,32 @@ export function TamingRunner({ species, colors, foodType, onComplete }) {
 
       // Scroll ground (mod by dash pattern period 8+6=14)
       game.groundOffset = (game.groundOffset + game.speed) % 14;
+      // Parallax: backdrop slow, foreground faster
+      game.bgOffset += game.speed * 0.4;
+      game.fgOffset += game.speed;
 
-      // Jump arc
+      // Jump physics: hold = float up (low gravity), release = fall (full gravity)
       if (game.jumping) {
-        const t = (now - game.jumpStart) / JUMP_DURATION;
-        if (t >= 1) {
+        const grav = game.holdingJump && game.velocityY < 0 ? HOLD_GRAVITY : GRAVITY;
+        game.velocityY = Math.min(game.velocityY + grav, MAX_FALL_SPEED);
+        game.dinoYOffset += game.velocityY;
+        // Landed
+        if (game.dinoYOffset >= 0) {
+          game.dinoYOffset = 0;
+          game.velocityY = 0;
           game.jumping = false;
+          game.holdingJump = false;
+          game.landSquash = 4;
+          spawnDust(game, 8, 20, -1.5); // landing puff
         }
       }
+      if (game.landSquash > 0) game.landSquash--;
 
-      // Bob dino sprite when on ground
+      // Bob dino sprite when on ground + running dust
       if (!game.jumping && now - game.lastBob > BOB_INTERVAL) {
         game.bobFrame++;
         game.lastBob = now;
+        spawnDust(game, 2, 10, 0);
       }
 
       // End-of-run
@@ -486,15 +727,17 @@ export function TamingRunner({ species, colors, foodType, onComplete }) {
         game.ending = true;
         endTimeoutId = setTimeout(() => {
           game.ended = true;
-          const finalScore = Math.floor(game.distance);
+          const finalScore = Math.floor(game.distance) + game.berryScore;
           setScore(finalScore);
           setPhase('done');
         }, 1500);
       }
 
-      // Update obstacles and food
+      // Update obstacles, berries, food, dust
       updateObstacles(game, canvasW, now, progress);
+      updateBerries(game, canvasW);
       updateFood(game, canvasW);
+      updateDust(game, now);
 
       // Resolve sprite
       const time = Date.now();
@@ -503,29 +746,60 @@ export function TamingRunner({ species, colors, foodType, onComplete }) {
         ? getRecoloredUncached(species, resolved, regions)
         : getRecolored(species, resolved, regions);
 
-      // Check collisions (only when not jumping)
-      if (!game.jumping) {
-        checkCollisions(game, spriteCanvas);
-      }
+      // Check collisions (obstacles + berry collection)
+      checkCollisions(game, spriteCanvas);
 
       // ── Draw ──────────────────────────────────────────────────────────────
       ctx.clearRect(0, 0, canvasW, canvasH);
-      // Gradient sky background
-      if (!game._bgGrad) {
-        const grad = ctx.createLinearGradient(0, 0, 0, canvasH);
-        grad.addColorStop(0, '#1a1a3e');
-        grad.addColorStop(0.6, '#0f0f2a');
-        grad.addColorStop(1, '#0a0a0a');
-        game._bgGrad = grad;
+
+      // Scrolling backdrop (parallax) or fallback gradient
+      if (game.backdropImg) {
+        const img = game.backdropImg;
+        // Scale image to fill canvas height, then tile horizontally
+        const scale = canvasH / img.height;
+        const drawW = img.width * scale;
+        const offset = game.bgOffset % drawW;
+        for (let x = -offset; x < canvasW; x += drawW) {
+          ctx.drawImage(img, x, 0, drawW, canvasH);
+        }
+        // Darken overlay so foreground elements stay visible
+        ctx.fillStyle = 'rgba(10, 10, 26, 0.45)';
+        ctx.fillRect(0, 0, canvasW, canvasH);
+      } else {
+        if (!game._bgGrad) {
+          const grad = ctx.createLinearGradient(0, 0, 0, canvasH);
+          grad.addColorStop(0, '#1a1a3e');
+          grad.addColorStop(0.6, '#0f0f2a');
+          grad.addColorStop(1, '#0a0a0a');
+          game._bgGrad = grad;
+        }
+        ctx.fillStyle = game._bgGrad;
+        ctx.fillRect(0, 0, canvasW, canvasH);
       }
-      ctx.fillStyle = game._bgGrad;
-      ctx.fillRect(0, 0, canvasW, canvasH);
 
       drawGround(ctx, game, canvasW);
+
+      // Foreground foliage — scale to fill from ground line to bottom
+      if (game.foregroundImg) {
+        const fgImg = game.foregroundImg;
+        const fgH = canvasH - game.groundY + Math.floor(canvasH * 0.02);
+        const fgScale = fgH / fgImg.height;
+        const fgW = fgImg.width * fgScale;
+        const fgY = game.groundY - Math.floor(canvasH * 0.02);
+        const offset = game.fgOffset % fgW;
+        const tileW = Math.ceil(fgW) + 1; // +1px overlap to hide sub-pixel seams
+        for (let x = -offset; x < canvasW; x += fgW) {
+          ctx.drawImage(fgImg, Math.floor(x), fgY, tileW, fgH);
+        }
+      }
+
+      drawDust(ctx, game, now);
       drawObstacles(ctx, game);
+      drawBerries(ctx, game);
       drawFood(ctx, game);
       drawHUD(ctx, game, elapsed, canvasW);
       drawDino(ctx, game, spriteCanvas, now);
+      drawPopups(ctx, game, now);
 
       rafRef.current = requestAnimationFrame(tick);
     }
@@ -545,28 +819,29 @@ export function TamingRunner({ species, colors, foodType, onComplete }) {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const onTouch = (e) => {
-      e.preventDefault();
-      doJump();
-    };
-    const onMouse = () => doJump();
-    const onKey = (e) => {
-      if (e.code === 'Space') {
-        e.preventDefault();
-        doJump();
-      }
-    };
+    const onTouchStart = (e) => { e.preventDefault(); doJump(); };
+    const onTouchEnd = (e) => { e.preventDefault(); doRelease(); };
+    const onMouseDown = () => doJump();
+    const onMouseUp = () => doRelease();
+    const onKeyDown = (e) => { if (e.code === 'Space') { e.preventDefault(); doJump(); } };
+    const onKeyUp = (e) => { if (e.code === 'Space') doRelease(); };
 
-    canvas.addEventListener('touchstart', onTouch, { passive: false });
-    canvas.addEventListener('mousedown', onMouse);
-    window.addEventListener('keydown', onKey);
+    canvas.addEventListener('touchstart', onTouchStart, { passive: false });
+    canvas.addEventListener('touchend', onTouchEnd, { passive: false });
+    canvas.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('mouseup', onMouseUp);
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
 
     return () => {
-      canvas.removeEventListener('touchstart', onTouch);
-      canvas.removeEventListener('mousedown', onMouse);
-      window.removeEventListener('keydown', onKey);
+      canvas.removeEventListener('touchstart', onTouchStart);
+      canvas.removeEventListener('touchend', onTouchEnd);
+      canvas.removeEventListener('mousedown', onMouseDown);
+      window.removeEventListener('mouseup', onMouseUp);
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
     };
-  }, [phase, doJump]);
+  }, [phase, doJump, doRelease]);
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -590,7 +865,7 @@ export function TamingRunner({ species, colors, foodType, onComplete }) {
 
       {phase === 'done' && (
         <div style={styles.overlay}>
-          <div style={styles.scoreText}>{score}m</div>
+          <div style={styles.scoreText}>Score: {score}</div>
           <div style={styles.bonusText}>+{bonusXP} bonus XP</div>
           <button
             style={styles.continueBtn}

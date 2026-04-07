@@ -10,6 +10,9 @@ export function BossVictory() {
   const [particles, setParticles] = useState([]);
   const [visible, setVisible] = useState(false);
 
+  // Refresh player data so the Kaiju Slayer hat shows up
+  useEffect(() => { store.refresh(); }, []);
+
   // Generate confetti on mount
   useEffect(() => {
     const colors = ['#f87171', '#fb923c', '#facc15', '#4ade80', '#60a5fa', '#c084fc', '#f472b6'];

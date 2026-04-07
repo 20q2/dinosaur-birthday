@@ -199,9 +199,13 @@ function TimingTapGame({ foodType, theme, onFinish }) {
 // ── Whack-a-Food Game ─────────────────────────────────────────────────────────
 // Items pop in with a bounce, fade out when expiring, and burst on tap.
 
+const WHACK_MAX_PTS = 50;
+const WHACK_MIN_PTS = 10;
+
 function WhackAFoodGame({ foodType, theme, onFinish }) {
   const [items, setItems] = useState([]);
   const [bursts, setBursts] = useState([]);
+  const [popups, setPopups] = useState([]);
   const [score, setScore] = useState(0);
   const [timeLeft, setTimeLeft] = useState(WHACK_MS);
 
@@ -209,6 +213,7 @@ function WhackAFoodGame({ foodType, theme, onFinish }) {
   const totalRef = useRef(0);
   const nextIdRef = useRef(0);
   const burstIdRef = useRef(0);
+  const popupIdRef = useRef(0);
   const doneRef = useRef(false);
 
   function spawnItem() {
@@ -220,6 +225,7 @@ function WhackAFoodGame({ foodType, theme, onFinish }) {
       left: 5 + Math.random() * 70,
       top: 5 + Math.random() * 75,
       life,
+      spawnTime: performance.now(),
       state: 'active',
     };
     setItems(prev => {
@@ -238,14 +244,25 @@ function WhackAFoodGame({ foodType, theme, onFinish }) {
 
   function tapItem(e, id) {
     e.stopPropagation();
-    // Spawn burst at berry position
     const tapped = items.find(i => i.id === id);
-    if (tapped) {
-      const bid = burstIdRef.current++;
-      setBursts(b => [...b, { id: bid, left: tapped.left, top: tapped.top }]);
-      setTimeout(() => setBursts(b => b.filter(x => x.id !== bid)), 350);
-    }
-    scoreRef.current++;
+    if (!tapped) return;
+
+    // Points based on speed: faster tap = more points
+    const age = performance.now() - tapped.spawnTime;
+    const t = Math.min(age / tapped.life, 1);
+    const points = Math.round(WHACK_MAX_PTS - (WHACK_MAX_PTS - WHACK_MIN_PTS) * t);
+
+    // Spawn burst effect
+    const bid = burstIdRef.current++;
+    setBursts(b => [...b, { id: bid, left: tapped.left, top: tapped.top }]);
+    setTimeout(() => setBursts(b => b.filter(x => x.id !== bid)), 350);
+
+    // Spawn +X popup
+    const pid = popupIdRef.current++;
+    setPopups(p => [...p, { id: pid, left: tapped.left, top: tapped.top, points }]);
+    setTimeout(() => setPopups(p => p.filter(x => x.id !== pid)), 700);
+
+    scoreRef.current += points;
     setScore(scoreRef.current);
     setItems(prev => prev.filter(i => i.id !== id));
   }
@@ -291,6 +308,10 @@ function WhackAFoodGame({ foodType, theme, onFinish }) {
         @keyframes berryBurst {
           0%   { transform: translate(-50%, -50%) scale(0.5); opacity: 0.7; }
           100% { transform: translate(-50%, -50%) scale(2.2); opacity: 0; }
+        }
+        @keyframes pointsPopup {
+          0%   { transform: translateY(0); opacity: 1; }
+          100% { transform: translateY(-40px); opacity: 0; }
         }
       `}</style>
 
@@ -345,6 +366,27 @@ function WhackAFoodGame({ foodType, theme, onFinish }) {
             }}
           />
         ))}
+        {popups.map(p => (
+          <div
+            key={p.id}
+            style={{
+              position: 'absolute',
+              left: `calc(${p.left}% + 22px)`,
+              top: `${p.top}%`,
+              transform: 'translateX(-50%)',
+              color: p.points >= 40 ? '#fbbf24' : p.points >= 25 ? '#4ade80' : '#9ca3af',
+              fontSize: p.points >= 40 ? '18px' : '15px',
+              fontWeight: '900',
+              fontFamily: 'monospace',
+              textShadow: '0 1px 4px rgba(0,0,0,0.7)',
+              animation: 'pointsPopup 700ms ease-out forwards',
+              pointerEvents: 'none',
+              zIndex: 10,
+            }}
+          >
+            +{p.points}
+          </div>
+        ))}
       </div>
 
       <div style={{ color: '#6b7280', fontSize: '11px' }}>
@@ -358,7 +400,7 @@ function WhackAFoodGame({ foodType, theme, onFinish }) {
 
 function ResultsScreen({ score, total, foodType, xpEarned, apiResult, onComplete, theme }) {
   const canTame = apiResult && !apiResult.harvest_only && !apiResult.already_tamed;
-  const scoreLabel = foodType === 'meat' ? 'catches' : 'berries collected';
+  const scoreLabel = foodType === 'meat' ? 'catches' : 'points';
   const label = FOOD_LABELS[foodType] || foodType;
 
   return (
@@ -371,12 +413,12 @@ function ResultsScreen({ score, total, foodType, xpEarned, apiResult, onComplete
         You obtained {FOOD_HARVEST_LABELS[foodType] || label}!
       </div>
       <div style={{ fontSize: '12px', color: '#6b7280', margin: '-6px 0 4px' }}>
-        Added to your inventory
+        Your partner dino earns XP!
       </div>
 
       {/* Score */}
       <div style={{ fontSize: '32px', fontWeight: '900', color: theme.text }}>
-        {score} / {total || '?'}
+        {foodType === 'meat' ? `${score} / ${total || '?'}` : score}
       </div>
       <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>{scoreLabel}</div>
 
@@ -430,9 +472,18 @@ export function HarvestMinigame({ foodType, apiResult, onGameEnd, onComplete }) 
   }, [phase]);
 
   function handleGameFinish(perfects, goods, total) {
-    setScore(perfects + goods);
-    setTotal(total);
-    setXpEarned(computeXp(perfects, goods));
+    if (isMeat) {
+      setScore(perfects + goods);
+      setTotal(total);
+      setXpEarned(computeXp(perfects, goods));
+    } else {
+      // Whack-a-food: goods = total points, total = berries spawned
+      // Max possible ~50pts * ~14 berries ≈ 700. Scale XP 3-9 over 0-500 range.
+      const pts = goods;
+      setScore(pts);
+      setTotal(total);
+      setXpEarned(3 + Math.min(6, Math.floor(pts / 80)));
+    }
     setPhase('results');
     if (onGameEnd) onGameEnd(perfects, goods);
   }

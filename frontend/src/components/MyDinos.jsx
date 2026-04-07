@@ -5,6 +5,19 @@ import { HAT_MAP } from '../data/hats.js';
 import { DinoSprite } from './DinoSprite.jsx';
 import { TitleBar } from './TitleBar.jsx';
 
+import bgRocks from '../assets/backgrounds/dino_find_rocks.png';
+import bgSwamp from '../assets/backgrounds/dino_find_swamp.png';
+import bgRiver from '../assets/backgrounds/dino_find_river.png';
+import bgGrass from '../assets/backgrounds/dino_find_tall_grass.png';
+import bgCave from '../assets/backgrounds/dino_find_cave.png';
+import bgCanyon from '../assets/backgrounds/dino_find_canyon.png';
+import bgVolcanic from '../assets/backgrounds/dino_find_volcanic.png';
+
+const BACKDROP_IMG = {
+  rocks: bgRocks, swamp: bgSwamp, river: bgRiver,
+  grass: bgGrass, cave: bgCave, canyon: bgCanyon, volcanic: bgVolcanic,
+};
+
 const TOTAL_SPECIES = Object.values(SPECIES).filter(s => !s.secret).length;
 const XP_PER_LEVEL = 100;
 const MAX_LEVEL = 5;
@@ -20,16 +33,29 @@ function DinoCard({ dino }) {
   const hatData = dino.hat ? HAT_MAP[dino.hat] : null;
   const isTamed = dino.tamed;
   const progress = xpProgress(dino.xp || 0, dino.level || 1);
+  const backdropSrc = BACKDROP_IMG[speciesData.backdrop];
 
   return (
     <button
       onClick={() => store.navigate(`/dinos/${dino.species}`)}
       style={{
         ...styles.card,
+        position: 'relative',
+        overflow: 'hidden',
         opacity: isTamed ? 1 : 0.65,
         borderColor: dino.is_partner ? '#4ade80' : '#2a2a3e',
       }}
     >
+      {backdropSrc && (
+        <div style={{
+          position: 'absolute', inset: 0,
+          backgroundImage: `url(${backdropSrc})`,
+          backgroundSize: 'cover', backgroundPosition: 'center bottom',
+          opacity: 0.1, pointerEvents: 'none',
+          maskImage: 'linear-gradient(to right, transparent, black)',
+          WebkitMaskImage: 'linear-gradient(to right, transparent, black)',
+        }} />
+      )}
       {/* Sprite — clipped to box */}
       <div style={styles.spriteBox}>
         <DinoSprite species={dino.species} colors={dino.colors || {}} scale={2} hat={dino.hat || null} style={{ width: '100%', height: '100%' }} />
