@@ -1020,7 +1020,13 @@ export class PlazaCanvas {
 
     const photo = d.ownerPhoto;
     if (photo && photo.loaded && !photo.failed) {
-      ctx.drawImage(photo.img, photoX - photoR, photoY - photoR, photoSize, photoSize);
+      // Draw cover-fit to avoid squishing non-square photos
+      const iw = photo.img.naturalWidth || photo.img.width;
+      const ih = photo.img.naturalHeight || photo.img.height;
+      const coverScale = Math.max(photoSize / iw, photoSize / ih);
+      const dw = iw * coverScale;
+      const dh = ih * coverScale;
+      ctx.drawImage(photo.img, photoX - dw / 2, photoY - dh / 2, dw, dh);
     } else {
       // Fallback: green circle with initial
       ctx.fillStyle = '#4ade80';

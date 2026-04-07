@@ -4,6 +4,7 @@ import { api } from '../api.js';
 import { SPECIES } from '../data/species.js';
 import { DinoSprite } from './DinoSprite.jsx';
 import { DinoTaming } from './DinoTaming.jsx';
+import { TamingRunner } from './TamingRunner.jsx';
 import meatImg from '../assets/items/meat.png';
 import berryImg from '../assets/items/berry.png';
 
@@ -12,7 +13,7 @@ export function DinoEncounter({ species }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showReveal, setShowReveal] = useState(true);
-  const [phase, setPhase] = useState('encounter'); // 'encounter' | 'taming'
+  const [phase, setPhase] = useState('encounter'); // 'encounter' | 'runner' | 'taming'
   const [tamingResult, setTamingResult] = useState(null);
 
   useEffect(() => {
@@ -81,14 +82,27 @@ export function DinoEncounter({ species }) {
       const result = await api.scanFood(store.playerId, foodType, species);
       await store.refresh();
       setTamingResult(result);
-      setPhase('taming');
+      setPhase('runner');
     } catch (err) {
       setError(err.message);
     }
     setLoading(false);
   };
 
-  // Phase 2: taming (name + hat selection)
+  // Phase 2: runner minigame
+  if (phase === 'runner') {
+    const foodType = SPECIES[species]?.food;
+    return (
+      <TamingRunner
+        species={species}
+        colors={dino?.colors || {}}
+        foodType={foodType}
+        onComplete={() => setPhase('taming')}
+      />
+    );
+  }
+
+  // Phase 3: taming (name + hat selection)
   if (phase === 'taming') {
     const foodType = SPECIES[species]?.food;
     return <DinoTaming foodType={foodType} prefetchedResult={tamingResult} />;

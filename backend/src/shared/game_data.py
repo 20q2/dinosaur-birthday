@@ -2,13 +2,13 @@ import random
 
 SPECIES = {
     "trex": {"name": "T-Rex", "diet": "carnivore", "food": "meat", "regions": ["body", "belly", "stripes"]},
-    "spinosaurus": {"name": "Spinosaurus", "diet": "carnivore", "food": "meat", "regions": ["body", "sail", "belly"]},
-    "dilophosaurus": {"name": "Dilophosaurus", "diet": "carnivore", "food": "meat", "regions": ["body", "frill", "crest"]},
-    "pachycephalosaurus": {"name": "Pachycephalosaurus", "diet": "herbivore", "food": "mejoberries", "regions": ["body", "dome", "spots"]},
-    "parasaurolophus": {"name": "Parasaurolophus", "diet": "herbivore", "food": "mejoberries", "regions": ["body", "crest", "belly"]},
-    "triceratops": {"name": "Triceratops", "diet": "herbivore", "food": "mejoberries", "regions": ["body", "frill", "horns"]},
-    "ankylosaurus": {"name": "Ankylosaurus", "diet": "herbivore", "food": "mejoberries", "regions": ["body", "armor", "club"]},
-    "godzilla": {"name": "Godzilla", "diet": "carnivore", "food": "meat", "regions": ["body", "spines", "belly"]},
+    "spinosaurus": {"name": "Spinosaurus", "diet": "carnivore", "food": "meat", "regions": ["body", "belly", "stripes"]},
+    "dilophosaurus": {"name": "Dilophosaurus", "diet": "carnivore", "food": "meat", "regions": ["body", "belly", "stripes"]},
+    "pachycephalosaurus": {"name": "Pachycephalosaurus", "diet": "herbivore", "food": "mejoberries", "regions": ["body", "belly", "stripes"]},
+    "parasaurolophus": {"name": "Parasaurolophus", "diet": "herbivore", "food": "mejoberries", "regions": ["body", "belly", "stripes"]},
+    "triceratops": {"name": "Triceratops", "diet": "herbivore", "food": "mejoberries", "regions": ["body", "belly", "stripes"]},
+    "ankylosaurus": {"name": "Ankylosaurus", "diet": "herbivore", "food": "mejoberries", "regions": ["body", "belly", "stripes"]},
+    "godzilla": {"name": "Godzilla", "diet": "carnivore", "food": "meat", "regions": ["body", "belly", "stripes"]},
 }
 
 # The 7 base species — godzilla is a bonus and excluded from completionist checks
@@ -128,20 +128,20 @@ def random_colors(regions, shiny=False):
         return colors
     else:
         # Natural colors per region role:
-        # Primary (body): greens, browns, grey-greens — typical lizard/reptile body
+        # Body: greens, browns, grey-greens — typical lizard/reptile body
         primary_ranges = [
             (80, 135),   # greens (forest, olive, lime)
             (80, 135),   # greens (double weight — most common)
             (30, 55),    # browns / warm earth
             (140, 160),  # muted teal-green
         ]
-        # Secondary (belly/sail/frill): yellowish to brownish underbelly tones
+        # Belly: yellowish to brownish underbelly tones
         belly_ranges = [
             (30, 55),    # tan / sandy brown
             (40, 60),    # golden / warm yellow
             (25, 45),    # warm brown / khaki
         ]
-        # Tertiary (stripes/spots/details): varied but natural
+        # Stripes: varied but natural
         accent_ranges = [
             (75, 140),   # greens
             (30, 60),    # browns / olive

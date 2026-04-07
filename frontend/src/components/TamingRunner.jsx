@@ -244,20 +244,22 @@ function drawFood(ctx, game) {
   ctx.drawImage(game.foodImg, game.foodX, game.foodY + bob, size, size);
 }
 
-function spawnObstacle(game, canvasW) {
+function spawnObstacle(game, canvasW, progress) {
   const type = OBSTACLE_TYPES[Math.floor(Math.random() * OBSTACLE_TYPES.length)];
   game.obstacles.push({
     type,
     x: canvasW + type.w,
     passed: false,
   });
-  game.nextObstacleX = canvasW + OBSTACLE_MIN_GAP + Math.random() * OBSTACLE_GAP_VARIANCE;
+  // Gaps shrink as progress increases: full gap at start, ~55% gap at end
+  const gapScale = 1 - progress * 0.45;
+  game.nextObstacleX = canvasW + (OBSTACLE_MIN_GAP + Math.random() * OBSTACLE_GAP_VARIANCE) * gapScale;
 }
 
-function updateObstacles(game, canvasW, now) {
+function updateObstacles(game, canvasW, now, progress) {
   // Spawn new obstacles
   if (game.obstacles.length < OBSTACLE_POOL_SIZE && game.nextObstacleX <= canvasW && !game.ending) {
-    spawnObstacle(game, canvasW);
+    spawnObstacle(game, canvasW, progress);
   }
 
   // Move obstacles left
@@ -491,7 +493,7 @@ export function TamingRunner({ species, colors, foodType, onComplete }) {
       }
 
       // Update obstacles and food
-      updateObstacles(game, canvasW, now);
+      updateObstacles(game, canvasW, now, progress);
       updateFood(game, canvasW);
 
       // Resolve sprite

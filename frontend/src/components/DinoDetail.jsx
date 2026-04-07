@@ -7,6 +7,8 @@ import { HATS, HAT_MAP } from '../data/hats.js';
 import { PAINT_MAP } from '../data/paints.js';
 import { DinoSprite } from './DinoSprite.jsx';
 import { PaintSprite } from './PaintSprite.jsx';
+import { TamingRunner } from './TamingRunner.jsx';
+import { DinoTaming } from './DinoTaming.jsx';
 import { resolveColors } from '../dinoColors.js';
 
 const RARE_PREVIEW_BG = {
@@ -103,6 +105,9 @@ export function DinoDetail({ species }) {
   const [paintRegion, setPaintRegion] = useState(null);
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState('');
+  const [tamingPhase, setTamingPhase] = useState(null); // null | 'runner' | 'taming'
+  const [tamingResult, setTamingResult] = useState(null);
+  const [runMode, setRunMode] = useState(false);
 
   if (!dino) {
     return (
@@ -113,6 +118,46 @@ export function DinoDetail({ species }) {
         </div>
       </div>
     );
+  }
+
+  const handleTame = async () => {
+    setBusy(true);
+    try {
+      const foodType = speciesData.food;
+      const result = await api.scanFood(store.playerId, foodType, species);
+      await store.refresh();
+      setTamingResult(result);
+      setTamingPhase('runner');
+    } catch (err) {
+      setFeedback(err.message || 'Something went wrong');
+    }
+    setBusy(false);
+  };
+
+  if (runMode) {
+    return (
+      <TamingRunner
+        species={species}
+        colors={dino.colors || {}}
+        foodType={speciesData.food}
+        onComplete={() => setRunMode(false)}
+      />
+    );
+  }
+
+  if (tamingPhase === 'runner') {
+    return (
+      <TamingRunner
+        species={species}
+        colors={dino.colors || {}}
+        foodType={speciesData.food}
+        onComplete={() => setTamingPhase('taming')}
+      />
+    );
+  }
+
+  if (tamingPhase === 'taming') {
+    return <DinoTaming foodType={speciesData.food} prefetchedResult={tamingResult} />;
   }
 
   const hatData = dino.hat ? HAT_MAP[dino.hat] : null;
@@ -601,12 +646,19 @@ export function DinoDetail({ species }) {
         <div style={styles.partnerNote}>This dino is your Plaza partner!</div>
       )}
 
-      {/* Untamed notice */}
+      {/* Go for a Run */}
+      {dino.tamed && (
+        <button onClick={() => setRunMode(true)} style={{ ...styles.btn, background: '#1e1b4b', color: '#a78bfa' }}>
+          Go for a Run!
+        </button>
+      )}
+
+      {/* Untamed — tame button */}
       {!dino.tamed && (
-        <div style={styles.untamedNote}>
+        <button onClick={handleTame} style={styles.tameBtn} disabled={busy}>
           <img src={speciesData.diet === 'carnivore' ? meatImg : berryImg} style={styles.untamedFoodImg} />
-          <span>Find {speciesData.diet === 'carnivore' ? 'Meat' : 'Mejoberries'} to tame this dino!</span>
-        </div>
+          {busy ? 'Feeding...' : `Feed ${speciesData.diet === 'carnivore' ? 'Meat' : 'Mejoberries'} & Tame!`}
+        </button>
       )}
       </div>
     </div>
@@ -762,14 +814,12 @@ const styles = {
     background: '#16213e', borderRadius: '10px', padding: '8px 14px',
     border: '1px solid #2a3a5e',
   },
-  untamedNote: {
+  tameBtn: {
     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-    background: 'rgba(13,17,23,0.92)', borderRadius: '12px 12px 0 0',
-    padding: '16px 20px',
-    color: '#f59e0b', fontSize: '14px', fontWeight: '600',
-    position: 'fixed', bottom: '60px', left: 0, right: 0,
-    zIndex: 5, backdropFilter: 'blur(8px)',
-    borderBottom: '2px solid rgba(245,158,11,0.3)',
+    background: '#4ade80', borderRadius: '12px',
+    padding: '14px 20px', border: 'none',
+    color: '#14532d', fontSize: '15px', fontWeight: '700',
+    cursor: 'pointer', width: '100%',
   },
   untamedFoodImg: { width: '24px', height: '24px', imageRendering: 'pixelated' },
 };

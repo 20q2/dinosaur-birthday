@@ -25,7 +25,7 @@ def test_droppable_hats_excludes_legendary():
 
 
 def test_random_colors_covers_all_regions():
-    regions = ["body", "crest", "belly"]
+    regions = ["body", "belly", "stripes"]
     colors = random_colors(regions)
     assert set(colors.keys()) == set(regions)
     for hue in colors.values():
