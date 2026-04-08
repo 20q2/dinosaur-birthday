@@ -11,7 +11,7 @@ _starryImg.onload = () => { _starryLoaded = true; };
 
 const BASE_SPRITE_SCALE = 1.25;
 const SCALE_MIN = 0.7;
-const SCALE_MAX = 1.5;
+const SCALE_MAX = 2.3;
 const MAX_LEVEL = 5;
 
 const WORLD_W = 1800;
@@ -722,6 +722,7 @@ export class PlazaCanvas {
 
     // Sprite (pixelated — sprites face left by default, flip for right)
     ctx.save();
+    ctx.filter = 'drop-shadow(0px 2px 3px rgba(0,0,0,0.6))';
     ctx.imageSmoothingEnabled = false;
     if (!d.facingLeft) {
       ctx.translate(x, y + hopY);

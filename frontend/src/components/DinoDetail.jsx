@@ -384,6 +384,17 @@ export function DinoDetail({ species }) {
             </div>
           </>
         )}
+        {dino.tamed && (
+          <>
+            <div style={styles.divider} />
+            <div style={styles.levelLine}>
+              Level {dino.level || 1}{dino.level >= MAX_LEVEL ? ' (MAX)' : ''} · {dino.xp || 0} XP
+              <div style={styles.xpBarBgInline}>
+                <div style={{ ...styles.xpBarFill, width: `${progress}%` }} />
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Feedback message */}
@@ -578,19 +589,6 @@ export function DinoDetail({ species }) {
         </div>
       )}
 
-      {/* Level / XP — tamed only */}
-      {dino.tamed && (
-        <div style={styles.card}>
-          <div style={styles.statRow}>
-            <span style={styles.statLabel}>Level {dino.level || 1}{dino.level >= MAX_LEVEL ? ' (MAX)' : ''}</span>
-            <span style={styles.xpText}>{dino.xp || 0} XP</span>
-          </div>
-          <div style={styles.xpBarBg}>
-            <div style={{ ...styles.xpBarFill, width: `${progress}%` }} />
-          </div>
-        </div>
-      )}
-
       {/* Background picker — tamed only */}
       {dino.tamed && (showBg ? (
         <div style={styles.card}>
@@ -715,6 +713,8 @@ const styles = {
     color: '#e0e0e0', fontSize: '16px', padding: '8px 12px', cursor: 'pointer',
   },
   meta: { fontSize: '13px', color: '#9ca3af', marginTop: '4px' },
+  levelLine: { fontSize: '12px', color: '#9ca3af', marginTop: '4px', textAlign: 'center' },
+  xpBarBgInline: { height: '4px', background: '#2a2a3e', borderRadius: '2px', overflow: 'hidden', marginTop: '4px' },
   flavor: {
     color: '#c4b5fd', fontSize: '13px', fontStyle: 'italic',
     textAlign: 'center',

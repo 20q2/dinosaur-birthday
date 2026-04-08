@@ -135,7 +135,7 @@ export function NoteViewer({ noteId, onClose, badges, fadeFromBlack = false }) {
             alt={`Explorer Note #${noteNum}`}
             style={{
               ...styles.noteImage,
-              transform: `rotate(90deg) scale(${scale}) translate(${translate.x / scale}px, ${translate.y / scale}px)`,
+              transform: `translate(${translate.x}px, ${translate.y}px) rotate(90deg) scale(${scale})`,
               transition: isPanning ? 'none' : 'transform 0.2s ease-out',
             }}
           />

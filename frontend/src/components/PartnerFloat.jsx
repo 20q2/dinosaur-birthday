@@ -41,15 +41,16 @@ export function PartnerFloat() {
 
   return (
     <div
-      style={{ ...styles.wrapper, ...bgStyle }}
+      style={styles.wrapper}
       onClick={() => store.navigate('/dinos/' + partner.species)}
     >
+      <div style={{ ...styles.bg, ...bgStyle }} />
       <DinoSprite
         species={partner.species}
         colors={partner.colors || {}}
         hat={partner.hat || null}
         scale={1.5}
-        style={{ marginTop: '-20%', marginLeft: '15%', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.7))' }}
+        style={{ marginTop: '-20%', marginLeft: '15%', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.7))', position: 'relative' }}
       />
     </div>
   );
@@ -58,18 +59,23 @@ export function PartnerFloat() {
 const styles = {
   wrapper: {
     position: 'fixed',
-    bottom: '76px',
-    right: '12px',
+    bottom: '68px',
+    right: '2px',
     zIndex: 20,
     width: '88px',
     height: '88px',
-    borderRadius: '14px',
-    border: '2px solid #333',
+    borderRadius: '4px',
+    border: '2px solid #000000a0',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     cursor: 'pointer',
     boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
     overflow: 'hidden',
+  },
+  bg: {
+    position: 'absolute', inset: 0,
+    backgroundSize: 'cover', backgroundPosition: 'center',
+    filter: 'saturate(0.5)',
   },
 };
