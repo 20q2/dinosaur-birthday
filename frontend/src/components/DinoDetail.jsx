@@ -100,6 +100,7 @@ export function DinoDetail({ species }) {
   const [showHats, setShowHats] = useState(false);
   const [showBg, setShowBg] = useState(false);
   const [hatPop, setHatPop] = useState(false);
+  const [loadingHat, setLoadingHat] = useState(null);
   const [showPaints, setShowPaints] = useState(false);
   const [selectedPaint, setSelectedPaint] = useState(null); // paint_id
   const [paintRegion, setPaintRegion] = useState(null);
@@ -257,6 +258,7 @@ export function DinoDetail({ species }) {
   }
 
   function handleEquipHat(hatId) {
+    setLoadingHat(hatId);
     doAction(async () => {
       await api.customizeDino(store.playerId, species, { hat: hatId });
       if (hatId) {
@@ -264,7 +266,7 @@ export function DinoDetail({ species }) {
         setTimeout(() => setHatPop(false), 400);
       }
       portraitRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
+    }).finally(() => setLoadingHat(null));
   }
 
   function handleSetPartner() {
@@ -294,6 +296,7 @@ export function DinoDetail({ species }) {
   function handleCancelPaint() {
     setSelectedPaint(null);
     setPaintRegion(null);
+    setShowPaints(true);
   }
 
   // Compute backdrop for full page background
@@ -316,6 +319,10 @@ export function DinoDetail({ species }) {
       />
       <div style={styles.content}>
       <style>{`
+        @keyframes hat-spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
         @keyframes hat-pop {
           0% { transform: scale(0) rotate(-20deg); }
           60% { transform: scale(1.2) rotate(5deg); }
@@ -450,7 +457,7 @@ export function DinoDetail({ species }) {
                   background: !dino.hat ? '#0f2a1a' : '#0d1117',
                 }}
               >
-                <span style={{ fontSize: '20px', color: '#666' }}>-</span>
+                {loadingHat === '' ? <span style={styles.hatSpinner} /> : <span style={{ fontSize: '20px', color: '#666' }}>-</span>}
                 <span style={styles.hatGridName}>None</span>
               </button>
               {availableHats.map(hat => {
@@ -466,9 +473,11 @@ export function DinoDetail({ species }) {
                       background: dino.hat === hat.id ? '#0f2a1a' : '#0d1117',
                     }}
                   >
-                    {hatImg && hatImg.loaded
-                      ? <img src={hatImg.img.src} style={{ width: '36px', height: '36px', imageRendering: 'pixelated', objectFit: 'contain' }} />
-                      : <span style={{ fontSize: '22px' }}>{'\uD83C\uDFA9'}</span>}
+                    {loadingHat === hat.id
+                      ? <span style={styles.hatSpinner} />
+                      : hatImg && hatImg.loaded
+                        ? <img src={hatImg.img.src} style={{ width: '36px', height: '36px', imageRendering: 'pixelated', objectFit: 'contain' }} />
+                        : <span style={{ fontSize: '22px' }}>{'\uD83C\uDFA9'}</span>}
                     <span style={styles.hatGridName}>{hat.name}</span>
                   </button>
                 );
@@ -729,8 +738,8 @@ const styles = {
   },
   sectionTitle: { fontSize: '14px', color: '#e0e0e0', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' },
   statRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-  statLabel: { fontSize: '13px', color: '#888' },
-  statValue: { fontSize: '14px', color: '#e0e0e0', fontWeight: 'bold' },
+  statLabel: { fontSize: '13px', color: '#e0e0e0' },
+  statValue: { fontSize: '14px', color: '#888', fontWeight: 'bold' },
   xpBarBg: { height: '6px', background: '#2a2a3e', borderRadius: '3px', overflow: 'hidden' },
   xpBarFill: { height: '100%', background: '#4ade80', borderRadius: '3px' },
   xpText: { fontSize: '11px', color: '#666', textAlign: 'right' },
@@ -769,6 +778,11 @@ const styles = {
   hatGridName: {
     fontSize: '11px', color: '#aaa', lineHeight: 1.2, textAlign: 'center',
     wordBreak: 'break-word',
+  },
+  hatSpinner: {
+    display: 'inline-block', width: '24px', height: '24px',
+    border: '3px solid #333', borderTopColor: '#4ade80', borderRadius: '50%',
+    animation: 'hat-spin 0.6s linear infinite',
   },
   regionRow: { display: 'flex', gap: '6px' },
   regionBtn: {
