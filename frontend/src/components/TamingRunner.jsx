@@ -13,8 +13,8 @@ import rockUrl from '../assets/dinoRun/rock.png';
 
 const RUN_DURATION = 20000;
 const GROUND_Y_FRAC = 0.75;
-const START_SPEED = 3;
-const END_SPEED = 4.5;
+const START_SPEED = 4;
+const END_SPEED = 6;
 const GRAVITY = 0.5;
 const JUMP_VELOCITY = -7;       // initial upward velocity on tap
 const HOLD_GRAVITY = 0.25;      // reduced gravity while holding (floatier rise)
@@ -219,17 +219,20 @@ function drawObstacles(ctx, game) {
 
 function updateFood(game, canvasW) {
   if (!game.ending || !game.foodImg) return;
+  const scale = game.scale || 1;
   // Initialize food position on first ending frame
   if (game.foodX == null) {
     game.foodX = canvasW + 20;
     game.foodY = game.groundY - game.groundY * 0.5; // start high in the air
     game.foodTargetY = game.groundY - 28; // land near ground
+    // Drift fast enough to reach the dino within ~1s regardless of canvas width.
+    // (Previously tied to game.speed, which failed on wide landscape phone canvases.)
+    const distToDino = Math.max(1, canvasW + 20 - (game.dinoX + 10));
+    game.foodDriftBase = distToDino / 60; // px per 60fps frame → ~1s travel time
   }
-  // Float toward the dino: drift left and descend
-  const driftSpeed = game.speed * 0.6;
-  game.foodX -= driftSpeed;
-  // Ease Y toward target
-  game.foodY += (game.foodTargetY - game.foodY) * 0.03;
+  game.foodX -= game.foodDriftBase * scale;
+  // Ease Y toward target (scale easing by frame time)
+  game.foodY += (game.foodTargetY - game.foodY) * (1 - Math.pow(1 - 0.03, scale));
   // Don't drift past the dino
   const minX = game.dinoX + 10;
   if (game.foodX < minX) game.foodX = minX;
@@ -262,9 +265,10 @@ function updateObstacles(game, canvasW, now, progress) {
     spawnObstacle(game, canvasW, progress);
   }
 
+  const ds = game.speed * (game.scale || 1);
   // Move obstacles left
   for (let i = game.obstacles.length - 1; i >= 0; i--) {
-    game.obstacles[i].x -= game.speed;
+    game.obstacles[i].x -= ds;
     // Cull off-screen
     if (game.obstacles[i].x + game.obstacles[i].type.w < 0) {
       game.obstacles.splice(i, 1);
@@ -272,7 +276,7 @@ function updateObstacles(game, canvasW, now, progress) {
   }
 
   // Decrease next obstacle distance
-  game.nextObstacleX -= game.speed;
+  game.nextObstacleX -= ds;
 }
 
 function checkCollisions(game, spriteCanvas) {
@@ -370,10 +374,11 @@ function updateBerries(game, canvasW) {
   if (!game.ending && game.nextBerryX <= canvasW) {
     spawnBerry(game, canvasW);
   }
-  game.nextBerryX -= game.speed;
+  const ds = game.speed * (game.scale || 1);
+  game.nextBerryX -= ds;
   // Move berries left and cull off-screen
   for (let i = game.berries.length - 1; i >= 0; i--) {
-    game.berries[i].x -= game.speed;
+    game.berries[i].x -= ds;
     if (game.berries[i].x + BERRY_SIZE < 0) {
       game.berries.splice(i, 1);
     }
@@ -698,6 +703,12 @@ export function TamingRunner({ species, colors, foodType, onComplete }) {
 
       const elapsed = now - game.startTime;
 
+      // Delta-time scale so motion is consistent across 60/90/120Hz and laggy mobile frames.
+      const dt = game.lastTickTime ? now - game.lastTickTime : 16.67;
+      game.lastTickTime = now;
+      const scale = Math.min(3, Math.max(0.25, dt / 16.67));
+      game.scale = scale;
+
       // Ramp speed linearly
       const progress = Math.min(elapsed / RUN_DURATION, 1);
       game.speed = START_SPEED + (END_SPEED - START_SPEED) * progress;
@@ -711,20 +722,22 @@ export function TamingRunner({ species, colors, foodType, onComplete }) {
         }
       }
 
+      const ds = game.speed * scale;
+
       // Accumulate distance
-      game.distance += game.speed * 0.5;
+      game.distance += ds * 0.5;
 
       // Scroll ground (mod by dash pattern period 8+6=14)
-      game.groundOffset = (game.groundOffset + game.speed) % 14;
+      game.groundOffset = (game.groundOffset + ds) % 14;
       // Parallax: backdrop slow, foreground faster
-      game.bgOffset += game.speed * 0.4;
-      game.fgOffset += game.speed;
+      game.bgOffset += ds * 0.4;
+      game.fgOffset += ds;
 
       // Jump physics: hold = float up (low gravity), release = fall (full gravity)
       if (game.jumping) {
         const grav = game.holdingJump && game.velocityY < 0 ? HOLD_GRAVITY : GRAVITY;
-        game.velocityY = Math.min(game.velocityY + grav, MAX_FALL_SPEED);
-        game.dinoYOffset += game.velocityY;
+        game.velocityY = Math.min(game.velocityY + grav * scale, MAX_FALL_SPEED);
+        game.dinoYOffset += game.velocityY * scale;
         // Landed
         if (game.dinoYOffset >= 0) {
           game.dinoYOffset = 0;

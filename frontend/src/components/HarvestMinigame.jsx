@@ -7,7 +7,13 @@ const FOOD_IMGS = { meat: meatImg, mejoberries: berryImg };
 const FOOD_LABELS = { meat: 'Meat', mejoberries: 'Mejoberries' };
 const FOOD_HARVEST_LABELS = { meat: 'a Pile of Meat', mejoberries: 'a Bunch of Mejoberries' };
 const TIMING_ROUNDS = 5;
-const ROUND_MS = 1500;
+// Ring shrink duration ramps from slow → fast across rounds for gentle difficulty scaling.
+const ROUND_MS_START = 1600;
+const ROUND_MS_END = 1000;
+function roundMs(roundIdx) {
+  const t = TIMING_ROUNDS > 1 ? roundIdx / (TIMING_ROUNDS - 1) : 0;
+  return Math.round(ROUND_MS_START + (ROUND_MS_END - ROUND_MS_START) * t);
+}
 const WHACK_MS = 10000;
 const SPAWN_MS = 700;
 const MAX_ON_SCREEN = 4;
@@ -57,6 +63,8 @@ function TimingTapGame({ foodType, theme, onFinish }) {
   const perfectRef = useRef(0);
   const goodRef = useRef(0);
   const roundRef = useRef(0);
+  const currentRoundMsRef = useRef(roundMs(0));
+  const [currentRoundMs, setCurrentRoundMs] = useState(roundMs(0));
 
   // pts: 0=miss, 1=good, 2=perfect. fromTap: true if player tapped (not timer miss).
   function resolveRound(label, pts, fromTap) {
@@ -91,17 +99,20 @@ function TimingTapGame({ foodType, theme, onFinish }) {
 
   function startRound() {
     tappedRef.current = false;
+    const ms = roundMs(roundRef.current);
+    currentRoundMsRef.current = ms;
+    setCurrentRoundMs(ms);
     roundStartRef.current = performance.now();
     setAnimKey(k => k + 1);
     setFeedback(null);
     setFrozen(false);
     setTapEffect(null);
-    timerRef.current = setTimeout(() => resolveRound('MISS', 0, false), ROUND_MS + 50);
+    timerRef.current = setTimeout(() => resolveRound('MISS', 0, false), ms + 50);
   }
 
   function handleTap() {
     const elapsed = performance.now() - (roundStartRef.current || 0);
-    const t = Math.min(elapsed / ROUND_MS, 1);
+    const t = Math.min(elapsed / currentRoundMsRef.current, 1);
     if (t >= 0.7) resolveRound('PERFECT ✦', 2, true);
     else if (t >= 0.4) resolveRound('GOOD', 1, true);
     else resolveRound('MISS', 0, true);
@@ -156,7 +167,7 @@ function TimingTapGame({ foodType, theme, onFinish }) {
             borderRadius: '50%',
             border: `4px solid ${theme.accentAlt}`,
             boxShadow: `0 0 14px ${theme.accentAlt}88`,
-            animation: `shrinkRing ${ROUND_MS}ms linear forwards`,
+            animation: `shrinkRing ${currentRoundMs}ms linear forwards`,
             animationPlayState: frozen ? 'paused' : 'running',
           }}
         />
