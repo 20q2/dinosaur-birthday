@@ -29,7 +29,7 @@ const RARE_PAINT_HUE = {
 import { TitleBar } from './TitleBar.jsx';
 import { getQuirk } from '../data/natureQuirks.js';
 import { getHatImage } from '../data/hatImages.js';
-import { Pencil } from 'lucide-preact';
+import { Pencil, HardHat, Palette, Image as ImageIcon, ChevronRight, ChevronDown, Lock } from 'lucide-preact';
 
 import bgRocks from '../assets/backgrounds/dino_find_rocks.png';
 import bgSwamp from '../assets/backgrounds/dino_find_swamp.png';
@@ -141,6 +141,7 @@ export function DinoDetail({ species }) {
         species={species}
         colors={dino.colors || {}}
         foodType={speciesData.food}
+        hat={dino.hat || null}
         onComplete={() => setRunMode(false)}
       />
     );
@@ -152,6 +153,7 @@ export function DinoDetail({ species }) {
         species={species}
         colors={dino.colors || {}}
         foodType={speciesData.food}
+        hat={dino.hat || null}
         onComplete={() => setTamingPhase('taming')}
       />
     );
@@ -418,22 +420,42 @@ export function DinoDetail({ species }) {
       {dino.tamed && !selectedPaint && (
         <div style={styles.dualRow}>
           <div
-            style={{ ...styles.card, flex: 1, cursor: 'pointer', ...(showHats ? styles.cardActive : {}) }}
+            role="button"
+            tabIndex={0}
+            style={{ ...styles.pickerRow, flex: 1, ...(showHats ? styles.pickerRowActive : {}) }}
             onClick={() => { setShowHats(!showHats); setShowPaints(false); }}
           >
             <div style={styles.statRow}>
-              <span style={styles.statLabel}>Hat</span>
-              <span style={styles.statValue}>{hatData ? hatData.name : 'None'} <span style={{ fontSize: '11px', color: '#666' }}>{showHats ? '\u25BE' : '\u25B8'}</span></span>
+              <span style={styles.pickerLeft}>
+                <span style={styles.pickerIcon}><HardHat size={18} color="#e0e0e0" /></span>
+                <span style={styles.pickerLabel}>Hat</span>
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center' }}>
+                <span style={styles.pickerValue}>{hatData ? hatData.name : 'None'}</span>
+                {showHats
+                  ? <ChevronDown size={20} color="#a78bfa" style={{ marginLeft: '8px' }} />
+                  : <ChevronRight size={20} color="#a78bfa" style={{ marginLeft: '8px' }} />}
+              </span>
             </div>
           </div>
           {hasPaints && (
             <div
-              style={{ ...styles.card, flex: 1, cursor: 'pointer', ...(showPaints ? styles.cardActive : {}) }}
+              role="button"
+              tabIndex={0}
+              style={{ ...styles.pickerRow, flex: 1, ...(showPaints ? styles.pickerRowActive : {}) }}
               onClick={() => { setShowPaints(!showPaints); setShowHats(false); }}
             >
               <div style={styles.statRow}>
-                <span style={styles.statLabel}>Paints</span>
-                <span style={styles.statValue}><span style={{ fontSize: '11px', color: '#666' }}>{showPaints ? '\u25BE' : '\u25B8'}</span></span>
+                <span style={styles.pickerLeft}>
+                  <span style={styles.pickerIcon}><Palette size={18} color="#e0e0e0" /></span>
+                  <span style={styles.pickerLabel}>Paints</span>
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center' }}>
+                  <span style={styles.pickerValue}>Change</span>
+                  {showPaints
+                    ? <ChevronDown size={20} color="#a78bfa" style={{ marginLeft: '8px' }} />
+                    : <ChevronRight size={20} color="#a78bfa" style={{ marginLeft: '8px' }} />}
+                </span>
               </div>
             </div>
           )}
@@ -619,13 +641,17 @@ export function DinoDetail({ species }) {
                   style={{
                     ...styles.bgThumb,
                     background: bg.img ? `url(${bg.img}) center/cover` : bg.color,
-                    borderColor: isSelected ? '#4ade80' : isLocked ? '#222' : '#333',
-                    opacity: isLocked ? 0.4 : 1,
+                    borderColor: isSelected ? '#4ade80' : isLocked ? '#444' : '#333',
                     cursor: isLocked ? 'not-allowed' : 'pointer',
+                    filter: isLocked ? 'grayscale(0.9) brightness(0.4)' : 'none',
                   }}
                 >
                   {isSelected && <span style={styles.bgCheck}>{'\u2713'}</span>}
-                  {isLocked && <span style={styles.bgLock}>{'\uD83D\uDD12'}</span>}
+                  {isLocked && (
+                    <span style={styles.bgLock}>
+                      <Lock size={22} color="#ffffff" strokeWidth={2.5} />
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -633,11 +659,17 @@ export function DinoDetail({ species }) {
           <button onClick={() => setShowBg(false)} style={styles.ghostBtn}>Cancel</button>
         </div>
       ) : (
-        <div style={{ ...styles.card, cursor: 'pointer' }} onClick={() => setShowBg(true)}>
+        <div role="button" tabIndex={0} style={styles.pickerRow} onClick={() => setShowBg(true)}>
           <div style={styles.statRow}>
-            <span style={styles.statLabel}>Backdrop</span>
-            <span style={styles.statValue}>
-              {BG_OPTIONS.find(b => b.id === (dino.background || autoDefaultBg || ''))?.label || 'Default'} <span style={{ fontSize: '11px', color: '#666' }}>{'\u25B8'}</span>
+            <span style={styles.pickerLeft}>
+              <span style={styles.pickerIcon}><ImageIcon size={18} color="#e0e0e0" /></span>
+              <span style={styles.pickerLabel}>Backdrop</span>
+            </span>
+            <span style={{ display: 'flex', alignItems: 'center' }}>
+              <span style={styles.pickerValue}>
+                {BG_OPTIONS.find(b => b.id === (dino.background || autoDefaultBg || ''))?.label || 'Default'}
+              </span>
+              <ChevronRight size={20} color="#a78bfa" style={{ marginLeft: '8px' }} />
             </span>
           </div>
         </div>
@@ -736,6 +768,29 @@ const styles = {
   cardActive: {
     borderColor: '#6366f1', background: '#1e2750',
   },
+  pickerRow: {
+    background: '#1e2750', borderRadius: '12px', padding: '14px 16px',
+    border: '1px solid #3b4478',
+    boxShadow: 'inset 0 -2px 0 rgba(0,0,0,0.25)',
+    display: 'flex', flexDirection: 'column', gap: '8px',
+    cursor: 'pointer', WebkitTapHighlightColor: 'transparent',
+    transition: 'transform 0.08s ease, background 0.15s ease, border-color 0.15s ease',
+  },
+  pickerRowActive: {
+    borderColor: '#818cf8', background: '#2a3470',
+  },
+  pickerLeft: { display: 'flex', alignItems: 'center', gap: '10px' },
+  pickerIcon: { display: 'flex', alignItems: 'center' },
+  pickerLabel: { fontSize: '14px', color: '#e0e0e0', fontWeight: 600 },
+  pickerValue: {
+    fontSize: '13px', color: '#e0e0e0', fontWeight: 600,
+    background: '#0f172a', border: '1px solid #3b4478',
+    padding: '4px 10px', borderRadius: '999px',
+  },
+  pickerChevron: {
+    fontSize: '20px', color: '#a78bfa', fontWeight: 'bold',
+    marginLeft: '8px', lineHeight: 1,
+  },
   sectionTitle: { fontSize: '14px', color: '#e0e0e0', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' },
   statRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   statLabel: { fontSize: '13px', color: '#e0e0e0' },
@@ -820,8 +875,13 @@ const styles = {
     textShadow: '0 1px 3px rgba(0,0,0,0.8)',
   },
   bgLock: {
-    fontSize: '16px',
-    filter: 'grayscale(1)',
+    position: 'absolute', top: '50%', left: '50%',
+    transform: 'translate(-50%, -50%)',
+    width: '36px', height: '36px', borderRadius: '50%',
+    background: 'rgba(0,0,0,0.65)',
+    border: '2px solid rgba(255,255,255,0.9)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.6)',
   },
   partnerNote: {
     textAlign: 'center', color: '#4ade80', fontSize: '13px',

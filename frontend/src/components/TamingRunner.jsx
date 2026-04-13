@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'preact/hooks';
 import { SPECIES } from '../data/species.js';
 import { getRecolored, getRecoloredUncached } from '../utils/spriteEngine.js';
 import { resolveColors, hasEffects } from '../dinoColors.js';
+import { getHatImage, getHatAnchor } from '../data/hatImages.js';
 import meatImg from '../assets/items/meat.png';
 import berryImg from '../assets/items/berry.png';
 import forestBackdropUrl from '../assets/dinoRun/forest_backdrop.png';
@@ -15,10 +16,10 @@ const RUN_DURATION = 20000;
 const GROUND_Y_FRAC = 0.75;
 const START_SPEED = 9;
 const END_SPEED = 14;
-const GRAVITY = 0.95;
-const JUMP_VELOCITY = -9;       // initial upward velocity on tap
-const HOLD_GRAVITY = 0.48;      // reduced gravity while holding (floatier rise)
-const MAX_FALL_SPEED = 14;
+const GRAVITY = 1.3;
+const JUMP_VELOCITY = -10;      // initial upward velocity on tap
+const HOLD_GRAVITY = 0.75;      // reduced gravity while holding (floatier rise)
+const MAX_FALL_SPEED = 18;
 const STUMBLE_DURATION = 300;
 const STUMBLE_SLOW = 0.4;
 const DINO_X_FRAC = 0.2;
@@ -117,7 +118,7 @@ function drawHUD(ctx, game, elapsed, canvasW) {
 let _stumbleTmp = null;
 let _stumbleTmpCtx = null;
 
-function drawDino(ctx, game, spriteCanvas, now) {
+function drawDino(ctx, game, spriteCanvas, now, species, hat) {
   if (!spriteCanvas) return;
 
   const sw = spriteCanvas.width;
@@ -202,6 +203,22 @@ function drawDino(ctx, game, spriteCanvas, now) {
     ctx.drawImage(spriteCanvas, 0, 0, drawW, drawH);
   }
 
+  // Hat — positioned via species head anchor, drawn in the flipped local coord space
+  if (hat) {
+    const hatInfo = getHatImage(hat);
+    if (hatInfo?.loaded) {
+      const anchor = getHatAnchor(species);
+      const sx = drawW / sw;
+      const sy = drawH / sh;
+      const hatW = hatInfo.img.naturalWidth * sx;
+      const hatH = hatInfo.img.naturalHeight * sy;
+      const anchorDrawX = (anchor.x + (hatInfo.offsetX || 0)) * sx;
+      const anchorDrawY = (anchor.y + (hatInfo.offsetY || 0)) * sy;
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(hatInfo.img, anchorDrawX - hatW / 2, anchorDrawY - hatH, hatW, hatH);
+    }
+  }
+
   ctx.restore();
 }
 
@@ -223,15 +240,15 @@ function updateFood(game, canvasW) {
   // Initialize: food drops from above onto the ground a short distance ahead of the dino,
   // then scrolls toward the dino with the world (so the dino runs up to it).
   if (game.foodX == null) {
-    // Place it just off-screen to the right so the drop is visible as it scrolls in.
-    game.foodX = Math.min(canvasW - 40, game.dinoX + Math.max(180, canvasW * 0.4));
-    game.foodY = -40;                  // start above the screen
+    // Spawn near the top-right so it drops down onto the ground well before the dino arrives.
+    game.foodX = canvasW - 50;
+    game.foodY = 20;                    // just under the top edge
     game.foodTargetY = game.groundY - 28; // land on the ground
     game.foodLanded = false;
   }
-  // Drop straight down until it lands
+  // Drop straight down until it lands (fast enough to land long before the dino reaches it)
   if (!game.foodLanded) {
-    game.foodY += 6 * scale;
+    game.foodY += 14 * scale;
     if (game.foodY >= game.foodTargetY) {
       game.foodY = game.foodTargetY;
       game.foodLanded = true;
@@ -355,15 +372,15 @@ const MAX_JUMP_PX = (JUMP_VELOCITY * JUMP_VELOCITY) / (2 * HOLD_GRAVITY);
 
 function spawnBerry(game, canvasW) {
   const x = canvasW + BERRY_SIZE;
-  // Aerial coins spawn between 30-90% of max jump height
-  const groundLevel = game.groundY - BERRY_SIZE;
-  const minAir = game.groundY - MAX_JUMP_PX * 0.9;
-  const maxAir = game.groundY - MAX_JUMP_PX * 0.3;
-  const airLevel = minAir + Math.random() * (maxAir - minAir);
-  let y = Math.random() < 0.6 ? groundLevel : airLevel;
+  // Coins always spawn aerial so you must jump to grab them.
+  // Spread coins across the full vertical range — from just above the ground
+  // up to the (doubled) jump apex — so they're not bunched in a narrow band.
+  const minAir = game.groundY - MAX_JUMP_PX * 2.0;
+  const maxAir = game.groundY - BERRY_SIZE;
+  let y = minAir + Math.random() * (maxAir - minAir);
 
-  // If ground-level coin overlaps an obstacle, push it to air instead
-  if (y === groundLevel && overlapsObstacle(game, x, y)) {
+  // Keep coins off obstacles
+  if (overlapsObstacle(game, x, y)) {
     y = minAir + Math.random() * (maxAir - minAir);
   }
 
@@ -485,7 +502,7 @@ function drawDust(ctx, game, now) {
 
 // ── Component ────────────────────────────────────────────────────────────────
 
-export function TamingRunner({ species, colors, foodType, onComplete }) {
+export function TamingRunner({ species, colors, foodType, hat, onComplete }) {
   const [phase, setPhase] = useState('ready');
   const [score, setScore] = useState(0);
   // Game logic runs at a FIXED internal resolution so speed/physics don't depend on device DPI/size.
@@ -632,6 +649,21 @@ export function TamingRunner({ species, colors, foodType, onComplete }) {
         ctx.translate(dinoX + dw / 2, groundY - dh);
         ctx.scale(-1, 1);
         ctx.drawImage(sc, -dw / 2, 0, dw, dh);
+        // Hat on preview
+        if (hat) {
+          const hatInfo = getHatImage(hat);
+          if (hatInfo?.loaded) {
+            const anchor = getHatAnchor(species);
+            const sx = dw / sc.width;
+            const sy = dh / sc.height;
+            const hatW = hatInfo.img.naturalWidth * sx;
+            const hatH = hatInfo.img.naturalHeight * sy;
+            const anchorDrawX = (anchor.x + (hatInfo.offsetX || 0)) * sx;
+            const anchorDrawY = (anchor.y + (hatInfo.offsetY || 0)) * sy;
+            ctx.imageSmoothingEnabled = false;
+            ctx.drawImage(hatInfo.img, -dw / 2 + anchorDrawX - hatW / 2, anchorDrawY - hatH, hatW, hatH);
+          }
+        }
         ctx.restore();
       }
     }
@@ -640,7 +672,7 @@ export function TamingRunner({ species, colors, foodType, onComplete }) {
     const onLoad = () => { if (--pending <= 0) drawPreview(); };
     previewBg.onload = onLoad;
     previewFg.onload = onLoad;
-  }, [phase, canvasSize, species, colors, regions, animated]);
+  }, [phase, canvasSize, species, colors, regions, animated, hat]);
 
   // ── Game loop (runs when phase='running') ────────────────────────────────
   useEffect(() => {
@@ -739,8 +771,8 @@ export function TamingRunner({ species, colors, foodType, onComplete }) {
 
       const ds = game.speed * scale;
 
-      // Accumulate distance
-      game.distance += ds * 0.5;
+      // Accumulate distance (small factor so idle runs don't inflate the final score)
+      game.distance += ds * 0.1;
 
       // Scroll ground (mod by dash pattern period 8+6=14)
       game.groundOffset = (game.groundOffset + ds) % 14;
@@ -848,7 +880,7 @@ export function TamingRunner({ species, colors, foodType, onComplete }) {
       drawBerries(ctx, game);
       drawFood(ctx, game);
       drawHUD(ctx, game, elapsed, canvasW);
-      drawDino(ctx, game, spriteCanvas, now);
+      drawDino(ctx, game, spriteCanvas, now, species, hat);
       drawPopups(ctx, game, now);
 
       rafRef.current = requestAnimationFrame(tick);
