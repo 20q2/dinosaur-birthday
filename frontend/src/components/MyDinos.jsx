@@ -147,7 +147,7 @@ const styles = {
   page: {
     paddingBottom: '80px',
     background: 'linear-gradient(180deg, #0d1117 0%, #1a1a2e 40%, #0d1117 100%)',
-    minHeight: '100dvh',
+    minHeight: '100lvh',
   },
   list: { display: 'flex', flexDirection: 'column', gap: '10px', padding: '16px' },
   empty: {
