@@ -1,7 +1,7 @@
 import json
 import uuid
 from datetime import datetime, timezone
-from ..shared.db import get_item, put_item, update_item, query_pk
+from ..shared.db import get_item, put_item, update_item, query_pk, increment_counter
 from ..shared.response import success, error
 from ..shared.game_data import SPECIES, BASE_SPECIES_COUNT
 from ..shared.xp import award_xp
@@ -10,14 +10,16 @@ from ..shared.rare_paints import grant_rare_paint
 
 
 def _harvest(player_id, food_type, profile, perfects=0, goods=0):
-    """Award XP for harvesting food. XP scales with minigame score."""
+    """Award XP for harvesting food, and bank 1 unit of food. XP scales with score; food yield is fixed at 1."""
     raw = goods + perfects * 2
     xp = 3 + min(6, raw // 2)
     dino_result = award_xp(player_id, xp)
+    food_count = increment_counter(f"PLAYER#{player_id}", f"FOOD#{food_type}", "count", 1)
     return {
         "xp_awarded": xp,
         "dino": dino_result,
         "no_partner": dino_result is None,
+        "food_count": int(food_count),
     }
 
 

@@ -188,7 +188,7 @@ export function Inventory() {
             <div style={styles.foodInfo}>
               <span style={styles.foodName}>Meat</span>
               <span style={styles.foodCount}>
-                {tamedDinos.filter(d => SPECIES[d.species]?.diet === 'carnivore').length} collected
+                {player?.food?.meat ?? 0} collected
               </span>
             </div>
           </div>
@@ -197,7 +197,7 @@ export function Inventory() {
             <div style={styles.foodInfo}>
               <span style={styles.foodName}>Mejoberries</span>
               <span style={styles.foodCount}>
-                {tamedDinos.filter(d => SPECIES[d.species]?.diet === 'herbivore').length} collected
+                {player?.food?.mejoberries ?? 0} collected
               </span>
             </div>
           </div>

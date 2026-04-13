@@ -18,6 +18,19 @@ export function DinoTaming({ foodType, prefetchedResult }) {
   const [tamed, setTamed] = useState(false);
   const [name, setName] = useState('');
   const [selectedHat, setSelectedHat] = useState('');
+  const [hatPop, setHatPop] = useState(false);
+
+  const chooseHat = (hatId) => {
+    setSelectedHat(hatId);
+    if (hatId) {
+      setHatPop(false);
+      // Next tick so the animation restarts if the same-ish state toggles quickly
+      requestAnimationFrame(() => {
+        setHatPop(true);
+        setTimeout(() => setHatPop(false), 400);
+      });
+    }
+  };
   const [loading, setLoading] = useState(!prefetchedResult);
   const [firstPartner, setFirstPartner] = useState(false);
 
@@ -125,6 +138,11 @@ export function DinoTaming({ foodType, prefetchedResult }) {
             50% { transform: rotate(2deg); }
             100% { transform: rotate(-2deg); }
           }
+          @keyframes hat-pop {
+            0% { transform: scale(0) rotate(-20deg); }
+            60% { transform: scale(1.2) rotate(5deg); }
+            100% { transform: scale(1) rotate(0deg); }
+          }
         `}</style>
         <div style={styles.banner}>TAMING TIME</div>
 
@@ -135,7 +153,7 @@ export function DinoTaming({ foodType, prefetchedResult }) {
             colors={dinoColors}
             scale={4}
             hat={selectedHat || null}
-            style={{ animation: 'dino-wobble 3s ease-in-out infinite', transformOrigin: 'center bottom' }}
+            style={{ animation: `dino-wobble 3s ease-in-out infinite${hatPop ? ', hat-pop 0.4s cubic-bezier(0.34,1.56,0.64,1)' : ''}`, transformOrigin: 'center bottom' }}
           />
         </div>
 
@@ -172,7 +190,7 @@ export function DinoTaming({ foodType, prefetchedResult }) {
               <div style={styles.hatLabel}>Pick a hat:</div>
               <div style={styles.hatRow}>
                 <button
-                  onClick={() => setSelectedHat('')}
+                  onClick={() => chooseHat('')}
                   style={{
                     ...styles.hatBtn,
                     borderColor: selectedHat === '' ? '#4ade80' : '#333',
@@ -187,7 +205,7 @@ export function DinoTaming({ foodType, prefetchedResult }) {
                   return (
                     <button
                       key={hat.id}
-                      onClick={() => setSelectedHat(hat.id)}
+                      onClick={() => chooseHat(hat.id)}
                       style={{
                         ...styles.hatBtn,
                         borderColor: selectedHat === hat.id ? '#4ade80' : '#333',

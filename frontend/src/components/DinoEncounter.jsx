@@ -8,6 +8,19 @@ import { TamingRunner } from './TamingRunner.jsx';
 import meatImg from '../assets/items/meat.png';
 import berryImg from '../assets/items/berry.png';
 
+import bgRocks from '../assets/backgrounds/dino_find_rocks.png';
+import bgSwamp from '../assets/backgrounds/dino_find_swamp.png';
+import bgRiver from '../assets/backgrounds/dino_find_river.png';
+import bgGrass from '../assets/backgrounds/dino_find_tall_grass.png';
+import bgCave from '../assets/backgrounds/dino_find_cave.png';
+import bgCanyon from '../assets/backgrounds/dino_find_canyon.png';
+import bgVolcanic from '../assets/backgrounds/dino_find_volcanic.png';
+
+const BACKDROP_IMGS = {
+  rocks: bgRocks, swamp: bgSwamp, river: bgRiver, grass: bgGrass,
+  cave: bgCave, canyon: bgCanyon, volcanic: bgVolcanic,
+};
+
 export function DinoEncounter({ species }) {
   const [dino, setDino] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -110,96 +123,112 @@ export function DinoEncounter({ species }) {
 
   const speciesData = SPECIES[species];
   const isCarnivore = dino.diet === 'carnivore';
+  const backdropImg = BACKDROP_IMGS[speciesData?.backdrop];
 
   return (
     <div style={styles.container}>
-      {/* Header */}
-      <div style={styles.encounterBanner}>
-        <div style={styles.encounterLabel}>DINO DISCOVERED!</div>
-      </div>
-
-      {/* Sprite showcase */}
-      <div style={{
-        ...styles.spriteShowcase,
-        opacity: showReveal ? 0 : 1,
-        transform: showReveal ? 'scale(0.8)' : 'scale(1)',
-        transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
-      }}>
-        <div style={styles.spriteGlow} />
-        <DinoSprite species={species} colors={dino.colors || {}} scale={4} style={{ marginTop: '-5px' }} />
-      </div>
-
-      {/* Name + gender icon */}
-      <div style={styles.nameSection}>
-        <h2 style={styles.dinoName}>{speciesData?.name || species}</h2>
-        <span style={styles.genderIcon}>{dino.gender === 'male' ? '♂' : '♀'}</span>
-      </div>
-
-      {/* Shiny callout */}
-      {dino.shiny && (
-        <div style={styles.shinyCallout}>
-          <span style={styles.shinyStars}>✨</span>
-          <span style={styles.shinyText}>It's Shiny!</span>
-          <span style={styles.shinyStars}>✨</span>
-        </div>
+      <style>{`
+        @keyframes encounter-hop {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-12px); }
+        }
+      `}</style>
+      {backdropImg && (
+        <div style={{ ...styles.backdropLayer, backgroundImage: `url(${backdropImg})` }} />
       )}
+      {/* Group 1: banner, sprite, name, diet tag */}
+      <div style={styles.introGroup}>
+        <div style={styles.encounterBanner}>
+          <div style={styles.encounterLabel}>DINO DISCOVERED!</div>
+        </div>
 
-      <div style={styles.tagRow}>
-        <span style={{
-          ...styles.dietTag,
-          background: isCarnivore ? 'rgba(239,68,68,0.15)' : 'rgba(34,197,94,0.15)',
-          color: isCarnivore ? '#fca5a5' : '#86efac',
-          borderColor: isCarnivore ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.3)',
+        <div style={{
+          ...styles.spriteShowcase,
+          opacity: showReveal ? 0 : 1,
+          transform: showReveal ? 'scale(0.8)' : 'scale(1)',
+          transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
         }}>
-          <img src={isCarnivore ? meatImg : berryImg} style={styles.foodIcon} />
-          {isCarnivore ? ' Carnivore' : ' Herbivore'}
-        </span>
+          <div style={styles.spriteGlow} />
+          <DinoSprite
+            species={species}
+            colors={dino.colors || {}}
+            scale={4}
+            style={{ animation: 'encounter-hop 1s infinite ease-in-out' }}
+          />
+        </div>
+
+        <div style={styles.nameSection}>
+          <h2 style={styles.dinoName}>{speciesData?.name || species}</h2>
+          <span style={styles.genderIcon}>{dino.gender === 'male' ? '♂' : '♀'}</span>
+        </div>
+
+        {dino.shiny && (
+          <div style={styles.shinyCallout}>
+            <span style={styles.shinyStars}>✨</span>
+            <span style={styles.shinyText}>It's Shiny!</span>
+            <span style={styles.shinyStars}>✨</span>
+          </div>
+        )}
+
+        <div style={styles.tagRow}>
+          <span style={{
+            ...styles.dietTag,
+            background: isCarnivore ? 'rgba(239,68,68,0.15)' : 'rgba(34,197,94,0.15)',
+            color: isCarnivore ? '#fca5a5' : '#86efac',
+            borderColor: isCarnivore ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.3)',
+          }}>
+            <img src={isCarnivore ? meatImg : berryImg} style={styles.foodIcon} />
+            {isCarnivore ? ' Carnivore' : ' Herbivore'}
+          </span>
+        </div>
       </div>
 
-      {/* Feed now — player already has food */}
-      {dino.has_food ? (
-        <>
+      {/* Group 2: food / feed card */}
+      <div style={styles.actionGroup}>
+        {dino.has_food ? (
+          <>
+            <div style={{
+              ...styles.questCard,
+              borderColor: isCarnivore ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.3)',
+            }}>
+              <div style={styles.questHeader}>
+                <img src={isCarnivore ? meatImg : berryImg} style={styles.questFoodImg} />
+                <span style={styles.questTitle}>You have {isCarnivore ? 'Meat' : 'Mejoberries'}!</span>
+              </div>
+              <p style={styles.questDesc}>
+                You already have the food this dino needs. Feed it now to tame it!
+              </p>
+            </div>
+            <button onClick={handleFeedNow} style={styles.primaryBtn}>
+              <img src={isCarnivore ? meatImg : berryImg} style={{ width: '20px', height: '20px', imageRendering: 'pixelated', verticalAlign: 'middle', marginRight: '8px' }} />
+              Feed Now!
+            </button>
+          </>
+        ) : (
           <div style={{
             ...styles.questCard,
             borderColor: isCarnivore ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.3)',
           }}>
             <div style={styles.questHeader}>
               <img src={isCarnivore ? meatImg : berryImg} style={styles.questFoodImg} />
-              <span style={styles.questTitle}>You have {isCarnivore ? 'Meat' : 'Mejoberries'}!</span>
+              <span style={styles.questTitle}>Find Food to Tame!</span>
             </div>
             <p style={styles.questDesc}>
-              You already have the food this dino needs. Feed it now to tame it!
+              {isCarnivore
+                ? 'This dino eats Meat. Look for the Meat QR code near the grill!'
+                : 'This dino eats Mejoberries. Look for the Mejoberry QR code near the veggie platters!'}
             </p>
           </div>
-          <button onClick={handleFeedNow} style={styles.primaryBtn}>
-            <img src={isCarnivore ? meatImg : berryImg} style={{ width: '20px', height: '20px', imageRendering: 'pixelated', verticalAlign: 'middle', marginRight: '8px' }} />
-            Feed Now!
-          </button>
-        </>
-      ) : (
-        <div style={{
-          ...styles.questCard,
-          borderColor: isCarnivore ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.3)',
-        }}>
-          <div style={styles.questHeader}>
-            <img src={isCarnivore ? meatImg : berryImg} style={styles.questFoodImg} />
-            <span style={styles.questTitle}>Find Food to Tame!</span>
-          </div>
-          <p style={styles.questDesc}>
-            {isCarnivore
-              ? 'This dino eats Meat. Look for the Meat QR code near the grill!'
-              : 'This dino eats Mejoberries. Look for the Mejoberry QR code near the veggie platters!'}
-          </p>
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* Hint */}
-      <p style={styles.hintText}>You can revisit this dino from your "My Dinos" tab.</p>
-
-      {/* Actions */}
-      <button onClick={() => store.navigate('/plaza')} style={styles.backBtn}>
-        Back to Plaza
-      </button>
+      {/* Group 3: back */}
+      <div style={styles.backGroup}>
+        <p style={styles.hintText}>You can revisit this dino from your "My Dinos" tab.</p>
+        <button onClick={() => store.navigate('/plaza')} style={styles.backBtn}>
+          Back to Plaza
+        </button>
+      </div>
     </div>
   );
 }
@@ -211,8 +240,33 @@ const styles = {
   },
   container: {
     display: 'flex', flexDirection: 'column', alignItems: 'center',
-    padding: '24px 20px 80px', gap: '8px', minHeight: '100dvh',
+    justifyContent: 'space-between',
+    padding: '20px 20px 32px', gap: '20px', minHeight: '100dvh',
     background: 'linear-gradient(180deg, #0f1a0f 0%, #111 40%)',
+    position: 'relative', overflow: 'hidden',
+  },
+  backdropLayer: {
+    position: 'absolute', inset: 0,
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    opacity: 0.05,
+    pointerEvents: 'none',
+    zIndex: 0,
+  },
+  introGroup: {
+    display: 'flex', flexDirection: 'column', alignItems: 'center',
+    gap: '14px', width: '100%',
+    position: 'relative', zIndex: 1,
+  },
+  actionGroup: {
+    display: 'flex', flexDirection: 'column', alignItems: 'center',
+    gap: '12px', width: '100%',
+    position: 'relative', zIndex: 1,
+  },
+  backGroup: {
+    display: 'flex', flexDirection: 'column', alignItems: 'center',
+    gap: '10px', width: '100%',
+    position: 'relative', zIndex: 1,
   },
 
   // Header
@@ -230,10 +284,10 @@ const styles = {
   // Sprite
   spriteShowcase: {
     position: 'relative',
-    width: '180px', height: '180px',
+    width: '200px', height: '200px',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    margin: '-16px 0 12px',
     overflow: 'visible',
+    marginTop: '-10px',
   },
   spriteGlow: {
     position: 'absolute', inset: '-20px',
@@ -289,11 +343,10 @@ const styles = {
 
   // Quest card
   questCard: {
-    width: '100%', maxWidth: '320px',
+    width: '100%', maxWidth: '420px',
     padding: '16px', borderRadius: '14px',
     background: 'rgba(255,255,255,0.04)',
     border: '1px solid',
-    marginTop: '2px',
   },
   questHeader: {
     display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px',
@@ -316,14 +369,14 @@ const styles = {
   primaryBtn: {
     padding: '14px', borderRadius: '10px', border: 'none',
     background: '#4ade80', color: '#14532d', fontSize: '15px',
-    fontWeight: '700', cursor: 'pointer', width: '100%', maxWidth: '320px',
+    fontWeight: '700', cursor: 'pointer', width: '100%', maxWidth: '420px',
   },
   backBtn: {
-    padding: '12px', borderRadius: '10px',
-    background: 'transparent', color: '#6b7280',
-    border: '1px solid rgba(255,255,255,0.1)',
-    fontSize: '14px', fontWeight: '600', cursor: 'pointer',
-    width: '100%', maxWidth: '320px',
+    padding: '14px', borderRadius: '10px',
+    background: '#1e2a3a', color: '#e5e7eb',
+    border: '1px solid rgba(255,255,255,0.18)',
+    fontSize: '15px', fontWeight: '700', cursor: 'pointer',
+    width: '100%', maxWidth: '420px',
   },
   scanPulse: {
     color: '#4ade80', fontSize: '16px', fontWeight: '600',

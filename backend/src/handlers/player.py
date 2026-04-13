@@ -78,11 +78,15 @@ def get_player(event):
     dinos = []
     items = []
     notes = []
+    food = {"meat": 0, "mejoberries": 0}
     inspiration = False
 
     for item in all_items:
         sk = item["SK"]
-        if sk.startswith("DINO#"):
+        if sk.startswith("FOOD#"):
+            food_type = sk.replace("FOOD#", "")
+            food[food_type] = int(item.get("count", 0))
+        elif sk.startswith("DINO#"):
             dinos.append({
                 "species": sk.replace("DINO#", ""),
                 "name": item.get("name", ""),
@@ -116,5 +120,6 @@ def get_player(event):
         "dinos": dinos,
         "items": items,
         "notes": notes,
+        "food": food,
         "inspiration": inspiration,
     })

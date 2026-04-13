@@ -63,3 +63,16 @@ def update_item(pk, sk, updates):
 
 def delete_item(pk, sk):
     get_table().delete_item(Key={"PK": pk, "SK": sk})
+
+
+def increment_counter(pk, sk, field, delta):
+    """Atomically add `delta` to a numeric field, creating the item if needed.
+    Returns the new value."""
+    resp = get_table().update_item(
+        Key={"PK": pk, "SK": sk},
+        UpdateExpression=f"ADD #f :d",
+        ExpressionAttributeNames={"#f": field},
+        ExpressionAttributeValues={":d": delta},
+        ReturnValues="UPDATED_NEW",
+    )
+    return resp.get("Attributes", {}).get(field, 0)
