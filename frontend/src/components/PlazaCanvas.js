@@ -61,6 +61,14 @@ export class PlazaCanvas {
     this.shadowActive = false;
     this.shadowPulseTimer = 0;  // countdown to next pulse toggle
 
+    // Tremor phase (boss buildup phase 2) — occasional brief shake bursts
+    this.tremorActive = false;
+    this.tremorGapTimer = 0;     // seconds until next burst starts
+    this.tremorBurstTimer = 0;   // seconds remaining in current burst
+    this.tremorAmplitude = 0;    // current burst amplitude in world px
+    this.tremorShakeX = 0;       // current frame offset
+    this.tremorShakeY = 0;
+
     this.cooldownSet = new Set();
 
     // Playing-together pairs: Map<playerId, partnerId>
@@ -484,6 +492,24 @@ export class PlazaCanvas {
     }
   }
 
+  // ── Tremor phase (boss buildup phase 2) ─────────────────────────────────
+
+  setTremorPhase(active) {
+    this.tremorActive = active;
+    if (active) {
+      // Wait a few seconds before the first rumble
+      this.tremorGapTimer = 3.0 + Math.random() * 4.0;
+      this.tremorBurstTimer = 0;
+      this.tremorAmplitude = 0;
+    } else {
+      this.tremorGapTimer = 0;
+      this.tremorBurstTimer = 0;
+      this.tremorAmplitude = 0;
+      this.tremorShakeX = 0;
+      this.tremorShakeY = 0;
+    }
+  }
+
   // ── Cooldown overlay ─────────────────────────────────────────────────────
 
   setCooldowns(playerIds) {
@@ -618,9 +644,38 @@ export class PlazaCanvas {
 
     ctx.clearRect(0, 0, w, h);
 
+    // ── Tremor update (boss phase 2: occasional brief screen shake) ───────
+    if (this.tremorActive) {
+      if (this.tremorBurstTimer > 0) {
+        this.tremorBurstTimer -= dt;
+        if (this.tremorBurstTimer <= 0) {
+          // Burst ended; schedule a long quiet gap until the next one
+          this.tremorBurstTimer = 0;
+          this.tremorAmplitude = 0;
+          this.tremorShakeX = 0;
+          this.tremorShakeY = 0;
+          this.tremorGapTimer = 7.0 + Math.random() * 6.0;
+        } else {
+          // Amplitude eases out over the burst for a natural tail
+          const falloff = Math.max(0, this.tremorBurstTimer / this.tremorBurstDuration);
+          const amp = this.tremorAmplitude * falloff;
+          this.tremorShakeX = (Math.random() * 2 - 1) * amp;
+          this.tremorShakeY = (Math.random() * 2 - 1) * amp * 0.6;
+        }
+      } else {
+        this.tremorGapTimer -= dt;
+        if (this.tremorGapTimer <= 0) {
+          // Start a new burst
+          this.tremorBurstDuration = 0.6 + Math.random() * 0.7;
+          this.tremorBurstTimer = this.tremorBurstDuration;
+          this.tremorAmplitude = 6 + Math.random() * 6; // world px
+        }
+      }
+    }
+
     ctx.save();
     ctx.scale(this.zoom, this.zoom);
-    ctx.translate(-this.camX, -this.camY);
+    ctx.translate(-this.camX + this.tremorShakeX, -this.camY + this.tremorShakeY);
 
     // ── Background ────────────────────────────────────────────────────────
     const bg = getPlazaBackground();
@@ -635,9 +690,11 @@ export class PlazaCanvas {
     if (this.shadowActive) {
       this.shadowPulseTimer -= dt;
       if (this.shadowPulseTimer <= 0) {
-        // Toggle between dark and dim
-        this.shadowTarget = this.shadowTarget > 0.3 ? (0.1 + Math.random() * 0.15) : (0.45 + Math.random() * 0.15);
-        this.shadowPulseTimer = 1.0 + Math.random() * 2.5;
+        // Toggle between dark and dim — dark pulses are brief, dim gaps are long
+        // so the darkening feels occasional but still noticeable
+        const wasDark = this.shadowTarget > 0.3;
+        this.shadowTarget = wasDark ? (0.1 + Math.random() * 0.15) : (0.45 + Math.random() * 0.15);
+        this.shadowPulseTimer = wasDark ? (7.0 + Math.random() * 6.0) : (2.0 + Math.random() * 1.5);
       }
     }
     if (this.shadowAlpha !== this.shadowTarget) {

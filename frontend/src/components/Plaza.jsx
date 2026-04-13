@@ -97,14 +97,20 @@ export function Plaza() {
   // Boss buildup — fetch persisted phase on mount, then listen for WS updates
   useEffect(() => {
     api.getBossState().then(data => {
-      if (plazaRef.current && data.buildup_phase === 1) {
+      if (!plazaRef.current) return;
+      if (data.buildup_phase === 1) plazaRef.current.setShadowPhase(true);
+      if (data.buildup_phase === 2) {
         plazaRef.current.setShadowPhase(true);
+        plazaRef.current.setTremorPhase(true);
       }
     }).catch(() => {});
 
     const off = ws.on('plaza', 'buildup', (data) => {
       if (!plazaRef.current) return;
-      plazaRef.current.setShadowPhase(data.phase === 1);
+      // Phase 1: shadows only. Phase 2: shadows continue + tremors begin.
+      // Phase 3 (roar): buildup's one-shot overlay handles it; clear passives.
+      plazaRef.current.setShadowPhase(data.phase === 1 || data.phase === 2);
+      plazaRef.current.setTremorPhase(data.phase === 2);
     });
     return () => off();
   }, []);
