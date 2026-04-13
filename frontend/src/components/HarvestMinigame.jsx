@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'preact/hooks';
+import { store } from '../store.js';
 import meatImg from '../assets/items/meat.png';
 import berryImg from '../assets/items/berry.png';
 
 const FOOD_IMGS = { meat: meatImg, mejoberries: berryImg };
 const FOOD_LABELS = { meat: 'Meat', mejoberries: 'Mejoberries' };
 const FOOD_HARVEST_LABELS = { meat: 'a Pile of Meat', mejoberries: 'a Bunch of Mejoberries' };
-const TIMING_ROUNDS = 6;
+const TIMING_ROUNDS = 5;
 const ROUND_MS = 1500;
 const WHACK_MS = 10000;
 const SPAWN_MS = 700;
@@ -402,6 +403,7 @@ function ResultsScreen({ score, total, foodType, xpEarned, apiResult, onComplete
   const canTame = apiResult && !apiResult.harvest_only && !apiResult.already_tamed;
   const scoreLabel = foodType === 'meat' ? 'catches' : 'points';
   const label = FOOD_LABELS[foodType] || foodType;
+  const hasPartner = !!store.player?.dinos?.find(d => d.is_partner && d.tamed);
 
   return (
     <div style={{ ...styles.page, background: theme.bg }}>
@@ -413,7 +415,7 @@ function ResultsScreen({ score, total, foodType, xpEarned, apiResult, onComplete
         You obtained {FOOD_HARVEST_LABELS[foodType] || label}!
       </div>
       <div style={{ fontSize: '12px', color: '#6b7280', margin: '-6px 0 4px' }}>
-        Your partner dino earns XP!
+        {hasPartner ? 'Your partner dino earns XP!' : 'Set a partner dinosaur to earn XP!'}
       </div>
 
       {/* Score */}
@@ -425,8 +427,16 @@ function ResultsScreen({ score, total, foodType, xpEarned, apiResult, onComplete
       {/* XP box */}
       <div style={{ ...styles.xpBox, borderColor: `${theme.accent}40` }}>
         <div style={styles.xpRow}>
-          <span style={{ color: '#9ca3af' }}>XP Earned</span>
-          <span style={{ color: '#f59e0b', fontWeight: 'bold' }}>+{xpEarned} XP</span>
+          {hasPartner ? (
+            <>
+              <span style={{ color: '#9ca3af' }}>XP Earned</span>
+              <span style={{ color: '#f59e0b', fontWeight: 'bold' }}>+{xpEarned} XP</span>
+            </>
+          ) : (
+            <span style={{ color: '#9ca3af', fontSize: '12px', textAlign: 'center', width: '100%' }}>
+              You can gain XP if you have a partner dinosaur
+            </span>
+          )}
         </div>
       </div>
 

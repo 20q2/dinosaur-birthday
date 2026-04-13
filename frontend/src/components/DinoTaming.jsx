@@ -165,7 +165,6 @@ export function DinoTaming({ foodType, prefetchedResult }) {
             onInput={(e) => setName(e.target.value)}
             maxLength={16}
             style={styles.input}
-            autoFocus
           />
 
           {ownedHats.length > 0 && (

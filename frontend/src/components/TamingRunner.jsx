@@ -485,14 +485,34 @@ export function TamingRunner({ species, colors, foodType, onComplete }) {
 
   const [isPortrait, setIsPortrait] = useState(false);
 
-  // Canvas sizing — always landscape resolution, CSS-rotated if portrait
+  // Canvas sizing — always landscape resolution, CSS-rotated if portrait.
+  // Use visualViewport when available so the mobile URL bar doesn't throw off sizing.
   useEffect(() => {
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-    const w = Math.max(vw, vh);
-    const h = Math.min(vw, vh);
-    setCanvasSize({ w, h });
-    setIsPortrait(vh > vw);
+    function measure() {
+      const vv = window.visualViewport;
+      const vw = vv ? vv.width : window.innerWidth;
+      const vh = vv ? vv.height : window.innerHeight;
+      const w = Math.max(vw, vh);
+      const h = Math.min(vw, vh);
+      setCanvasSize({ w: Math.round(w), h: Math.round(h) });
+      setIsPortrait(vh > vw);
+    }
+    measure();
+    const vv = window.visualViewport;
+    if (vv) {
+      vv.addEventListener('resize', measure);
+      vv.addEventListener('scroll', measure);
+    }
+    window.addEventListener('resize', measure);
+    window.addEventListener('orientationchange', measure);
+    return () => {
+      if (vv) {
+        vv.removeEventListener('resize', measure);
+        vv.removeEventListener('scroll', measure);
+      }
+      window.removeEventListener('resize', measure);
+      window.removeEventListener('orientationchange', measure);
+    };
   }, []);
 
   const canvasW = canvasSize.w;
@@ -849,17 +869,22 @@ export function TamingRunner({ species, colors, foodType, onComplete }) {
 
   const bonusXP = Math.min(10, Math.floor(score / 100));
 
+  // Use the measured viewport (accounts for mobile URL bar) instead of 100vh/100vw
+  // because 100vh on mobile often refers to the large viewport including the URL bar.
   const rotateStyle = isPortrait ? {
     position: 'absolute',
     transform: 'rotate(90deg)',
     transformOrigin: 'center center',
-    width: '100vh',
-    height: '100vw',
+    width: `${canvasW}px`,
+    height: `${canvasH}px`,
     left: '50%',
     top: '50%',
-    marginLeft: '-50vh',
-    marginTop: '-50vw',
-  } : {};
+    marginLeft: `${-canvasW / 2}px`,
+    marginTop: `${-canvasH / 2}px`,
+  } : {
+    width: `${canvasW}px`,
+    height: `${canvasH}px`,
+  };
 
   return (
     <div style={styles.container}>
