@@ -13,12 +13,12 @@ import rockUrl from '../assets/dinoRun/rock.png';
 
 const RUN_DURATION = 20000;
 const GROUND_Y_FRAC = 0.75;
-const START_SPEED = 4;
-const END_SPEED = 6;
-const GRAVITY = 0.5;
-const JUMP_VELOCITY = -7;       // initial upward velocity on tap
-const HOLD_GRAVITY = 0.25;      // reduced gravity while holding (floatier rise)
-const MAX_FALL_SPEED = 8;
+const START_SPEED = 9;
+const END_SPEED = 14;
+const GRAVITY = 0.95;
+const JUMP_VELOCITY = -9;       // initial upward velocity on tap
+const HOLD_GRAVITY = 0.48;      // reduced gravity while holding (floatier rise)
+const MAX_FALL_SPEED = 14;
 const STUMBLE_DURATION = 300;
 const STUMBLE_SLOW = 0.4;
 const DINO_X_FRAC = 0.2;
@@ -220,20 +220,25 @@ function drawObstacles(ctx, game) {
 function updateFood(game, canvasW) {
   if (!game.ending || !game.foodImg) return;
   const scale = game.scale || 1;
-  // Initialize food position on first ending frame
+  // Initialize: food drops from above onto the ground a short distance ahead of the dino,
+  // then scrolls toward the dino with the world (so the dino runs up to it).
   if (game.foodX == null) {
-    game.foodX = canvasW + 20;
-    game.foodY = game.groundY - game.groundY * 0.5; // start high in the air
-    game.foodTargetY = game.groundY - 28; // land near ground
-    // Drift fast enough to reach the dino within ~1s regardless of canvas width.
-    // (Previously tied to game.speed, which failed on wide landscape phone canvases.)
-    const distToDino = Math.max(1, canvasW + 20 - (game.dinoX + 10));
-    game.foodDriftBase = distToDino / 60; // px per 60fps frame → ~1s travel time
+    // Place it just off-screen to the right so the drop is visible as it scrolls in.
+    game.foodX = Math.min(canvasW - 40, game.dinoX + Math.max(180, canvasW * 0.4));
+    game.foodY = -40;                  // start above the screen
+    game.foodTargetY = game.groundY - 28; // land on the ground
+    game.foodLanded = false;
   }
-  game.foodX -= game.foodDriftBase * scale;
-  // Ease Y toward target (scale easing by frame time)
-  game.foodY += (game.foodTargetY - game.foodY) * (1 - Math.pow(1 - 0.03, scale));
-  // Don't drift past the dino
+  // Drop straight down until it lands
+  if (!game.foodLanded) {
+    game.foodY += 6 * scale;
+    if (game.foodY >= game.foodTargetY) {
+      game.foodY = game.foodTargetY;
+      game.foodLanded = true;
+    }
+  }
+  // Scroll left with the world (like an obstacle) — but stop at the dino so it doesn't pass through
+  game.foodX -= game.speed * scale;
   const minX = game.dinoX + 10;
   if (game.foodX < minX) game.foodX = minX;
 }
@@ -483,23 +488,33 @@ function drawDust(ctx, game, now) {
 export function TamingRunner({ species, colors, foodType, onComplete }) {
   const [phase, setPhase] = useState('ready');
   const [score, setScore] = useState(0);
-  const [canvasSize, setCanvasSize] = useState({ w: 360, h: 200 });
+  // Game logic runs at a FIXED internal resolution so speed/physics don't depend on device DPI/size.
+  // The canvas buffer is this fixed size; CSS stretches it to fill the display.
+  const REF_HEIGHT = 400;
+  const [canvasSize, setCanvasSize] = useState({ w: 720, h: REF_HEIGHT, dispW: 720, dispH: REF_HEIGHT });
   const canvasRef = useRef(null);
   const gameRef = useRef(null);
   const rafRef = useRef(null);
 
   const [isPortrait, setIsPortrait] = useState(false);
 
-  // Canvas sizing — always landscape resolution, CSS-rotated if portrait.
-  // Use visualViewport when available so the mobile URL bar doesn't throw off sizing.
+  // Canvas sizing — always landscape, CSS-rotated if portrait.
+  // Internal buffer locked to REF_HEIGHT so game logic is resolution-independent.
   useEffect(() => {
     function measure() {
       const vv = window.visualViewport;
       const vw = vv ? vv.width : window.innerWidth;
       const vh = vv ? vv.height : window.innerHeight;
-      const w = Math.max(vw, vh);
-      const h = Math.min(vw, vh);
-      setCanvasSize({ w: Math.round(w), h: Math.round(h) });
+      const dispW = Math.max(vw, vh);
+      const dispH = Math.min(vw, vh);
+      const aspect = dispW / dispH;
+      const h = REF_HEIGHT;
+      const w = Math.round(REF_HEIGHT * aspect);
+      setCanvasSize({
+        w, h,
+        dispW: Math.round(dispW),
+        dispH: Math.round(dispH),
+      });
       setIsPortrait(vh > vw);
     }
     measure();
@@ -882,21 +897,23 @@ export function TamingRunner({ species, colors, foodType, onComplete }) {
 
   const bonusXP = Math.min(10, Math.floor(score / 100));
 
-  // Use the measured viewport (accounts for mobile URL bar) instead of 100vh/100vw
-  // because 100vh on mobile often refers to the large viewport including the URL bar.
+  // Rotate wrapper uses DISPLAY size (real on-screen px), canvas buffer uses the fixed
+  // internal resolution and is CSS-stretched to fill the wrapper.
+  const dispW = canvasSize.dispW;
+  const dispH = canvasSize.dispH;
   const rotateStyle = isPortrait ? {
     position: 'absolute',
     transform: 'rotate(90deg)',
     transformOrigin: 'center center',
-    width: `${canvasW}px`,
-    height: `${canvasH}px`,
+    width: `${dispW}px`,
+    height: `${dispH}px`,
     left: '50%',
     top: '50%',
-    marginLeft: `${-canvasW / 2}px`,
-    marginTop: `${-canvasH / 2}px`,
+    marginLeft: `${-dispW / 2}px`,
+    marginTop: `${-dispH / 2}px`,
   } : {
-    width: `${canvasW}px`,
-    height: `${canvasH}px`,
+    width: `${dispW}px`,
+    height: `${dispH}px`,
   };
 
   return (
