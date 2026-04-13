@@ -418,11 +418,11 @@ export function DinoDetail({ species }) {
 
       {/* Hat & Paints row — tamed only */}
       {dino.tamed && !selectedPaint && (
-        <div style={styles.dualRow}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <div
             role="button"
             tabIndex={0}
-            style={{ ...styles.pickerRow, flex: 1, ...(showHats ? styles.pickerRowActive : {}) }}
+            style={{ ...styles.pickerRow, ...(showHats ? styles.pickerRowActive : {}) }}
             onClick={() => { setShowHats(!showHats); setShowPaints(false); }}
           >
             <div style={styles.statRow}>
@@ -438,11 +438,56 @@ export function DinoDetail({ species }) {
               </span>
             </div>
           </div>
+          {showHats && (
+            <div style={styles.pickerExpanded}>
+              <div style={styles.sectionTitle}>Choose a Hat</div>
+              {availableHats.length === 0 ? (
+                <p style={{ color: '#666', fontSize: '13px' }}>No hats in inventory.</p>
+              ) : (
+                <div style={styles.hatGrid}>
+                  <button
+                    onClick={() => handleEquipHat('')}
+                    disabled={busy}
+                    style={{
+                      ...styles.hatGridItem,
+                      borderColor: !dino.hat ? '#4ade80' : '#333',
+                      background: !dino.hat ? '#0f2a1a' : '#0d1117',
+                    }}
+                  >
+                    {loadingHat === '' ? <span style={styles.hatSpinner} /> : <span style={{ fontSize: '20px', color: '#666' }}>-</span>}
+                    <span style={styles.hatGridName}>None</span>
+                  </button>
+                  {availableHats.map(hat => {
+                    const hatImg = getHatImage(hat.id);
+                    return (
+                      <button
+                        key={hat.id}
+                        onClick={() => handleEquipHat(hat.id)}
+                        disabled={busy}
+                        style={{
+                          ...styles.hatGridItem,
+                          borderColor: dino.hat === hat.id ? '#4ade80' : '#333',
+                          background: dino.hat === hat.id ? '#0f2a1a' : '#0d1117',
+                        }}
+                      >
+                        {loadingHat === hat.id
+                          ? <span style={styles.hatSpinner} />
+                          : hatImg && hatImg.loaded
+                            ? <img src={hatImg.img.src} style={{ width: '36px', height: '36px', imageRendering: 'pixelated', objectFit: 'contain' }} />
+                            : <span style={{ fontSize: '22px' }}>{'\uD83C\uDFA9'}</span>}
+                        <span style={styles.hatGridName}>{hat.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
           {hasPaints && (
             <div
               role="button"
               tabIndex={0}
-              style={{ ...styles.pickerRow, flex: 1, ...(showPaints ? styles.pickerRowActive : {}) }}
+              style={{ ...styles.pickerRow, ...(showPaints ? styles.pickerRowActive : {}) }}
               onClick={() => { setShowPaints(!showPaints); setShowHats(false); }}
             >
               <div style={styles.statRow}>
@@ -459,60 +504,9 @@ export function DinoDetail({ species }) {
               </div>
             </div>
           )}
-        </div>
-      )}
-
-      {/* Expanded hat picker */}
-      {dino.tamed && showHats && !selectedPaint && (
-        <div style={styles.card}>
-          <div style={styles.sectionTitle}>Choose a Hat</div>
-          {availableHats.length === 0 ? (
-            <p style={{ color: '#666', fontSize: '13px' }}>No hats in inventory.</p>
-          ) : (
-            <div style={styles.hatGrid}>
-              <button
-                onClick={() => handleEquipHat('')}
-                disabled={busy}
-                style={{
-                  ...styles.hatGridItem,
-                  borderColor: !dino.hat ? '#4ade80' : '#333',
-                  background: !dino.hat ? '#0f2a1a' : '#0d1117',
-                }}
-              >
-                {loadingHat === '' ? <span style={styles.hatSpinner} /> : <span style={{ fontSize: '20px', color: '#666' }}>-</span>}
-                <span style={styles.hatGridName}>None</span>
-              </button>
-              {availableHats.map(hat => {
-                const hatImg = getHatImage(hat.id);
-                return (
-                  <button
-                    key={hat.id}
-                    onClick={() => handleEquipHat(hat.id)}
-                    disabled={busy}
-                    style={{
-                      ...styles.hatGridItem,
-                      borderColor: dino.hat === hat.id ? '#4ade80' : '#333',
-                      background: dino.hat === hat.id ? '#0f2a1a' : '#0d1117',
-                    }}
-                  >
-                    {loadingHat === hat.id
-                      ? <span style={styles.hatSpinner} />
-                      : hatImg && hatImg.loaded
-                        ? <img src={hatImg.img.src} style={{ width: '36px', height: '36px', imageRendering: 'pixelated', objectFit: 'contain' }} />
-                        : <span style={{ fontSize: '22px' }}>{'\uD83C\uDFA9'}</span>}
-                    <span style={styles.hatGridName}>{hat.name}</span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Expanded paint picker */}
-      {dino.tamed && showPaints && !selectedPaint && (
-        <div style={styles.card}>
-          <div style={styles.sectionTitle}>Choose a Paint</div>
+          {showPaints && (
+            <div style={styles.pickerExpanded}>
+              <div style={styles.sectionTitle}>Choose a Paint</div>
           {rarePaints.length > 0 && (
             <>
               <div style={{ fontSize: '11px', color: '#f59e0b', marginBottom: '6px', letterSpacing: '1px' }}>RARE</div>
@@ -552,6 +546,8 @@ export function DinoDetail({ species }) {
               );
             })}
           </div>
+        </div>
+      )}
         </div>
       )}
 
@@ -778,6 +774,11 @@ const styles = {
   },
   pickerRowActive: {
     borderColor: '#818cf8', background: '#2a3470',
+  },
+  pickerExpanded: {
+    background: '#0b1224', borderRadius: '12px', padding: '14px',
+    border: '1px solid #2a3a5e',
+    display: 'flex', flexDirection: 'column', gap: '8px',
   },
   pickerLeft: { display: 'flex', alignItems: 'center', gap: '10px' },
   pickerIcon: { display: 'flex', alignItems: 'center' },

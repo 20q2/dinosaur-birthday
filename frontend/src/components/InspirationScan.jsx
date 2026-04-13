@@ -73,7 +73,7 @@ export function InspirationScan() {
 
       <h2 style={styles.title}>You've been blessed!</h2>
       <p style={{ color: '#c084fc', textAlign: 'center', fontSize: '15px', maxWidth: '280px', margin: '0' }}>
-        "Alex blessed you with Inspiration!"
+        "Alex has deemed you worthy of reward"
       </p>
 
       <div style={styles.rewardBox}>
@@ -81,14 +81,14 @@ export function InspirationScan() {
           <span>XP Gained</span>
           <span style={{ color: '#f59e0b', fontWeight: 'bold' }}>+50 XP</span>
         </div>
-        {result?.dino && (
-          <div style={styles.rewardRow}>
-            <span>Partner Dino</span>
-            <span style={{ color: '#a78bfa', fontSize: '13px' }}>
-              {result.dino.species} Lv.{result.dino.level} ({result.dino.xp} XP)
-            </span>
+        <div style={{ ...styles.rewardRow, flexDirection: 'column', alignItems: 'flex-start', gap: '4px' }}>
+          <span>Rare Paint</span>
+          <div style={styles.rainbowBadge}>
+            <span style={styles.rainbowSwatch} />
+            <span style={{ color: '#fff', fontWeight: 'bold', fontSize: '14px' }}>Rainbow Paint</span>
+            <span style={styles.rareTag}>RARE</span>
           </div>
-        )}
+        </div>
         {result?.item && (() => {
           const hatImg = getHatImage(result.item.id || 'birthday_blessing');
           return (
@@ -152,6 +152,22 @@ const styles = {
   },
   legendaryTag: {
     background: '#78350f', color: '#f59e0b', borderRadius: '4px',
+    padding: '2px 6px', fontSize: '10px', fontWeight: 'bold',
+  },
+  rainbowBadge: {
+    display: 'flex', alignItems: 'center', gap: '8px',
+    background: '#1e1b2e', borderRadius: '8px', padding: '8px 12px',
+    border: '1px solid',
+    borderImage: 'linear-gradient(90deg, #f00, #ff0, #0f0, #0ff, #00f, #f0f) 1',
+  },
+  rainbowSwatch: {
+    width: '20px', height: '20px', borderRadius: '4px',
+    background: 'linear-gradient(135deg, #f00, #ff0, #0f0, #0ff, #00f, #f0f)',
+    border: '1px solid rgba(255,255,255,0.25)',
+  },
+  rareTag: {
+    background: 'linear-gradient(90deg, #f00, #ff0, #0f0, #0ff, #00f, #f0f)',
+    color: '#000', borderRadius: '4px',
     padding: '2px 6px', fontSize: '10px', fontWeight: 'bold',
   },
   button: {

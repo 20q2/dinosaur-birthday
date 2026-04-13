@@ -8,6 +8,7 @@ import { TitleBar } from './TitleBar.jsx';
 import { Gamepad2, Handshake } from 'lucide-preact';
 
 import { LOBBY_SYMBOLS } from '../data/lobbySymbols.js';
+import { SPECIES } from '../data/species.js';
 import { getHatImage } from '../data/hatImages.js';
 import paintUrl from '../assets/items/paint.png';
 
@@ -76,7 +77,7 @@ export function PlayTogether() {
         species: partner.species,
         colors: partner.colors || {},
         hat: partner.hat || '',
-        background: partner.background || '',
+        background: partner.background || SPECIES[partner.species]?.backdrop || '',
       }, partner.name);
     }
   }, [player]);
