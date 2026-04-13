@@ -63,38 +63,49 @@ function getQrUrl(route, size) {
 }
 
 export function AdminQRCodes() {
-  const [printGroup, setPrintGroup] = useState(null);
+  const [printGroup, setPrintGroup] = useState(null); // group title or 'ALL'
 
-  // Print-friendly full-page view for a single group
+  // Print-friendly view
   if (printGroup) {
-    const group = QR_GROUPS.find(g => g.title === printGroup);
+    const isAll = printGroup === 'ALL';
+    const groups = isAll ? QR_GROUPS : [QR_GROUPS.find(g => g.title === printGroup)];
     return (
       <div style={styles.printContainer}>
         <div style={styles.printHeader}>
           <button style={styles.backBtn} onClick={() => setPrintGroup(null)}>Back</button>
-          <h2 style={{ margin: 0, color: group.color }}>{group.title}</h2>
+          <h2 style={{ margin: 0, color: isAll ? '#e0e0e0' : groups[0].color }}>
+            {isAll ? 'All QR Codes' : groups[0].title}
+          </h2>
           <button style={styles.printBtn} onClick={() => window.print()}>Print</button>
         </div>
-        <div style={styles.printGrid}>
-          {group.items.map(item => (
-            <div key={item.route} style={styles.printCard}>
-              <img
-                src={getQrUrl(item.route, 300)}
-                alt={item.label}
-                style={styles.printQrImg}
-              />
-              <div style={styles.printLabel}>{item.label}</div>
-              <div style={{ ...styles.printSub, color: item.subColor }}>{item.sub}</div>
+        {groups.map(group => (
+          <div key={group.title}>
+            {isAll && <h3 style={{ ...styles.groupTitle, color: group.color, margin: '16px 0 10px' }}>{group.title}</h3>}
+            <div style={styles.printGrid}>
+              {group.items.map(item => (
+                <div key={item.route} style={styles.printCard}>
+                  <img
+                    src={getQrUrl(item.route, 300)}
+                    alt={item.label}
+                    style={styles.printQrImg}
+                  />
+                  <div style={styles.printLabel}>{item.label}</div>
+                  <div style={{ ...styles.printSub, color: item.subColor }}>{item.sub}</div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </div>
     );
   }
 
   return (
     <div style={styles.container}>
-      <p style={styles.desc}>QR codes for all scan routes. Click a group's print button to get a printable layout.</p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+        <p style={{ ...styles.desc, margin: 0 }}>QR codes for all scan routes.</p>
+        <button style={styles.printBtn} onClick={() => setPrintGroup('ALL')}>Print All</button>
+      </div>
       {QR_GROUPS.map(group => (
         <div key={group.title} style={styles.group}>
           <div style={styles.groupHeader}>

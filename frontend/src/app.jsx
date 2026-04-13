@@ -56,10 +56,6 @@ export function App() {
       store.setBossState({ status: 'idle' });
       store.navigate('/plaza');
     };
-    ws.on('boss', 'boss_start', onBossStart);
-    ws.on('boss', 'hp_update', onHpUpdate);
-    ws.on('boss', 'boss_defeated', onBossDefeated);
-    ws.on('boss', 'boss_stopped', onBossStopped);
     ws.on('all', 'boss_start', onBossStart);
     ws.on('all', 'hp_update', onHpUpdate);
     ws.on('all', 'boss_defeated', onBossDefeated);

@@ -27,6 +27,17 @@ def handler(event, context):
     if not profile:
         return error("Player not found", 404)
 
+    # Require a tamed dino companion before notes can be claimed/viewed.
+    # Notes are a reward for active players — a new guest with no dino would
+    # waste the XP (no partner to receive it) and burn the note's one-time claim.
+    dinos = query_pk(f"PLAYER#{player_id}", "DINO#")
+    has_tamed_dino = any(d.get("tamed") for d in dinos)
+    if not has_tamed_dino:
+        return error(
+            "This scroll refuses to unfurl... it seems to be waiting. Come back once you've befriended a dinosaur companion!",
+            403,
+        )
+
     note_text = EXPLORER_NOTES[note_id]
 
     # Check once-per-player (but still show the note if already found)

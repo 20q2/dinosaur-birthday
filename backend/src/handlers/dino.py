@@ -63,7 +63,8 @@ def customize_handler(event, context):
     # Handle rename
     new_name = body.get("name")
     if new_name is not None:
-        updates["name"] = str(new_name)
+        new_name = str(new_name)[:16]
+        updates["name"] = new_name
 
     # Handle hat
     new_hat = body.get("hat")

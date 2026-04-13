@@ -119,7 +119,7 @@ def start_handler(event, context):
     except Exception:
         player_count = 5  # fallback
 
-    hp = player_count * 300
+    hp = player_count * 700
     max_hp = hp
 
     # Create/overwrite BOSS#STATE
@@ -133,15 +133,8 @@ def start_handler(event, context):
     }
     put_item(boss_state)
 
-    # Broadcast boss_start to all channels
+    # Broadcast boss_start to all connected clients
     broadcast("all", "boss_start", {
-        "hp": hp,
-        "max_hp": max_hp,
-        "status": "active",
-    })
-
-    # Also send on boss channel specifically
-    broadcast("boss", "boss_start", {
         "hp": hp,
         "max_hp": max_hp,
         "status": "active",
@@ -186,7 +179,6 @@ def stop_handler(event, context):
     })
 
     broadcast("all", "boss_stopped", {"status": "idle"})
-    broadcast("boss", "boss_stopped", {"status": "idle"})
 
     _post_feed_entry("boss_stop", "The boss fight has been called off. The city is safe... for now.")
 

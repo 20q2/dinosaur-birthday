@@ -16,10 +16,28 @@ def _make_profile(player_id, name="Tester"):
     put_item({"PK": f"PLAYER#{player_id}", "SK": "PROFILE", "name": name})
 
 
+def _give_tamed_dino(player_id, species="trex"):
+    put_item({
+        "PK": f"PLAYER#{player_id}",
+        "SK": f"DINO#{species}",
+        "name": species.title(),
+        "colors": {"body": 100},
+        "gender": "male",
+        "nature": "Bold",
+        "hat": "",
+        "xp": 0,
+        "level": 1,
+        "is_partner": True,
+        "tamed": True,
+        "shiny": False,
+    })
+
+
 # ── test_find_note_returns_text ───────────────────────────────────────────────
 
 def test_find_note_returns_text():
     _make_profile("nt1", "Kim")
+    _give_tamed_dino("nt1")
 
     resp = handler(_event("note1", {"player_id": "nt1"}), None)
     assert resp["statusCode"] == 200
@@ -35,6 +53,7 @@ def test_find_note_returns_text():
 
 def test_note_once_per_player_shows_text_again():
     _make_profile("nt2", "Leo")
+    _give_tamed_dino("nt2")
 
     resp1 = handler(_event("note2", {"player_id": "nt2"}), None)
     assert json.loads(resp1["body"])["found"] is True
@@ -51,6 +70,7 @@ def test_note_once_per_player_shows_text_again():
 
 def test_note_count_accumulates():
     _make_profile("nt3", "Mia")
+    _give_tamed_dino("nt3")
 
     for i in range(1, 4):
         resp = handler(_event(f"note{i}", {"player_id": "nt3"}), None)
@@ -89,25 +109,42 @@ def test_note_player_not_found():
     assert resp["statusCode"] == 404
 
 
+# ── test_note_requires_tamed_dino ─────────────────────────────────────────────
+
+def test_note_requires_tamed_dino():
+    """A player with no tamed dino cannot claim a note (and it isn't consumed)."""
+    _make_profile("nt_nodino", "Rookie")
+
+    resp = handler(_event("note1", {"player_id": "nt_nodino"}), None)
+    assert resp["statusCode"] == 403
+    body = json.loads(resp["body"])
+    assert "companion" in body["error"].lower()
+
+    # Note was NOT written — they can come back and claim it later
+    assert get_item("PLAYER#nt_nodino", "NOTE#note1") is None
+
+
+def test_untamed_dino_does_not_count():
+    """An untamed (wild-encountered) dino doesn't unlock notes."""
+    _make_profile("nt_wild", "Sage")
+    put_item({
+        "PK": "PLAYER#nt_wild",
+        "SK": "DINO#trex",
+        "name": "Trex",
+        "tamed": False,
+        "is_partner": False,
+    })
+
+    resp = handler(_event("note1", {"player_id": "nt_wild"}), None)
+    assert resp["statusCode"] == 403
+
+
 # ── test_xp_awarded_for_notes ─────────────────────────────────────────────────
 
 def test_xp_awarded_for_notes():
     """Discovering a new note awards 40 XP to partner dino."""
     _make_profile("nt5", "Oscar")
-    put_item({
-        "PK": "PLAYER#nt5",
-        "SK": "DINO#trex",
-        "name": "Trex",
-        "colors": {"body": 100},
-        "gender": "male",
-        "nature": "Bold",
-        "hat": "",
-        "xp": 0,
-        "level": 1,
-        "is_partner": True,
-        "tamed": True,
-        "shiny": False,
-    })
+    _give_tamed_dino("nt5")
 
     resp = handler(_event("note3", {"player_id": "nt5"}), None)
     assert resp["statusCode"] == 200
@@ -125,20 +162,7 @@ def test_xp_awarded_for_notes():
 def test_no_xp_on_rescan():
     """Rescanning an already-found note does not award XP again."""
     _make_profile("nt7", "Quinn")
-    put_item({
-        "PK": "PLAYER#nt7",
-        "SK": "DINO#trex",
-        "name": "Trex",
-        "colors": {"body": 100},
-        "gender": "male",
-        "nature": "Bold",
-        "hat": "",
-        "xp": 0,
-        "level": 1,
-        "is_partner": True,
-        "tamed": True,
-        "shiny": False,
-    })
+    _give_tamed_dino("nt7")
 
     handler(_event("note1", {"player_id": "nt7"}), None)
     handler(_event("note1", {"player_id": "nt7"}), None)
@@ -151,6 +175,7 @@ def test_no_xp_on_rescan():
 
 def test_all_five_notes_findable():
     _make_profile("nt6", "Penny")
+    _give_tamed_dino("nt6")
 
     for note_id, text in EXPLORER_NOTES.items():
         resp = handler(_event(note_id, {"player_id": "nt6"}), None)

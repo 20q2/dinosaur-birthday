@@ -36,42 +36,41 @@ def tap_handler(event, context):
     total_levels = sum(_to_int(d.get("level", 1)) for d in dinos if d.get("tamed"))
     damage = 5 + total_levels
 
-    # Atomically decrement HP using a conditional update
+    # Atomically decrement HP with a condition to prevent going below 0
     table = get_table()
-    current_hp = _to_int(boss.get("hp", 0))
+    max_hp = _to_int(boss.get("max_hp", 0))
 
-    if current_hp <= 0:
+    try:
+        resp = table.update_item(
+            Key={"PK": "BOSS", "SK": "STATE"},
+            UpdateExpression="SET hp = hp - :dmg",
+            ConditionExpression="hp > :zero",
+            ExpressionAttributeValues={":dmg": damage, ":zero": 0},
+            ReturnValues="ALL_NEW",
+        )
+    except table.meta.client.exceptions.ConditionalCheckFailedException:
         return error("Boss is already defeated", 400)
 
-    # Clamp damage so HP doesn't go below 0
-    actual_damage = min(damage, current_hp)
-    new_hp = current_hp - actual_damage
-
-    # Update boss HP in DynamoDB
-    table.update_item(
-        Key={"PK": "BOSS", "SK": "STATE"},
-        UpdateExpression="SET hp = :new_hp",
-        ExpressionAttributeValues={":new_hp": new_hp},
-    )
+    updated = resp.get("Attributes", {})
+    new_hp = max(_to_int(updated.get("hp", 0)), 0)
 
     # Broadcast hp_update to all connected clients
     hp_data = {
         "hp": new_hp,
-        "max_hp": _to_int(boss.get("max_hp", current_hp)),
-        "damage": actual_damage,
+        "max_hp": max_hp,
+        "damage": damage,
         "attacker": player_id,
     }
     broadcast("all", "hp_update", hp_data)
-    broadcast("boss", "hp_update", hp_data)
 
     # Check for defeat
     if new_hp <= 0:
-        # Set status to defeated
+        # Clamp HP to 0 and set status to defeated
         table.update_item(
             Key={"PK": "BOSS", "SK": "STATE"},
-            UpdateExpression="SET #s = :defeated",
+            UpdateExpression="SET hp = :zero, #s = :defeated",
             ExpressionAttributeNames={"#s": "status"},
-            ExpressionAttributeValues={":defeated": "defeated"},
+            ExpressionAttributeValues={":zero": 0, ":defeated": "defeated"},
         )
 
         # Award "Kaiju Slayer" hat to ALL players
@@ -84,19 +83,18 @@ def tap_handler(event, context):
             player_id,
         )
 
-        # Broadcast boss_defeated on all channels so every client receives it
+        # Broadcast boss_defeated
         defeat_data = {
             "hp": 0,
-            "max_hp": _to_int(boss.get("max_hp", current_hp)),
+            "max_hp": max_hp,
             "defeated_by": player_id,
         }
         broadcast("all", "boss_defeated", defeat_data)
-        broadcast("boss", "boss_defeated", defeat_data)
 
     return success({
-        "damage": actual_damage,
+        "damage": damage,
         "hp": new_hp,
-        "max_hp": _to_int(boss.get("max_hp", current_hp)),
+        "max_hp": max_hp,
         "defeated": new_hp <= 0,
     })
 
