@@ -582,7 +582,8 @@ const styles = {
     height: '100%', borderRadius: '4px', transition: 'width 0.1s linear',
   },
   playArea: {
-    position: 'relative', width: '100%', maxWidth: '340px', height: '200px',
+    position: 'relative', width: '100%', maxWidth: '340px',
+    height: 'min(65vh, 520px)', minHeight: '320px',
     background: '#0f0a20', borderRadius: '12px', overflow: 'hidden',
   },
   // Results

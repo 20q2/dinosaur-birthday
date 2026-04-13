@@ -5,7 +5,7 @@ import random
 from datetime import datetime, timezone
 from ..shared.db import get_item, put_item, update_item, query_pk
 from ..shared.response import success, error
-from ..shared.game_data import generate_lobby_code, random_trivia, random_hat
+from ..shared.game_data import generate_lobby_code, random_trivia, random_hat, random_paint
 from ..shared.ws_broadcast import broadcast
 from ..shared.xp import award_xp
 from ..shared.rare_paints import grant_rare_paint
@@ -25,14 +25,20 @@ def _give_reward(player_id):
         })
         return {"type": "hat", "name": hat["name"], "hat_id": hat["id"]}
     else:
+        paint = random_paint()
         put_item({
             "PK": f"PLAYER#{player_id}",
             "SK": f"ITEM#{item_id}",
             "type": "paint",
-            "name": "Paint",
-            "details": {},
+            "name": f"{paint['name']} Paint",
+            "details": {"paint_id": paint["id"], "hue": paint["hue"]},
         })
-        return {"type": "paint", "name": "Paint"}
+        return {
+            "type": "paint",
+            "name": f"{paint['name']} Paint",
+            "paint_id": paint["id"],
+            "hue": paint["hue"],
+        }
 
 
 def _track_trivia_partner(player_id, other_id):

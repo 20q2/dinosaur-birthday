@@ -14,8 +14,8 @@ import rockUrl from '../assets/dinoRun/rock.png';
 
 const RUN_DURATION = 20000;
 const GROUND_Y_FRAC = 0.75;
-const START_SPEED = 9;
-const END_SPEED = 14;
+const START_SPEED = 8;
+const END_SPEED = 13;
 const GRAVITY = 1.3;
 const JUMP_VELOCITY = -10;      // initial upward velocity on tap
 const HOLD_GRAVITY = 0.75;      // reduced gravity while holding (floatier rise)
