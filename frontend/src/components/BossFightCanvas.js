@@ -237,8 +237,8 @@ export class BossFightCanvas {
       ownerPhoto,
       animated,
       regions,
-      // Wide radial scatter — creates a dense crowd rather than a thin ring
-      radiusFactor: isMyDino ? 1 : 0.55 + Math.random() * 0.55,
+      // Moderate radial scatter — crowd with ring shape
+      radiusFactor: isMyDino ? 1 : 0.75 + Math.random() * 0.35,
       // Computed by _positionSlot (overwritten on first _layout call)
       sx: 0, sy: 0, depthT: 0, drawScale: 1, facingLeft: false,
       // Idle animation
@@ -263,19 +263,18 @@ export class BossFightCanvas {
       return this._makeSlot(partner, angle, true);
     });
 
-    // ── Plaza dinos: rest of the ellipse, sorted by level desc
+    // ── Plaza dinos: full ellipse, sorted by level desc
     const sorted = [...plazaDinos]
       .sort((a, b) => (b.level || 1) - (a.level || 1))
       .slice(0, 50);
 
-    const plazaArcStart = MY_ARC_END;
-    const plazaArcSpan  = Math.PI * 2 - (MY_ARC_END - MY_ARC_START);
-    // Angular jitter keeps dinos from lining up in a neat ring
+    // Plaza dinos use the full 360° so they surround the boss evenly
+    const plazaArcSpan = Math.PI * 2;
     const jitterRange = sorted.length > 1 ? plazaArcSpan / sorted.length * 0.4 : 0;
     this._plazaSlots = sorted.map((partner, i) => {
-      const t     = sorted.length > 1 ? i / (sorted.length - 1) : 0.5;
+      const t     = sorted.length > 1 ? i / sorted.length : 0.5;
       const jitter = (Math.random() - 0.5) * jitterRange;
-      const angle = plazaArcStart + t * plazaArcSpan + jitter;
+      const angle = t * plazaArcSpan + jitter;
       return this._makeSlot(partner, angle, false);
     });
 
@@ -290,13 +289,12 @@ export class BossFightCanvas {
     const sorted = [...partners]
       .sort((a, b) => (b.level || 1) - (a.level || 1))
       .slice(0, 50);
-    const plazaArcStart = MY_ARC_END;
-    const plazaArcSpan  = Math.PI * 2 - (MY_ARC_END - MY_ARC_START);
+    const plazaArcSpan = Math.PI * 2;
     const jitterRange = sorted.length > 1 ? plazaArcSpan / sorted.length * 0.4 : 0;
     this._plazaSlots = sorted.map((partner, i) => {
-      const t    = sorted.length > 1 ? i / (sorted.length - 1) : 0.5;
+      const t    = sorted.length > 1 ? i / sorted.length : 0.5;
       const jitter = (Math.random() - 0.5) * jitterRange;
-      const angle = plazaArcStart + t * plazaArcSpan + jitter;
+      const angle = t * plazaArcSpan + jitter;
       const slot  = this._makeSlot(partner, angle, false);
       this._positionSlot(slot);
       return slot;
@@ -664,15 +662,15 @@ export class BossFightCanvas {
       }
     }
 
-    // Name label — my dinos only
-    if (slot.isMyDino) {
-      const name     = slot.partner.name || (slot.partner.species.charAt(0).toUpperCase() + slot.partner.species.slice(1));
+    // Name label — white for my dinos, grey for plaza dinos
+    {
+      const name     = slot.partner.name || slot.partner.owner_name || (slot.partner.species.charAt(0).toUpperCase() + slot.partner.species.slice(1));
       const fontSize = Math.round(9 * sc);
       ctx.save();
       ctx.font         = `${fontSize}px monospace`;
       ctx.textAlign    = 'center';
       ctx.textBaseline = 'top';
-      ctx.fillStyle    = 'rgba(255,255,255,0.85)';
+      ctx.fillStyle    = slot.isMyDino ? 'rgba(255,255,255,0.85)' : 'rgba(160,160,160,0.7)';
       ctx.fillText(name, drawX, slot.sy + halfH * 0.9 + 2);
       ctx.restore();
     }
