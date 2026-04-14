@@ -36,6 +36,13 @@ const SPRINT_CHANCE = 0.2;
 const HEADING_LERP = 3.0; // radians/sec smoothing
 const ARRIVE_DIST = 5;
 
+// Transition animation constants
+const FADE_OUT_DURATION = 0.5;   // seconds to fade departing dino
+const DROP_IN_DURATION  = 0.7;   // seconds for drop-in fall
+const DROP_IN_HEIGHT    = 400;   // world-pixels above landing spot
+
+function easeInQuad(t) { return t * t; }
+
 export class PlazaCanvas {
   constructor(canvas, partners, onSelect) {
     this.canvas = canvas;
@@ -43,6 +50,7 @@ export class PlazaCanvas {
     this.partners = partners;
     this.onSelect = onSelect;
     this.dinos = [];
+    this.departingDinos = []; // fading-out dinos (removed from partners but still animating)
     this.particles = [];
     this.rafId = null;
     this.startTime = performance.now();
@@ -125,6 +133,11 @@ export class PlazaCanvas {
 
     return {
       ...anim,
+      // Clear transition state from any reused departing dino
+      fadeOut: 0,
+      dropIn: 0,
+      dropInTotal: 0,
+      squish: 0,
       partner,
       scale,
       spriteCanvas,
@@ -328,6 +341,18 @@ export class PlazaCanvas {
   }
 
   _updateDino(d, dt, elapsed) {
+    // Drop-in animation — tick timer, spawn poof on landing, skip AI
+    if (d.dropIn > 0) {
+      d.dropIn = Math.max(0, d.dropIn - dt);
+      if (d.dropIn === 0) {
+        this._spawnLandingPoof(d);
+        d.squish = 0.15; // brief squish on landing
+      }
+      return; // freeze AI while dropping in
+    }
+    // Squish recovery
+    if (d.squish > 0) d.squish = Math.max(0, d.squish - dt * 0.6);
+
     // Decay tap jump timer; detect landing to spawn poof
     if (d.tapJump > 0) {
       d.tapJump = Math.max(0, d.tapJump - dt);
@@ -472,6 +497,12 @@ export class PlazaCanvas {
     this.dinos.forEach(d => {
       if (d.partner.player_id) existing.set(d.partner.player_id, d);
     });
+    // Also check departing dinos for position reuse (partner swap: old is fading out)
+    this.departingDinos.forEach(d => {
+      if (d.partner.player_id && !existing.has(d.partner.player_id)) {
+        existing.set(d.partner.player_id, d);
+      }
+    });
 
     this.dinos = partners.map((partner, i) => {
       const prev = partner.player_id && existing.get(partner.player_id);
@@ -522,6 +553,26 @@ export class PlazaCanvas {
     if (d) {
       d.tapJump = 0.45;
       d.tapJumpHeight = 20 + Math.random() * 16;
+    }
+  }
+
+  // ── Partner swap transitions ────────────────────────────────────────────
+
+  // Move a dino to the departing list so it fades out in place
+  fadeOutDino(playerId) {
+    const idx = this.dinos.findIndex(d => d.partner.player_id === playerId);
+    if (idx === -1) return;
+    const d = this.dinos.splice(idx, 1)[0];
+    d.fadeOut = FADE_OUT_DURATION;
+    this.departingDinos.push(d);
+  }
+
+  // Mark a dino for drop-in animation (call after updatePartners adds it)
+  dropInDino(playerId) {
+    const d = this.dinos.find(d => d.partner.player_id === playerId);
+    if (d) {
+      d.dropIn = DROP_IN_DURATION;
+      d.dropInTotal = DROP_IN_DURATION;
     }
   }
 
@@ -713,13 +764,26 @@ export class PlazaCanvas {
 
     // ── Update & Draw Dinos (Y-sorted for depth) ──────────────────────────
     this.dinos.forEach(d => this._updateDino(d, dt, elapsed));
+
+    // Tick departing dinos (fade-out)
+    for (let i = this.departingDinos.length - 1; i >= 0; i--) {
+      const d = this.departingDinos[i];
+      d.fadeOut -= dt;
+      if (d.fadeOut <= 0) {
+        this.departingDinos.splice(i, 1);
+      }
+    }
+
     this._updateParticles(dt);
-    this.dinos.sort((a, b) => a.worldY - b.worldY);
+
+    // Merge active + departing for Y-sorted drawing
+    const allDinos = [...this.dinos, ...this.departingDinos];
+    allDinos.sort((a, b) => a.worldY - b.worldY);
     this._drawParticles();
 
     // Re-resolve animated dino sprites each frame and bake effect overlays
     const now = Date.now();
-    this.dinos.forEach(d => {
+    allDinos.forEach(d => {
       if (d.animated) {
         const resolved = resolveColors(d.partner.colors || {}, now);
         d.spriteCanvas = getRecoloredUncached(d.partner.species, resolved, d.regions);
@@ -730,7 +794,7 @@ export class PlazaCanvas {
       }
     });
 
-    this.dinos.forEach(d => this._drawDino(d, elapsed));
+    allDinos.forEach(d => this._drawDino(d, elapsed));
 
     ctx.restore();
   }
@@ -741,6 +805,22 @@ export class PlazaCanvas {
     const y = d.worldY;
 
     if (!d.spriteCanvas) return;
+
+    // Fade-out: departing dino dissolves
+    let dinoAlpha = 1;
+    if (d.fadeOut > 0) {
+      dinoAlpha = d.fadeOut / FADE_OUT_DURATION;
+    }
+
+    // Drop-in: falling from above with easeInQuad
+    let dropOffsetY = 0;
+    if (d.dropIn > 0) {
+      const t = 1 - d.dropIn / d.dropInTotal; // 0→1
+      dropOffsetY = -(1 - easeInQuad(t)) * DROP_IN_HEIGHT;
+      dinoAlpha = Math.min(1, t * 2.5); // fade in quickly over first 40%
+    }
+
+    if (dinoAlpha <= 0.001) return;
 
     const drawScale = BASE_SPRITE_SCALE * d.scale;
     const spriteW = d.spriteCanvas.width * drawScale;
@@ -768,25 +848,35 @@ export class PlazaCanvas {
       hopY -= Math.sin(t * Math.PI) * (d.tapJumpHeight || 10);
     }
 
-    // Shadow
-    ctx.save();
-    ctx.globalAlpha = 0.2;
-    ctx.fillStyle = '#000';
-    ctx.beginPath();
-    ctx.ellipse(x, y + halfH * 0.85, halfW * 0.7, halfH * 0.15, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
+    // Landing squish (from drop-in)
+    const squish = d.squish || 0;
+    const squishScaleX = 1 + squish * 0.2;
+    const squishScaleY = 1 - squish * 0.3;
+
+    // Shadow (don't show shadow while high up in drop-in)
+    if (dropOffsetY > -80) {
+      ctx.save();
+      ctx.globalAlpha = 0.2 * dinoAlpha * Math.max(0, 1 + dropOffsetY / 80);
+      ctx.fillStyle = '#000';
+      ctx.beginPath();
+      ctx.ellipse(x, y + halfH * 0.85, halfW * 0.7, halfH * 0.15, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
 
     // Sprite (pixelated — sprites face left by default, flip for right)
     ctx.save();
+    ctx.globalAlpha = dinoAlpha;
     ctx.filter = 'drop-shadow(0px 2px 3px rgba(0,0,0,0.6))';
     ctx.imageSmoothingEnabled = false;
     if (!d.facingLeft) {
-      ctx.translate(x, y + hopY);
-      ctx.scale(-1, 1);
+      ctx.translate(x, y + hopY + dropOffsetY);
+      ctx.scale(-squishScaleX, squishScaleY);
       ctx.drawImage(d.spriteCanvas, -halfW, -halfH, spriteW, spriteH);
     } else {
-      ctx.drawImage(d.spriteCanvas, x - halfW, y - halfH + hopY, spriteW, spriteH);
+      ctx.translate(x, y + hopY + dropOffsetY);
+      ctx.scale(squishScaleX, squishScaleY);
+      ctx.drawImage(d.spriteCanvas, -halfW, -halfH, spriteW, spriteH);
     }
     ctx.imageSmoothingEnabled = true;
     ctx.restore();
@@ -803,9 +893,10 @@ export class PlazaCanvas {
         const anchorDrawY = (hatAnchor.y + hatInfo.offsetY) * drawScale;
 
         ctx.save();
+        ctx.globalAlpha = dinoAlpha;
         ctx.imageSmoothingEnabled = false;
         if (!d.facingLeft) {
-          ctx.translate(x, y + hopY);
+          ctx.translate(x, y + hopY + dropOffsetY);
           ctx.scale(-1, 1);
           ctx.drawImage(hatInfo.img,
             -halfW + anchorDrawX - hatW / 2,
@@ -814,13 +905,13 @@ export class PlazaCanvas {
         } else {
           ctx.drawImage(hatInfo.img,
             x - halfW + anchorDrawX - hatW / 2,
-            y - halfH + hopY + anchorDrawY - hatH,
+            y - halfH + hopY + dropOffsetY + anchorDrawY - hatH,
             hatW, hatH);
         }
         ctx.restore();
       } else {
         // Fallback text label for hats without artwork
-        const labelY = y - halfH + hopY - 6;
+        const labelY = y - halfH + hopY + dropOffsetY - 6;
         ctx.fillStyle = 'rgba(0,0,0,0.55)';
         ctx.beginPath();
         ctx.roundRect(x - 16, labelY - 5, 32, 10, 3);
@@ -831,6 +922,12 @@ export class PlazaCanvas {
         ctx.textBaseline = 'middle';
         ctx.fillText(d.partner.hat.replace('_', ' '), x, labelY);
       }
+    }
+
+    // Skip UI overlays during transitions
+    if (d.fadeOut > 0 || d.dropIn > 0) {
+      this._drawNameplate(d, x, y + halfH * 0.85 + 10 + dropOffsetY, d.nameplateScale, dinoAlpha);
+      return;
     }
 
     // Cooldown icon
@@ -861,6 +958,11 @@ export class PlazaCanvas {
       ctx.textBaseline = 'bottom';
       ctx.fillText(playEmojis[emojiIdx], x, emojiY + floatY);
       ctx.restore();
+    }
+
+    // Shiny sparkles — subtle glints orbiting the dino
+    if (d.partner.shiny) {
+      this._drawShinySparkles(ctx, x, y + hopY, halfW, halfH, elapsed, d);
     }
 
     // ── Nameplate ──────────────────────────────────────────────────────────
@@ -1029,8 +1131,52 @@ export class PlazaCanvas {
     }
   }
 
-  _drawNameplate(d, cx, topY, scale = 1) {
+  _drawShinySparkles(ctx, cx, cy, halfW, halfH, elapsed, d) {
+    // 5 sparkle points with staggered phases, orbiting gently around the dino
+    const count = 5;
+    const phase = d.sparklePhase || 0;
+    for (let i = 0; i < count; i++) {
+      const t = elapsed * 0.8 + phase + (i * Math.PI * 2) / count;
+      // Each sparkle drifts in an ellipse around the dino bounds
+      const rx = halfW * 0.9 + Math.sin(t * 0.7 + i) * halfW * 0.3;
+      const ry = halfH * 0.7 + Math.cos(t * 0.5 + i * 2) * halfH * 0.2;
+      const sx = cx + Math.cos(t) * rx;
+      const sy = cy + Math.sin(t * 1.3 + i) * ry;
+
+      // Twinkle: fade in and out smoothly
+      const twinkle = Math.sin(elapsed * 3.0 + i * 1.8) * 0.5 + 0.5;
+      // Only show when twinkle is above threshold for sparse appearance
+      if (twinkle < 0.3) continue;
+      const alpha = (twinkle - 0.3) * 0.5; // max ~0.35 opacity — very subtle
+
+      const size = 2.5 + twinkle * 1.5;
+
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.translate(sx, sy);
+
+      // 4-point star shape
+      ctx.fillStyle = '#fffbe6';
+      ctx.beginPath();
+      ctx.moveTo(0, -size);
+      ctx.lineTo(size * 0.25, -size * 0.25);
+      ctx.lineTo(size, 0);
+      ctx.lineTo(size * 0.25, size * 0.25);
+      ctx.lineTo(0, size);
+      ctx.lineTo(-size * 0.25, size * 0.25);
+      ctx.lineTo(-size, 0);
+      ctx.lineTo(-size * 0.25, -size * 0.25);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.restore();
+    }
+  }
+
+  _drawNameplate(d, cx, topY, scale = 1, alpha = 1) {
     const ctx = this.ctx;
+    if (alpha < 0.01) return;
+    if (alpha < 1) { ctx.save(); ctx.globalAlpha = alpha; }
     const p = d.partner;
 
     const photoSize = 12 * scale;
@@ -1040,7 +1186,8 @@ export class PlazaCanvas {
     // Build text
     const gender = p.gender || '';
     const genderSymbol = gender === 'male' ? ' \u2642' : gender === 'female' ? ' \u2640' : '';
-    const line1 = (p.name || 'Unnamed') + genderSymbol;
+    const shinyTag = p.shiny ? ' \u2728' : '';
+    const line1 = (p.name || 'Unnamed') + genderSymbol + shinyTag;
     const line2 = p.owner_name ? `Owner: ${p.owner_name}` : '';
 
     const fontSize1 = Math.round(6 * scale);
@@ -1124,5 +1271,6 @@ export class PlazaCanvas {
       ctx.fillStyle = '#86efac';
       ctx.fillText(line2, textLeft, pillY + 12 * scale);
     }
+    if (alpha < 1) ctx.restore();
   }
 }

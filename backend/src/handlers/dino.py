@@ -225,6 +225,7 @@ def partner_handler(event, context):
         "gender": dino.get("gender", ""),
         "owner_name": profile.get("name", "") if profile else "",
         "owner_photo": profile.get("photo_url", "") if profile else "",
+        "shiny": bool(dino.get("shiny", False)),
     }
     put_item(plaza_data)
 
@@ -245,6 +246,7 @@ def partner_handler(event, context):
             "level": dino.get("level", 1),
             "owner_name": profile.get("name", "") if profile else "",
             "owner_photo": profile.get("photo_url", "") if profile else "",
+            "shiny": bool(dino.get("shiny", False)),
         })
     except Exception:
         pass

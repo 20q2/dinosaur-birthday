@@ -31,5 +31,6 @@ def handler(event, context):
             "gender": item.get("gender", ""),
             "owner_name": item.get("owner_name", ""),
             "owner_photo": item.get("owner_photo", ""),
+            "shiny": bool(item.get("shiny", False)),
         })
     return success({"partners": partners})

@@ -689,12 +689,18 @@ export function DinoDetail({ species }) {
       )}
 
       {/* Untamed — tame button */}
-      {!dino.tamed && (
-        <button onClick={handleTame} style={styles.tameBtn} disabled={busy}>
-          <img src={speciesData.diet === 'carnivore' ? meatImg : berryImg} style={styles.untamedFoodImg} />
-          {busy ? 'Feeding...' : `Feed ${speciesData.diet === 'carnivore' ? 'Meat' : 'Mejoberries'} & Tame!`}
-        </button>
-      )}
+      {!dino.tamed && (() => {
+        const foodType = speciesData.food;
+        const foodCount = player?.food?.[foodType] || 0;
+        const foodLabel = speciesData.diet === 'carnivore' ? 'Meat' : 'Mejoberries';
+        const hasFood = foodCount > 0;
+        return (
+          <button onClick={handleTame} style={{ ...styles.tameBtn, ...((!hasFood && !busy) ? { opacity: 0.5, cursor: 'not-allowed' } : {}) }} disabled={busy || !hasFood}>
+            <img src={speciesData.diet === 'carnivore' ? meatImg : berryImg} style={styles.untamedFoodImg} />
+            {busy ? 'Feeding...' : hasFood ? `Feed ${foodLabel} & Tame!` : `No ${foodLabel} — scan a food QR!`}
+          </button>
+        );
+      })()}
       </div>
     </div>
   );

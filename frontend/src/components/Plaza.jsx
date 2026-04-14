@@ -7,6 +7,23 @@ import { TitleBar } from './TitleBar.jsx';
 import { FEED_ICONS } from '../data/icons.js';
 import { Leaf, Footprints } from 'lucide-preact';
 
+// Inject feed animations once
+if (typeof document !== 'undefined' && !document.getElementById('feed-anim-styles')) {
+  const sheet = document.createElement('style');
+  sheet.id = 'feed-anim-styles';
+  sheet.textContent = `
+    @keyframes feedSlideIn {
+      from { opacity: 0; transform: translateX(-30px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes feedShrinkOut {
+      from { opacity: 1; max-height: 28px; margin-bottom: 3px; }
+      to   { opacity: 0; max-height: 0px; margin-bottom: 0px; }
+    }
+  `;
+  document.head.appendChild(sheet);
+}
+
 const RECENT_PLAYS_KEY = 'dino_party_recent_plays';
 
 function getActiveCooldownIds() {
@@ -53,11 +70,15 @@ export function Plaza() {
     const offArrive = ws.on('plaza', 'dino_arrive', (data) => {
       setPartners(prev => {
         const updated = [...prev.filter(p => p.player_id !== data.player_id), data];
-        if (plazaRef.current) plazaRef.current.updatePartners(updated);
+        if (plazaRef.current) {
+          plazaRef.current.updatePartners(updated);
+          plazaRef.current.dropInDino(data.player_id);
+        }
         return updated;
       });
     });
     const offLeave = ws.on('plaza', 'dino_leave', (data) => {
+      if (plazaRef.current) plazaRef.current.fadeOutDino(data.player_id);
       setPartners(prev => {
         const updated = prev.filter(p => p.player_id !== data.player_id);
         if (plazaRef.current) plazaRef.current.updatePartners(updated);
@@ -126,32 +147,46 @@ export function Plaza() {
   }, []);
 
   // Subscribe to live feed entries from store — keep max 5, stamp arrival time
+  // When a new entry would push past 5, mark the oldest as exiting
   useEffect(() => {
     const unsub = store.subscribe(() => {
       setFeedEntries(prev => {
         const existingIds = new Set(prev.map(e => e.id));
         const newOnes = store.feedEntries
           .filter(e => !existingIds.has(e.id))
-          .map(e => ({ ...e, arrivedAt: Date.now() }));
+          .map(e => ({ ...e, arrivedAt: Date.now(), exiting: false }));
         if (newOnes.length === 0) return prev;
-        return [...newOnes, ...prev].slice(0, 5);
+        let merged = [...newOnes, ...prev];
+        // Mark overflow entries as exiting instead of dropping them
+        if (merged.length > 5) {
+          merged = merged.map((e, i) => i >= 5 ? { ...e, exiting: true, exitStart: e.exitStart || Date.now() } : e);
+        }
+        return merged;
       });
     });
     return unsub;
   }, []);
 
-  // Expire feed entries after 60s and re-render for fade effect
-  const [, setTick] = useState(0);
+  // Mark entries as exiting after 60s, remove fully exited entries after animation
   useEffect(() => {
     if (feedEntries.length === 0) return;
     const iv = setInterval(() => {
       const now = Date.now();
       setFeedEntries(prev => {
-        const filtered = prev.filter(e => now - e.arrivedAt < 60000);
-        return filtered.length === prev.length ? prev : filtered;
+        let changed = false;
+        const updated = prev.map(e => {
+          if (!e.exiting && now - e.arrivedAt >= 60000) {
+            changed = true;
+            return { ...e, exiting: true, exitStart: now };
+          }
+          return e;
+        });
+        // Remove entries that have been exiting for 400ms (animation duration)
+        const filtered = updated.filter(e => !e.exiting || now - (e.exitStart || now) < 500);
+        if (filtered.length !== updated.length) changed = true;
+        return changed ? filtered : prev;
       });
-      setTick(t => t + 1); // force re-render for smooth opacity
-    }, 3000);
+    }, 500);
     return () => clearInterval(iv);
   }, [feedEntries.length > 0]);
 
@@ -173,11 +208,11 @@ export function Plaza() {
           <div style={styles.feedList}>
             {feedEntries.map(entry => {
               const FeedIcon = FEED_ICONS[entry.type] || Leaf;
-              const age = Date.now() - entry.arrivedAt;
-              // Start fading at 45s, fully gone at 60s
-              const opacity = age < 45000 ? 1 : Math.max(0, 1 - (age - 45000) / 15000);
+              const animStyle = entry.exiting
+                ? { animation: 'feedShrinkOut 0.4s ease-out forwards', overflow: 'hidden' }
+                : { animation: 'feedSlideIn 0.3s ease-out both' };
               return (
-                <div key={entry.id} style={{ ...styles.feedItem, opacity, transition: 'opacity 3s ease-out' }}>
+                <div key={entry.id} style={{ ...styles.feedItem, ...animStyle }}>
                   <FeedIcon size={12} style={styles.feedIcon} />
                   <span style={styles.feedText}>{entry.message}</span>
                 </div>
