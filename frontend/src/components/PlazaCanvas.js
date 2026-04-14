@@ -131,13 +131,18 @@ export class PlazaCanvas {
       nameplateBig: 0, // remaining seconds for enlarged nameplate
     };
 
+    // Preserve active drop-in animation from live dinos, but clear stale
+    // fadeOut from departing dinos used only for position reuse
+    const dropIn = (reuse && reuse.dropIn > 0) ? reuse.dropIn : 0;
+    const dropInTotal = (reuse && reuse.dropInTotal > 0) ? reuse.dropInTotal : 0;
+    const squish = (reuse && reuse.squish > 0) ? reuse.squish : 0;
+
     return {
       ...anim,
-      // Clear transition state from any reused departing dino
       fadeOut: 0,
-      dropIn: 0,
-      dropInTotal: 0,
-      squish: 0,
+      dropIn,
+      dropInTotal,
+      squish,
       partner,
       scale,
       spriteCanvas,
