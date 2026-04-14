@@ -240,6 +240,7 @@ const styles = {
     display: 'block',
     cursor: 'grab',
     touchAction: 'none',
+    imageRendering: 'pixelated',
   },
   emptyHint: {
     position: 'absolute',
