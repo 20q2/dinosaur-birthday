@@ -149,6 +149,10 @@ export class PlazaCanvas {
       ownerPhoto,
       animated,
       regions,
+      _lastRecolorKey: null, // cached key for animated sprite quantization
+      _cleanSprite: null,    // un-baked recolored sprite (effects get baked onto a copy)
+      _effectTmp: null,      // reusable temp canvas for effect baking
+      _bakedSprite: null,    // working copy with effects baked on
     };
   }
 
@@ -786,14 +790,31 @@ export class PlazaCanvas {
     allDinos.sort((a, b) => a.worldY - b.worldY);
     this._drawParticles();
 
-    // Re-resolve animated dino sprites each frame and bake effect overlays
+    // Re-resolve animated dino sprites only when hues change visually (quantized)
     const now = Date.now();
     allDinos.forEach(d => {
       if (d.animated) {
         const resolved = resolveColors(d.partner.colors || {}, now);
-        d.spriteCanvas = getRecoloredUncached(d.partner.species, resolved, d.regions);
-        // Bake effect overlays directly onto the sprite canvas (clipped to pixels)
-        if (d.spriteCanvas) {
+        // Quantize hues to 4° steps — avoids expensive recolor when nothing visibly changed
+        const quantized = {};
+        for (const k in resolved) quantized[k] = Math.round(resolved[k] / 4) * 4;
+        const key = d.regions.map(r => quantized[r] ?? 0).join(',');
+        if (key !== d._lastRecolorKey) {
+          d._lastRecolorKey = key;
+          d._cleanSprite = getRecoloredUncached(d.partner.species, quantized, d.regions);
+        }
+        // Bake effect overlays onto a working copy (preserves clean sprite for next frame)
+        if (d._cleanSprite) {
+          const w = d._cleanSprite.width, h = d._cleanSprite.height;
+          if (!d._bakedSprite || d._bakedSprite.width !== w || d._bakedSprite.height !== h) {
+            d._bakedSprite = document.createElement('canvas');
+            d._bakedSprite.width = w;
+            d._bakedSprite.height = h;
+          }
+          const bc = d._bakedSprite.getContext('2d');
+          bc.clearRect(0, 0, w, h);
+          bc.drawImage(d._cleanSprite, 0, 0);
+          d.spriteCanvas = d._bakedSprite;
           this._bakeEffectOnSprite(d, elapsed);
         }
       }
@@ -997,12 +1018,18 @@ export class PlazaCanvas {
       const mask = getRegionMask(d.partner.species, regionIdxs);
       if (!mask) continue;
 
-      // Offscreen: mask + effect via source-in
-      const tmp = document.createElement('canvas');
-      tmp.width = w;
-      tmp.height = h;
+      // Reuse a single temp canvas per dino to avoid allocation/GC churn
+      if (!d._effectTmp || d._effectTmp.width !== w || d._effectTmp.height !== h) {
+        d._effectTmp = document.createElement('canvas');
+        d._effectTmp.width = w;
+        d._effectTmp.height = h;
+      }
+      const tmp = d._effectTmp;
       const tc = tmp.getContext('2d');
+      tc.clearRect(0, 0, w, h);
       tc.imageSmoothingEnabled = false;
+      tc.globalCompositeOperation = 'source-over';
+      tc.globalAlpha = 1;
       tc.drawImage(mask, 0, 0);
       tc.globalCompositeOperation = 'source-in';
 
