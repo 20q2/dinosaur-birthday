@@ -107,6 +107,9 @@ def handler(event, context):
         if dino.get("tamed"):
             return success({"already_tamed": True, "species": species, "harvest": harvest})
 
+        # Consume 1 food to tame
+        increment_counter(f"PLAYER#{player_id}", f"FOOD#{food_type}", "count", -1)
+
         update_item(f"PLAYER#{player_id}", f"DINO#{species}", {"tamed": True})
         first_partner = _auto_set_partner(player_id, species, profile)
 
@@ -166,6 +169,9 @@ def handler(event, context):
 
     if dino.get("tamed"):
         return success({"already_tamed": True, "species": species, "harvest": harvest})
+
+    # Consume 1 food to tame
+    increment_counter(f"PLAYER#{player_id}", f"FOOD#{food_type}", "count", -1)
 
     update_item(f"PLAYER#{player_id}", f"DINO#{species}", {"tamed": True})
     first_partner = _auto_set_partner(player_id, species, profile)

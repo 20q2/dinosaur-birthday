@@ -100,8 +100,24 @@ def tap_handler(event, context):
 
 
 def _award_kaiju_slayer_hat(player_id):
-    """Award the Kaiju Slayer hat to a player's partner dino and update plaza."""
+    """Award the Kaiju Slayer hat to a player's partner dino, update plaza, and add to inventory."""
     try:
+        # Add hat to inventory if not already owned
+        existing_items = query_pk(f"PLAYER#{player_id}", sk_prefix="ITEM#")
+        already_has = any(
+            i.get("type") == "hat" and i.get("details", {}).get("hat_id") == "kaiju_slayer"
+            for i in existing_items
+        )
+        if not already_has:
+            item_id = str(uuid.uuid4())
+            put_item({
+                "PK": f"PLAYER#{player_id}",
+                "SK": f"ITEM#{item_id}",
+                "type": "hat",
+                "name": "Kaiju Slayer",
+                "details": {"hat_id": "kaiju_slayer", "rarity": "legendary"},
+            })
+
         dinos = query_pk(f"PLAYER#{player_id}", "DINO#")
         for dino in dinos:
             if dino.get("is_partner") or dino.get("tamed"):

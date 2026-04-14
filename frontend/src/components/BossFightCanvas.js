@@ -237,8 +237,8 @@ export class BossFightCanvas {
       ownerPhoto,
       animated,
       regions,
-      // Slight radial jitter — gives crowd depth rather than a perfect ring
-      radiusFactor: isMyDino ? 1 : 0.82 + Math.random() * 0.36,
+      // Wide radial scatter — creates a dense crowd rather than a thin ring
+      radiusFactor: isMyDino ? 1 : 0.55 + Math.random() * 0.55,
       // Computed by _positionSlot (overwritten on first _layout call)
       sx: 0, sy: 0, depthT: 0, drawScale: 1, facingLeft: false,
       // Idle animation
@@ -254,22 +254,28 @@ export class BossFightCanvas {
 
   _buildSlots(plazaDinos, myDinos) {
     // ── My dinos: bottom arc [MY_ARC_START, MY_ARC_END]
+    const myArcSpan = MY_ARC_END - MY_ARC_START;
+    const myJitter = myDinos.length > 1 ? myArcSpan / myDinos.length * 0.25 : 0;
     this._mySlots = myDinos.map((partner, i) => {
       const t     = myDinos.length > 1 ? i / (myDinos.length - 1) : 0.5;
-      const angle = MY_ARC_START + t * (MY_ARC_END - MY_ARC_START);
+      const jitter = (Math.random() - 0.5) * myJitter;
+      const angle = MY_ARC_START + t * myArcSpan + jitter;
       return this._makeSlot(partner, angle, true);
     });
 
-    // ── Plaza dinos: rest of the ellipse, capped at 24, sorted by level desc
+    // ── Plaza dinos: rest of the ellipse, sorted by level desc
     const sorted = [...plazaDinos]
       .sort((a, b) => (b.level || 1) - (a.level || 1))
       .slice(0, 50);
 
     const plazaArcStart = MY_ARC_END;
     const plazaArcSpan  = Math.PI * 2 - (MY_ARC_END - MY_ARC_START);
+    // Angular jitter keeps dinos from lining up in a neat ring
+    const jitterRange = sorted.length > 1 ? plazaArcSpan / sorted.length * 0.4 : 0;
     this._plazaSlots = sorted.map((partner, i) => {
       const t     = sorted.length > 1 ? i / (sorted.length - 1) : 0.5;
-      const angle = plazaArcStart + t * plazaArcSpan;
+      const jitter = (Math.random() - 0.5) * jitterRange;
+      const angle = plazaArcStart + t * plazaArcSpan + jitter;
       return this._makeSlot(partner, angle, false);
     });
 
@@ -286,9 +292,11 @@ export class BossFightCanvas {
       .slice(0, 50);
     const plazaArcStart = MY_ARC_END;
     const plazaArcSpan  = Math.PI * 2 - (MY_ARC_END - MY_ARC_START);
+    const jitterRange = sorted.length > 1 ? plazaArcSpan / sorted.length * 0.4 : 0;
     this._plazaSlots = sorted.map((partner, i) => {
       const t    = sorted.length > 1 ? i / (sorted.length - 1) : 0.5;
-      const angle = plazaArcStart + t * plazaArcSpan;
+      const jitter = (Math.random() - 0.5) * jitterRange;
+      const angle = plazaArcStart + t * plazaArcSpan + jitter;
       const slot  = this._makeSlot(partner, angle, false);
       this._positionSlot(slot);
       return slot;
@@ -296,9 +304,12 @@ export class BossFightCanvas {
   }
 
   updateMyDinos(dinos) {
+    const myArcSpan = MY_ARC_END - MY_ARC_START;
+    const myJitter = dinos.length > 1 ? myArcSpan / dinos.length * 0.25 : 0;
     this._mySlots = dinos.map((partner, i) => {
       const t     = dinos.length > 1 ? i / (dinos.length - 1) : 0.5;
-      const angle = MY_ARC_START + t * (MY_ARC_END - MY_ARC_START);
+      const jitter = (Math.random() - 0.5) * myJitter;
+      const angle = MY_ARC_START + t * myArcSpan + jitter;
       const slot  = this._makeSlot(partner, angle, true);
       this._positionSlot(slot);
       return slot;
