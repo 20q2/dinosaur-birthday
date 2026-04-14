@@ -178,8 +178,13 @@ export class PlazaCanvas {
     if (!parent) return;
     const w = parent.clientWidth || window.innerWidth;
     const h = parent.clientHeight || window.innerHeight;
-    this.canvas.width = w;
-    this.canvas.height = h;
+    // Scale canvas backing store by devicePixelRatio (capped at 2) for sharp rendering on mobile
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    this.canvas.width = w * dpr;
+    this.canvas.height = h * dpr;
+    this.canvas.style.width = w + 'px';
+    this.canvas.style.height = h + 'px';
+    this.dpr = dpr;
     this._clampCamera();
   }
 
@@ -704,6 +709,11 @@ export class PlazaCanvas {
 
     ctx.clearRect(0, 0, w, h);
 
+    // Scale for devicePixelRatio so world-space drawing is DPR-independent
+    const dpr = this.dpr || 1;
+    ctx.save();
+    ctx.scale(dpr, dpr);
+
     // ── Tremor update (boss phase 2: occasional brief screen shake) ───────
     if (this.tremorActive) {
       if (this.tremorBurstTimer > 0) {
@@ -822,7 +832,8 @@ export class PlazaCanvas {
 
     allDinos.forEach(d => this._drawDino(d, elapsed));
 
-    ctx.restore();
+    ctx.restore(); // camera transform
+    ctx.restore(); // DPR scale
   }
 
   _drawDino(d, elapsed) {
