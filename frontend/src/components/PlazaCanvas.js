@@ -1252,17 +1252,24 @@ export class PlazaCanvas {
     ctx.textBaseline = 'middle';
 
     const line1Y = line2 ? pillY + 6 * scale : pillY + pillH / 2;
+    const nameOnly = p.name || 'Unnamed';
+    let cursor = textLeft;
+
+    // Name
+    ctx.fillStyle = '#f0fdf4';
+    ctx.fillText(nameOnly, cursor, line1Y);
+    cursor += ctx.measureText(nameOnly).width;
+
+    // Gender symbol (colored)
     if (genderSymbol) {
-      // Draw name in white, gender symbol in color
-      const nameOnly = p.name || 'Unnamed';
-      const nameW = ctx.measureText(nameOnly).width;
-      ctx.fillStyle = '#f0fdf4';
-      ctx.fillText(nameOnly, textLeft, line1Y);
       ctx.fillStyle = gender === 'male' ? '#60a5fa' : '#f472b6';
-      ctx.fillText(genderSymbol, textLeft + nameW, line1Y);
-    } else {
-      ctx.fillStyle = '#f0fdf4';
-      ctx.fillText(line1, textLeft, line1Y);
+      ctx.fillText(genderSymbol, cursor, line1Y);
+      cursor += ctx.measureText(genderSymbol).width;
+    }
+
+    // Shiny sparkle
+    if (shinyTag) {
+      ctx.fillText(shinyTag, cursor, line1Y);
     }
 
     // Line 2: Owner name
