@@ -369,6 +369,30 @@ export class PlazaCanvas {
 
   // ── Wandering AI ────────────────────────────────────────────────────────
 
+  _pickFollowTarget(d) {
+    // Return a dino to follow, or null to fall back to random waypoint.
+    const moving = [];
+    const idle = [];
+    for (const other of this.dinos) {
+      if (other === d) continue;
+      if (other.dropIn > 0) continue;
+      if (other.playPartner) continue;
+      const dx = other.worldX - d.worldX;
+      const dy = other.worldY - d.worldY;
+      const dist = Math.hypot(dx, dy);
+      if (dist > FOLLOW_RADIUS) continue;
+      if (dist < ARRIVE_DIST) continue; // already there
+      if (other.state === 'walking' || other.state === 'sprinting') {
+        moving.push(other);
+      } else if (other.state === 'idling') {
+        idle.push(other);
+      }
+    }
+    const pool = moving.length > 0 ? moving : idle;
+    if (pool.length === 0) return null;
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
   _pickWaypoint(d, sprint) {
     const minDist = sprint ? SPRINT_DIST_MIN : WALK_DIST_MIN;
     const maxDist = sprint ? SPRINT_DIST_MAX : WALK_DIST_MAX;
@@ -464,6 +488,19 @@ export class PlazaCanvas {
       case 'idling': {
         d.idleTimer -= dt;
         if (d.idleTimer <= 0) {
+          // Chance to follow another dino instead of picking a random waypoint
+          if (Math.random() < FOLLOW_CHANCE) {
+            const leader = this._pickFollowTarget(d);
+            if (leader) {
+              const ox = (Math.random() - 0.5) * FOLLOW_OFFSET * 2;
+              const oy = (Math.random() - 0.5) * FOLLOW_OFFSET * 2;
+              d.targetX = Math.max(MARGIN, Math.min(WORLD_W - MARGIN, leader.worldX + ox));
+              d.targetY = Math.max(MARGIN, Math.min(WORLD_H - MARGIN, leader.worldY + oy));
+              d.speed = WALK_SPEED_MIN + Math.random() * (WALK_SPEED_MAX - WALK_SPEED_MIN);
+              d.state = 'walking';
+              break;
+            }
+          }
           const sprint = Math.random() < SPRINT_CHANCE;
           this._pickWaypoint(d, sprint);
         }
