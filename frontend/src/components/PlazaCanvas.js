@@ -37,6 +37,19 @@ const SPRINT_CHANCE = 0.2;
 const HEADING_LERP = 3.0; // radians/sec smoothing
 const ARRIVE_DIST = 5;
 
+// Lively behavior constants
+const FOLLOW_CHANCE       = 0.35;  // chance when leaving idle to follow instead of random waypoint
+const FOLLOW_RADIUS       = 350;   // px — "nearby" for follow candidates
+const FOLLOW_OFFSET       = 40;    // random offset from leader so follower doesn't overlap
+const SNIFF_RADIUS        = 80;    // two idle dinos within this range trigger a sniff
+const SNIFF_DURATION      = 1.5;   // seconds
+const SNIFF_COOLDOWN      = 8;     // per-dino cooldown after a sniff ends
+const STARTLE_RADIUS      = 130;   // px around sprinting/tapping dino
+const STARTLE_DURATION    = 0.8;   // seconds ❗ stays visible
+const STARTLE_COOLDOWN    = 4;     // per-dino cooldown
+const STARTLE_HOP         = 0.4;   // tapJump duration for startle
+const STARTLE_HOP_HEIGHT  = 10;    // smaller than normal tap jump
+
 // Transition animation constants
 const FADE_OUT_DURATION = 0.5;   // seconds to fade departing dino
 const DROP_IN_DURATION  = 0.7;   // seconds for drop-in fall
@@ -154,6 +167,11 @@ export class PlazaCanvas {
       tapJumpHeight: 0, // peak height in world-pixels for current tap jump
       nameplateScale: 1, // current nameplate scale (animated)
       nameplateBig: 0, // remaining seconds for enlarged nameplate
+      sniffTimer: 0,          // seconds remaining in sniff interaction
+      sniffPartnerId: null,   // player_id of the other dino
+      sniffCooldown: 0,       // seconds until this dino can sniff again
+      startleTimer: 0,        // seconds remaining for ❗ emoji
+      startleCooldown: 0,     // seconds until this dino can be startled again
     };
 
     // Preserve active drop-in animation from live dinos, but clear stale
