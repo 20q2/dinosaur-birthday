@@ -5,17 +5,48 @@ import random
 from datetime import datetime, timezone
 from ..shared.db import get_item, put_item, update_item, query_pk
 from ..shared.response import success, error
-from ..shared.game_data import generate_lobby_code, random_trivia, random_hat, random_paint
+from ..shared.game_data import (
+    generate_lobby_code, random_trivia,
+    DROPPABLE_HATS, PAINTS,
+)
 from ..shared.ws_broadcast import broadcast
 from ..shared.xp import award_xp
 from ..shared.rare_paints import grant_rare_paint
 
 
 def _give_reward(player_id):
-    """Give a random hat or paint item (50/50) to the player's inventory."""
+    """Give a random hat or paint the player doesn't already own (50/50 split
+    between hats and paints when both have options available).
+
+    Returns None if the player already owns every droppable hat and every paint.
+    """
+    # Gather owned hat_ids and paint_ids from inventory
+    inventory = query_pk(f"PLAYER#{player_id}", sk_prefix="ITEM#")
+    owned_hat_ids = set()
+    owned_paint_ids = set()
+    for it in inventory:
+        details = it.get("details") or {}
+        if it.get("type") == "hat" and details.get("hat_id"):
+            owned_hat_ids.add(details["hat_id"])
+        elif it.get("type") == "paint" and details.get("paint_id"):
+            owned_paint_ids.add(details["paint_id"])
+
+    available_hats   = [h for h in DROPPABLE_HATS if h["id"] not in owned_hat_ids]
+    available_paints = [p for p in PAINTS        if p["id"] not in owned_paint_ids]
+
+    # Pick a category; fall back to the other if chosen one is empty
+    if available_hats and available_paints:
+        give_hat = random.random() < 0.5
+    elif available_hats:
+        give_hat = True
+    elif available_paints:
+        give_hat = False
+    else:
+        return None  # Player owns everything droppable
+
     item_id = str(uuid.uuid4())
-    if random.random() < 0.5:
-        hat = random_hat()
+    if give_hat:
+        hat = random.choice(available_hats)
         put_item({
             "PK": f"PLAYER#{player_id}",
             "SK": f"ITEM#{item_id}",
@@ -25,7 +56,7 @@ def _give_reward(player_id):
         })
         return {"type": "hat", "name": hat["name"], "hat_id": hat["id"]}
     else:
-        paint = random_paint()
+        paint = random.choice(available_paints)
         put_item({
             "PK": f"PLAYER#{player_id}",
             "SK": f"ITEM#{item_id}",
