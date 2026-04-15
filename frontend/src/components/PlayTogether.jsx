@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'preact/hooks';
+import confetti from 'canvas-confetti';
 import { store } from '../store.js';
 import { useStore } from '../router.jsx';
 import { api } from '../api.js';
@@ -200,7 +201,7 @@ export function PlayTogether() {
     setLoading(false);
   }
 
-  async function handleAnswer(index) {
+  async function handleAnswer(index, btnRect) {
     if (selectedAnswer !== null) return;
     setSelectedAnswer(index);
     setAnswering(true);
@@ -208,6 +209,22 @@ export function PlayTogether() {
       const data = await api.answerTrivia(store.playerId, lobbyCode, index);
       setResult(data);
       setPhase('results');
+      if (data.correct) {
+        let origin = { x: 0.5, y: 0.6 };
+        if (btnRect) {
+          origin = {
+            x: (btnRect.left + btnRect.width / 2) / window.innerWidth,
+            y: (btnRect.top + btnRect.height / 2) / window.innerHeight,
+          };
+        }
+        confetti({
+          particleCount: 60,
+          spread: 70,
+          startVelocity: 35,
+          origin,
+          colors: ['#4ade80', '#f59e0b', '#60a5fa', '#f3f4f6'],
+        });
+      }
       await store.refresh();
       if (data.partner_id) {
         try {
@@ -476,7 +493,7 @@ function TriviaPhase({ trivia, selectedAnswer, answering, onAnswer }) {
       {trivia.options.map((opt, i) => (
         <button
           key={i}
-          onClick={() => onAnswer(i)}
+          onClick={(e) => onAnswer(i, e.currentTarget.getBoundingClientRect())}
           disabled={selectedAnswer !== null}
           style={{
             ...styles.answerBtn,
