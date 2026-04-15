@@ -40,27 +40,33 @@ def test_claim_event_awards_xp_and_item():
     _make_partner_dino("ev1", "trex", xp=0, level=1)
 
     with patch("src.handlers.scan_event.broadcast"):
-        resp = handler(_event("cooking_pot", {"player_id": "ev1"}), None)
+        resp = handler(_event("event1", {"player_id": "ev1"}), None)
 
     assert resp["statusCode"] == 200
     body = json.loads(resp["body"])
     assert body["claimed"] is True
     assert body["xp_awarded"] == 25
+    assert body["event_label"] == "Grill Master"
     assert body["dino"] is not None
     assert body["dino"]["species"] == "trex"
     assert body["dino"]["xp"] == 25
+
+    # Event1 (Grill Master) always awards the Chef Hat
+    assert body["item"]["type"] == "hat"
+    assert body["item"]["hat_id"] == "chef_hat"
 
     # Partner dino should have received XP
     dino = get_item("PLAYER#ev1", "DINO#trex")
     assert int(dino["xp"]) == 25
 
-    # Reward item should be in inventory (hat or paint)
+    # Reward item should be in inventory
     items = query_pk("PLAYER#ev1", "ITEM#")
     assert len(items) == 1
-    assert items[0]["type"] in ("hat", "paint")
+    assert items[0]["type"] == "hat"
+    assert items[0]["details"]["hat_id"] == "chef_hat"
 
     # Event claim should be recorded
-    claim = get_item("EVENT#ev1", "cooking_pot")
+    claim = get_item("EVENT#ev1", "event1")
     assert claim is not None
 
 
@@ -71,14 +77,14 @@ def test_event_once_per_player():
     _make_partner_dino("ev2", "spinosaurus", xp=0, level=1)
 
     with patch("src.handlers.scan_event.broadcast"):
-        resp1 = handler(_event("dance_floor", {"player_id": "ev2"}), None)
+        resp1 = handler(_event("event2", {"player_id": "ev2"}), None)
     assert resp1["statusCode"] == 200
     body1 = json.loads(resp1["body"])
     assert body1["claimed"] is True
 
     # Second claim should return already_claimed
     with patch("src.handlers.scan_event.broadcast"):
-        resp2 = handler(_event("dance_floor", {"player_id": "ev2"}), None)
+        resp2 = handler(_event("event2", {"player_id": "ev2"}), None)
     assert resp2["statusCode"] == 200
     body2 = json.loads(resp2["body"])
     assert body2["already_claimed"] is True
@@ -88,13 +94,11 @@ def test_event_once_per_player():
     assert int(dino["xp"]) == 25  # only once
 
 
-# ── test_event_with_description ───────────────────────────────────────────────
+# ── test_event_feed_message ───────────────────────────────────────────────────
 
-def test_event_with_description():
+def test_event_feed_message():
     _make_profile("ev3", "Carol")
     _make_partner_dino("ev3", "triceratops", xp=0, level=1)
-
-    description = "brewed a Health Potion (Beer + Lemonade)"
 
     feed_entries = []
 
@@ -103,15 +107,15 @@ def test_event_with_description():
             feed_entries.append(data)
 
     with patch("src.handlers.scan_event.broadcast", side_effect=mock_broadcast):
-        resp = handler(_event("cooking_pot", {"player_id": "ev3", "description": description}), None)
+        resp = handler(_event("event1", {"player_id": "ev3"}), None)
 
     assert resp["statusCode"] == 200
     body = json.loads(resp["body"])
     assert body["claimed"] is True
 
-    # Feed message should include the description
+    # Feed message should use the event label
     assert len(feed_entries) == 1
-    assert description in feed_entries[0]["message"]
+    assert "Grill Master" in feed_entries[0]["message"]
     assert "Carol" in feed_entries[0]["message"]
 
 
@@ -129,7 +133,7 @@ def test_invalid_event_type():
 # ── test_event_requires_player_id ─────────────────────────────────────────────
 
 def test_event_requires_player_id():
-    resp = handler(_event("cooking_pot", {}), None)
+    resp = handler(_event("event1", {}), None)
     assert resp["statusCode"] == 400
     body = json.loads(resp["body"])
     assert "player_id" in body["error"]
@@ -143,7 +147,7 @@ def test_event_without_partner_dino():
     # No dino
 
     with patch("src.handlers.scan_event.broadcast"):
-        resp = handler(_event("photo_booth", {"player_id": "ev5"}), None)
+        resp = handler(_event("event3", {"player_id": "ev5"}), None)
 
     assert resp["statusCode"] == 200
     body = json.loads(resp["body"])
@@ -162,8 +166,8 @@ def test_different_event_types_are_independent():
     _make_partner_dino("ev6", "ankylosaurus", xp=0, level=1)
 
     with patch("src.handlers.scan_event.broadcast"):
-        r1 = handler(_event("cooking_pot", {"player_id": "ev6"}), None)
-        r2 = handler(_event("dance_floor", {"player_id": "ev6"}), None)
+        r1 = handler(_event("event1", {"player_id": "ev6"}), None)
+        r2 = handler(_event("event2", {"player_id": "ev6"}), None)
 
     assert json.loads(r1["body"])["claimed"] is True
     assert json.loads(r2["body"])["claimed"] is True

@@ -2,18 +2,25 @@ import json
 import uuid
 import random
 from datetime import datetime, timezone
-from ..shared.db import get_item, put_item, query_pk
+from ..shared.db import get_item, put_item
 from ..shared.response import success, error
-from ..shared.game_data import random_hat, random_paint
+from ..shared.game_data import random_hat, random_paint, HATS
 from ..shared.xp import award_xp
 from ..shared.ws_broadcast import broadcast
 
-VALID_EVENT_TYPES = {
-    "cooking_pot",
-    "dance_floor",
-    "photo_booth",
-    "cake_table",
-    "mystery_chest",
+# Generic endpoint keys → display labels.  Rename labels freely without
+# changing the QR-code URLs (/scan/event/event1 … /scan/event/event5).
+EVENT_LABELS = {
+    "event1": "Grill Master",
+    "event2": "Dance Floor",
+    "event3": "Photo Booth",
+    "event4": "Cake Table",
+    "event5": "Mystery Chest",
+}
+
+# Events with a guaranteed special hat reward instead of random loot.
+EVENT_SPECIAL_HATS = {
+    "event1": next(h for h in HATS if h["id"] == "chef_hat"),
 }
 
 
@@ -22,13 +29,14 @@ def handler(event, context):
     event_type = event["pathParameters"]["type"]
     body = json.loads(event.get("body") or "{}")
     player_id = body.get("player_id")
-    description = body.get("description", "")
 
     if not player_id:
         return error("player_id is required")
 
-    if event_type not in VALID_EVENT_TYPES:
+    if event_type not in EVENT_LABELS:
         return error(f"Unknown event type: {event_type}")
+
+    event_label = EVENT_LABELS[event_type]
 
     profile = get_item(f"PLAYER#{player_id}", "PROFILE")
     if not profile:
@@ -37,14 +45,29 @@ def handler(event, context):
     # Check once-per-player
     existing = get_item(f"EVENT#{player_id}", event_type)
     if existing:
-        return success({"already_claimed": True, "event_type": event_type})
+        return success({"already_claimed": True, "event_type": event_type, "event_label": event_label})
 
     # Award 25 XP to partner dino
     dino_result = award_xp(player_id, 25)
 
-    # Award random hat or paint item (50/50)
+    # Award item — special hat if configured, otherwise random hat or paint (50/50)
     item_id = str(uuid.uuid4())
-    if random.random() < 0.5:
+    special_hat = EVENT_SPECIAL_HATS.get(event_type)
+    if special_hat:
+        put_item({
+            "PK": f"PLAYER#{player_id}",
+            "SK": f"ITEM#{item_id}",
+            "type": "hat",
+            "name": special_hat["name"],
+            "details": {"hat_id": special_hat["id"], "rarity": special_hat["rarity"]},
+        })
+        item_result = {
+            "type": "hat",
+            "name": special_hat["name"],
+            "hat_id": special_hat["id"],
+            "rarity": special_hat["rarity"],
+        }
+    elif random.random() < 0.5:
         hat = random_hat()
         put_item({
             "PK": f"PLAYER#{player_id}",
@@ -87,11 +110,7 @@ def handler(event, context):
     # Post to feed
     try:
         player_name = profile.get("name", "Someone")
-        event_label = event_type.replace("_", " ").title()
-        if description:
-            feed_message = f"{player_name} {description}"
-        else:
-            feed_message = f"{player_name} visited the {event_label}!"
+        feed_message = f"{player_name} visited the {event_label}!"
 
         ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
         feed_sk = f"{ts}#{uuid.uuid4()}"
@@ -115,6 +134,7 @@ def handler(event, context):
     return success({
         "claimed": True,
         "event_type": event_type,
+        "event_label": event_label,
         "xp_awarded": 25,
         "dino": dino_result,
         "item": item_result,

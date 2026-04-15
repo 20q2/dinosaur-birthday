@@ -27,11 +27,11 @@ const QR_GROUPS = [
     title: 'Events',
     color: '#6366f1',
     items: [
-      { label: 'Cooking Pot', route: '/scan/event/cooking_pot', sub: 'EVENT', subColor: '#6366f1' },
-      { label: 'Dance Floor', route: '/scan/event/dance_floor', sub: 'EVENT', subColor: '#6366f1' },
-      { label: 'Photo Booth', route: '/scan/event/photo_booth', sub: 'EVENT', subColor: '#6366f1' },
-      { label: 'Cake Table', route: '/scan/event/cake_table', sub: 'EVENT', subColor: '#6366f1' },
-      { label: 'Mystery Chest', route: '/scan/event/mystery_chest', sub: 'EVENT', subColor: '#6366f1' },
+      { label: 'Event 1 (Grill Master)', route: '/scan/event/event1', sub: 'EVENT', subColor: '#6366f1' },
+      { label: 'Event 2 (Dance Floor)', route: '/scan/event/event2', sub: 'EVENT', subColor: '#6366f1' },
+      { label: 'Event 3 (Photo Booth)', route: '/scan/event/event3', sub: 'EVENT', subColor: '#6366f1' },
+      { label: 'Event 4 (Cake Table)', route: '/scan/event/event4', sub: 'EVENT', subColor: '#6366f1' },
+      { label: 'Event 5 (Mystery Chest)', route: '/scan/event/event5', sub: 'EVENT', subColor: '#6366f1' },
     ],
   },
   {

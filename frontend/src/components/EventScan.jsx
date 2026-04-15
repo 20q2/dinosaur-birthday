@@ -4,20 +4,10 @@ import { api } from '../api.js';
 import { EVENT_ICONS } from '../data/icons.js';
 import { PartyPopper, Crown } from 'lucide-preact';
 
-const EVENT_LABELS = {
-  cooking_pot: 'Cooking Pot',
-  dance_floor: 'Dance Floor',
-  photo_booth: 'Photo Booth',
-  cake_table: 'Cake Table',
-  mystery_chest: 'Mystery Chest',
-};
-
 export function EventScan({ eventType }) {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [description, setDescription] = useState('');
-  const [descSent, setDescSent] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -32,16 +22,6 @@ export function EventScan({ eventType }) {
     })();
   }, [eventType]);
 
-  const handleSendDescription = async () => {
-    if (!description.trim()) return;
-    try {
-      await api.scanEvent(store.playerId, eventType, description.trim());
-      setDescSent(true);
-    } catch {
-      setDescSent(true);
-    }
-  };
-
   if (loading) {
     return <div style={styles.center}><p>Checking event...</p></div>;
   }
@@ -55,7 +35,7 @@ export function EventScan({ eventType }) {
     );
   }
 
-  const label = EVENT_LABELS[eventType] || eventType;
+  const label = result?.event_label || eventType;
   const EventIcon = EVENT_ICONS[eventType] || PartyPopper;
 
   if (result?.already_claimed) {
@@ -101,33 +81,6 @@ export function EventScan({ eventType }) {
         )}
       </div>
 
-      {!descSent ? (
-        <div style={styles.descBox}>
-          <p style={{ color: '#888', fontSize: '13px', margin: '0 0 8px' }}>
-            Add a fun description for the feed? (optional)
-          </p>
-          <textarea
-            placeholder={`e.g. "brewed a Health Potion (Beer + Lemonade)"`}
-            value={description}
-            onInput={(e) => setDescription(e.target.value)}
-            maxLength={120}
-            rows={3}
-            style={styles.textarea}
-          />
-          <button
-            onClick={handleSendDescription}
-            disabled={!description.trim()}
-            style={{ ...styles.secondaryButton, opacity: description.trim() ? 1 : 0.5 }}
-          >
-            Post to Feed
-          </button>
-        </div>
-      ) : (
-        <div style={{ color: '#4ade80', fontSize: '13px', textAlign: 'center' }}>
-          Posted to feed!
-        </div>
-      )}
-
       <button onClick={() => store.navigate('/plaza')} style={styles.button}>Back to Plaza</button>
     </div>
   );
@@ -160,22 +113,9 @@ const styles = {
   rewardRow: {
     display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px',
   },
-  descBox: {
-    width: '100%', maxWidth: '320px', display: 'flex', flexDirection: 'column', gap: '6px',
-  },
-  textarea: {
-    width: '100%', background: '#1a1a2e', border: '1px solid #333', borderRadius: '8px',
-    color: '#e0e0e0', fontSize: '13px', padding: '10px', resize: 'none',
-    fontFamily: 'inherit', boxSizing: 'border-box',
-  },
   button: {
     padding: '14px', borderRadius: '8px', border: 'none',
     background: '#6366f1', color: 'white', fontSize: '16px',
     fontWeight: 'bold', cursor: 'pointer', width: '100%', maxWidth: '320px',
-  },
-  secondaryButton: {
-    padding: '10px', borderRadius: '8px', border: 'none',
-    background: '#374151', color: '#e0e0e0', fontSize: '14px',
-    cursor: 'pointer', width: '100%',
   },
 };

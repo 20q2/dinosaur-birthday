@@ -30,8 +30,8 @@ export const api = {
   scanFood: (playerId, type, species, perfects, goods) =>
     request('POST', `/scan/food/${type}`, { player_id: playerId, species, perfects, goods }),
 
-  scanEvent: (playerId, type, description) =>
-    request('POST', `/scan/event/${type}`, { player_id: playerId, description }),
+  scanEvent: (playerId, type) =>
+    request('POST', `/scan/event/${type}`, { player_id: playerId }),
 
   scanInspiration: (playerId) =>
     request('POST', '/scan/inspiration', { player_id: playerId }),

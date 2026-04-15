@@ -36,11 +36,11 @@ QR_DATA = {
     "event": {
         "category": "EVENT",
         "items": {
-            "cooking_pot": "Cooking Pot",
-            "dance_floor": "Dance Floor",
-            "photo_booth": "Photo Booth",
-            "cake_table": "Cake Table",
-            "mystery_chest": "Mystery Chest",
+            "event1": "Event 1 (Cooking Pot)",
+            "event2": "Event 2 (Dance Floor)",
+            "event3": "Event 3 (Photo Booth)",
+            "event4": "Event 4 (Cake Table)",
+            "event5": "Event 5 (Mystery Chest)",
         },
     },
     "inspiration": {

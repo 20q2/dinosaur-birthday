@@ -7,7 +7,7 @@ import { generateId } from '../utils/uuid.js';
 const SPECIES = ['trex', 'spinosaurus', 'dilophosaurus', 'pachycephalosaurus', 'parasaurolophus', 'triceratops', 'ankylosaurus'];
 const SPECIES_NAMES = { trex: 'T-Rex', spinosaurus: 'Spinosaurus', dilophosaurus: 'Dilophosaurus', pachycephalosaurus: 'Pachycephalosaurus', parasaurolophus: 'Parasaurolophus', triceratops: 'Triceratops', ankylosaurus: 'Ankylosaurus' };
 const FOOD_TYPES = ['meat', 'mejoberries'];
-const EVENT_TYPES = ['cooking_pot', 'dance_floor', 'photo_booth', 'cake_table', 'mystery_chest'];
+const EVENT_TYPES = ['event1', 'event2', 'event3', 'event4', 'event5'];
 
 export function AdminSimulator() {
   const [players, setPlayers] = useState([]);

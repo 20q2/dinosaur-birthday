@@ -16,11 +16,11 @@ export const FEED_ICONS = {
   note:        ScrollText,
 };
 
-// Party event type → Lucide icon component. Use Leaf as fallback.
+// Generic event endpoint → Lucide icon component. Use Leaf as fallback.
 export const EVENT_ICONS = {
-  cooking_pot:   UtensilsCrossed,
-  dance_floor:   Music2,
-  photo_booth:   Camera,
-  cake_table:    Cake,
-  mystery_chest: Gift,
+  event1: UtensilsCrossed,
+  event2: Music2,
+  event3: Camera,
+  event4: Cake,
+  event5: Gift,
 };
