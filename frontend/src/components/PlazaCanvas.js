@@ -33,7 +33,7 @@ const SPRINT_DIST_MIN = 150;
 const SPRINT_DIST_MAX = 300;
 const IDLE_TIME_MIN = 1.0;
 const IDLE_TIME_MAX = 3.0;
-const SPRINT_CHANCE = 0.1;
+const SPRINT_CHANCE = 0.05;
 const HEADING_LERP = 3.0; // radians/sec smoothing
 const ARRIVE_DIST = 5;
 
@@ -44,7 +44,7 @@ const FOLLOW_OFFSET       = 40;    // random offset from leader so follower does
 const SNIFF_RADIUS        = 80;    // two idle dinos within this range trigger a sniff
 const SNIFF_DURATION      = 1.5;   // seconds
 const SNIFF_COOLDOWN      = 8;     // per-dino cooldown after a sniff ends
-const STARTLE_RADIUS      = 130;   // px around sprinting/tapping dino
+const STARTLE_RADIUS      = 80;    // px around sprinting/tapping dino
 const STARTLE_DURATION    = 0.8;   // seconds ❗ stays visible
 const STARTLE_COOLDOWN    = 4;     // per-dino cooldown
 const STARTLE_HOP         = 0.4;   // tapJump duration for startle
@@ -473,6 +473,9 @@ export class PlazaCanvas {
       if (d.sniffTimer === 0) {
         d.sniffPartnerId = null;
         d.sniffCooldown = SNIFF_COOLDOWN;
+        // Small hop as they part ways
+        d.tapJump = 0.35;
+        d.tapJumpHeight = 8;
         // Fall through — dino resumes normal behavior this frame
       } else {
         const partner = this.dinos.find(o => o.partner.player_id === d.sniffPartnerId);

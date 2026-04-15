@@ -298,6 +298,7 @@ export function PlayTogether() {
         {phase === 'results' && result && (
           <ResultsPhase
             result={result}
+            trivia={trivia}
             role={role}
             onBack={handleBackToMenu}
           />
@@ -495,8 +496,11 @@ function TriviaPhase({ trivia, selectedAnswer, answering, onAnswer }) {
   );
 }
 
-function ResultsPhase({ result, role, onBack }) {
+function ResultsPhase({ result, trivia, role, onBack }) {
   const isCorrect = result.correct;
+  const correctText = (trivia?.options && result.correct_index != null)
+    ? trivia.options[result.correct_index]
+    : null;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', alignItems: 'center' }}>
@@ -511,7 +515,16 @@ function ResultsPhase({ result, role, onBack }) {
 
       {!isCorrect && result.correct_index != null && (
         <div style={{ color: '#9ca3af', fontSize: '13px', textAlign: 'center' }}>
-          The answer was: <strong>{String.fromCharCode(65 + result.correct_index)}</strong>
+          The answer was: <strong style={{ color: '#e5e7eb' }}>
+            {String.fromCharCode(65 + result.correct_index)}
+            {correctText ? ` — ${correctText}` : ''}
+          </strong>
+        </div>
+      )}
+
+      {result.explanation && (
+        <div style={styles.explanationBox}>
+          {result.explanation}
         </div>
       )}
 
@@ -662,6 +675,13 @@ const styles = {
   resultBanner: {
     padding: '14px 24px', borderRadius: '12px',
     border: '1px solid', fontSize: '18px', fontWeight: 'bold',
+  },
+  explanationBox: {
+    width: '100%', maxWidth: '360px',
+    background: '#111827', border: '1px solid #1e293b',
+    borderRadius: '10px', padding: '12px 14px',
+    fontSize: '13px', color: '#d1d5db', lineHeight: 1.5,
+    textAlign: 'center', fontStyle: 'italic',
   },
   rewardBox: {
     background: '#111827', border: '1px solid #1e293b', borderRadius: '12px',
