@@ -97,7 +97,7 @@ export class PlazaCanvas {
   // Blur is applied once at bake time, so it's free at draw time.
   _bakeShadow(src) {
     if (!src) return null;
-    const pad = 6; // extra padding for blur to bleed into
+    const pad = 12; // extra padding for blur to bleed into
     const c = document.createElement('canvas');
     c.width = src.width + pad * 2;
     c.height = src.height + pad * 2;
@@ -109,7 +109,7 @@ export class PlazaCanvas {
     ctx.fillRect(0, 0, c.width, c.height);
     // Blur the silhouette (one-time cost)
     ctx.globalCompositeOperation = 'source-over';
-    ctx.filter = 'blur(2px)';
+    ctx.filter = 'blur(7px)';
     ctx.drawImage(c, 0, 0);
     ctx.filter = 'none';
     return c;
@@ -922,16 +922,16 @@ export class PlazaCanvas {
 
     // Pre-baked drop shadow (blurred silhouette, offset down+right)
     if (d._shadowSprite) {
-      const padScale = drawScale * 6; // match the pad=6 from _bakeShadow
+      const padScale = drawScale * 12; // match the pad=12 from _bakeShadow
       const shW = spriteW + padScale * 2;
       const shH = spriteH + padScale * 2;
       ctx.save();
       ctx.globalAlpha = dinoAlpha;
       if (!d.facingLeft) {
-        ctx.translate(x, y + hopY + dropOffsetY + 2);
+        ctx.translate(x, y + hopY + dropOffsetY);
         ctx.scale(-squishScaleX, squishScaleY);
       } else {
-        ctx.translate(x, y + hopY + dropOffsetY + 2);
+        ctx.translate(x, y + hopY + dropOffsetY);
         ctx.scale(squishScaleX, squishScaleY);
       }
       ctx.drawImage(d._shadowSprite, -shW / 2, -shH / 2, shW, shH);
