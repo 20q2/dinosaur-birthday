@@ -1,9 +1,11 @@
+import { useState, useEffect } from 'preact/hooks';
 import { store } from '../store.js';
 import { useStore } from '../router.jsx';
 import { SPECIES } from '../data/species.js';
 import { HAT_MAP } from '../data/hats.js';
 import { DinoSprite } from './DinoSprite.jsx';
 import { TitleBar } from './TitleBar.jsx';
+import { getPendingLevelUps, markSeen } from '../utils/lastSeenLevels.js';
 
 import bgRocks from '../assets/backgrounds/dino_find_rocks.png';
 import bgSwamp from '../assets/backgrounds/dino_find_swamp.png';
@@ -28,7 +30,7 @@ function xpProgress(xp, level) {
   return Math.min(100, Math.round((levelXp / XP_PER_LEVEL) * 100));
 }
 
-function DinoCard({ dino }) {
+function DinoCard({ dino, celebration, onCelebrationComplete }) {
   const speciesData = SPECIES[dino.species] || {};
   const hatData = dino.hat ? HAT_MAP[dino.hat] : null;
   const isTamed = dino.tamed;
@@ -115,6 +117,31 @@ export function MyDinos() {
   const dinos = player?.dinos || [];
   const discoveredKeys = new Set(dinos.map(d => d.species));
 
+  const [pendingCelebrations, setPendingCelebrations] = useState(new Map());
+
+  useEffect(() => {
+    const pending = getPendingLevelUps(dinos);
+    if (pending.length === 0) return;
+    setPendingCelebrations(prev => {
+      const next = new Map(prev);
+      for (const p of pending) {
+        if (!next.has(p.species)) {
+          next.set(p.species, { oldLevel: p.oldLevel, newLevel: p.newLevel });
+        }
+      }
+      return next;
+    });
+  }, [dinos]);
+
+  const handleCelebrationComplete = (species, newLevel) => {
+    markSeen(species, newLevel);
+    setPendingCelebrations(prev => {
+      const next = new Map(prev);
+      next.delete(species);
+      return next;
+    });
+  };
+
   // Sort discovered: tamed first, then by level desc, then alpha
   const sorted = [...dinos].sort((a, b) => {
     if (a.tamed !== b.tamed) return a.tamed ? -1 : 1;
@@ -133,7 +160,12 @@ export function MyDinos() {
       <TitleBar title="My Dinos" subtitle={`${nonSecretDinos.length}/${TOTAL_SPECIES} discovered · ${tamedCount} tamed`} />
       <div style={styles.list}>
         {sorted.map(dino => (
-          <DinoCard key={dino.species} dino={dino} />
+          <DinoCard
+            key={dino.species}
+            dino={dino}
+            celebration={pendingCelebrations.get(dino.species) || null}
+            onCelebrationComplete={handleCelebrationComplete}
+          />
         ))}
         {undiscovered.map(sp => (
           <UnknownCard key={sp} speciesKey={sp} />
