@@ -109,7 +109,7 @@ export class PlazaCanvas {
     ctx.fillRect(0, 0, c.width, c.height);
     // Blur the silhouette (one-time cost)
     ctx.globalCompositeOperation = 'source-over';
-    ctx.filter = 'blur(7px)';
+    ctx.filter = 'blur(5px)';
     ctx.drawImage(c, 0, 0);
     ctx.filter = 'none';
     return c;
