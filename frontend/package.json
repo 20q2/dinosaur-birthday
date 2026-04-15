@@ -11,6 +11,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "canvas-confetti": "^1.9.3",
     "lucide-preact": "^1.7.0",
     "preact": "^10.25.0"
   },
