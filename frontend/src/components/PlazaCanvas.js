@@ -93,17 +93,25 @@ export class PlazaCanvas {
 
   // ── Initialization ────────────────────────────────────────────────────────
 
-  // Bake a dark silhouette from a sprite canvas (used as a cheap drop-shadow)
+  // Bake a blurred dark silhouette from a sprite canvas (used as a cheap drop-shadow).
+  // Blur is applied once at bake time, so it's free at draw time.
   _bakeShadow(src) {
     if (!src) return null;
+    const pad = 6; // extra padding for blur to bleed into
     const c = document.createElement('canvas');
-    c.width = src.width;
-    c.height = src.height;
+    c.width = src.width + pad * 2;
+    c.height = src.height + pad * 2;
     const ctx = c.getContext('2d');
-    ctx.drawImage(src, 0, 0);
+    // Draw silhouette centered with padding
+    ctx.drawImage(src, pad, pad);
     ctx.globalCompositeOperation = 'source-in';
-    ctx.fillStyle = 'rgba(0,0,0,0.45)';
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
     ctx.fillRect(0, 0, c.width, c.height);
+    // Blur the silhouette (one-time cost)
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.filter = 'blur(2px)';
+    ctx.drawImage(c, 0, 0);
+    ctx.filter = 'none';
     return c;
   }
 
@@ -912,19 +920,21 @@ export class PlazaCanvas {
       ctx.restore();
     }
 
-    // Pre-baked drop shadow (dark silhouette offset by 1px)
+    // Pre-baked drop shadow (blurred silhouette, offset down+right)
     if (d._shadowSprite) {
+      const padScale = drawScale * 6; // match the pad=6 from _bakeShadow
+      const shW = spriteW + padScale * 2;
+      const shH = spriteH + padScale * 2;
       ctx.save();
       ctx.globalAlpha = dinoAlpha;
-      ctx.imageSmoothingEnabled = false;
       if (!d.facingLeft) {
-        ctx.translate(x, y + hopY + dropOffsetY + 1);
+        ctx.translate(x, y + hopY + dropOffsetY + 2);
         ctx.scale(-squishScaleX, squishScaleY);
       } else {
-        ctx.translate(x, y + hopY + dropOffsetY + 1);
+        ctx.translate(x, y + hopY + dropOffsetY + 2);
         ctx.scale(squishScaleX, squishScaleY);
       }
-      ctx.drawImage(d._shadowSprite, -halfW, -halfH, spriteW, spriteH);
+      ctx.drawImage(d._shadowSprite, -shW / 2, -shH / 2, shW, shH);
       ctx.restore();
     }
 
