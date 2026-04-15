@@ -2,6 +2,7 @@ import os
 import json
 import boto3
 from .db import get_connections_table
+from .response import DecimalEncoder
 
 _apigw = None
 
@@ -22,7 +23,7 @@ def broadcast(channel, event_type, data):
     resp = table.scan()
     connections = resp.get("Items", [])
 
-    message = json.dumps({"channel": channel, "type": event_type, "data": data})
+    message = json.dumps({"channel": channel, "type": event_type, "data": data}, cls=DecimalEncoder)
     apigw = _get_apigw()
 
     stale = []
@@ -42,7 +43,7 @@ def broadcast(channel, event_type, data):
 
 def send_to_connection(connection_id, channel, event_type, data):
     """Send a message to a specific connection."""
-    message = json.dumps({"channel": channel, "type": event_type, "data": data})
+    message = json.dumps({"channel": channel, "type": event_type, "data": data}, cls=DecimalEncoder)
     try:
         _get_apigw().post_to_connection(
             ConnectionId=connection_id, Data=message

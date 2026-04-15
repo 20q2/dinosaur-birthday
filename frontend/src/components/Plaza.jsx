@@ -67,6 +67,7 @@ export function Plaza() {
 
   // Wire real-time plaza updates
   useEffect(() => {
+    console.log('[Plaza] registering WS handlers');
     const offArrive = ws.on('plaza', 'dino_arrive', (data) => {
       console.log('[Plaza] dino_arrive ws event', data.player_id, 'plazaRef?', !!plazaRef.current);
       // Schedule drop-in BEFORE updatePartners so _pendingDropIns is populated

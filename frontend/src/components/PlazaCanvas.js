@@ -2,6 +2,7 @@ import { getRecolored, getRecoloredUncached, getPlazaBackground, getRegionMask }
 import { SPECIES } from '../data/species.js';
 import { getHatImage, getHatAnchor } from '../data/hatImages.js';
 import { resolveColors, hasEffects } from '../dinoColors.js';
+import { store } from '../store.js';
 import starryNightUrl from '../assets/effects/starry_night.jpg';
 
 const _starryImg = new Image();
@@ -1304,14 +1305,21 @@ export class PlazaCanvas {
     const pillX = cx - pillW / 2;
     const pillY = topY;
 
+    const isOwnPartner = p.player_id && store.playerId && p.player_id === store.playerId;
     // Pill background
-    ctx.fillStyle = 'rgba(0,0,0,0.65)';
+    ctx.fillStyle = isOwnPartner ? 'rgba(40,30,10,0.65)' : 'rgba(0,0,0,0.65)';
     ctx.beginPath();
     ctx.roundRect(pillX, pillY, pillW, pillH, 4 * scale);
     ctx.fill();
-    ctx.strokeStyle = 'rgba(74,222,128,0.3)';
-    ctx.lineWidth = 0.5 * scale;
-    ctx.stroke();
+    if (isOwnPartner) {
+      ctx.strokeStyle = 'rgba(251, 191, 36, 0.55)';
+      ctx.lineWidth = 0.6 * scale;
+      ctx.stroke();
+    } else {
+      ctx.strokeStyle = 'rgba(74,222,128,0.3)';
+      ctx.lineWidth = 0.5 * scale;
+      ctx.stroke();
+    }
 
     // Owner photo circle
     const photoX = pillX + padH + photoSize / 2;

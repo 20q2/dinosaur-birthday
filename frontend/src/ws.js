@@ -33,6 +33,7 @@ export const ws = {
         const msg = JSON.parse(event.data);
         const { channel, type, data } = msg;
         const key = `${channel}:${type}`;
+        console.log('[WS] msg received:', key, 'handlers:', (messageHandlers.get(key) || []).length);
 
         // Call specific handlers
         const handlers = messageHandlers.get(key) || [];
