@@ -61,6 +61,9 @@ def test_trivia_format():
         assert len(q["options"]) == 4
         assert "answer" in q
         assert 0 <= q["answer"] <= 3
+        assert "explanation" in q
+        assert isinstance(q["explanation"], str)
+        assert len(q["explanation"]) > 0
 
 
 def test_explorer_notes_count():
