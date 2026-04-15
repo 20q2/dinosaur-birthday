@@ -393,6 +393,27 @@ export class PlazaCanvas {
     return pool[Math.floor(Math.random() * pool.length)];
   }
 
+  _broadcastStartle(source) {
+    for (const other of this.dinos) {
+      if (other === source) continue;
+      if (other.startleCooldown > 0) continue;
+      if (other.dropIn > 0 || other.playPartner) continue;
+      const dx = other.worldX - source.worldX;
+      const dy = other.worldY - source.worldY;
+      if (Math.hypot(dx, dy) > STARTLE_RADIUS) continue;
+      // Startle wins over sniff — cancel any in-progress sniff on target
+      if (other.sniffTimer > 0) {
+        other.sniffTimer = 0;
+        other.sniffPartnerId = null;
+        other.sniffCooldown = SNIFF_COOLDOWN;
+      }
+      other.tapJump = STARTLE_HOP;
+      other.tapJumpHeight = STARTLE_HOP_HEIGHT;
+      other.startleTimer = STARTLE_DURATION;
+      other.startleCooldown = STARTLE_COOLDOWN;
+    }
+  }
+
   _pickWaypoint(d, sprint) {
     const minDist = sprint ? SPRINT_DIST_MIN : WALK_DIST_MIN;
     const maxDist = sprint ? SPRINT_DIST_MAX : WALK_DIST_MAX;
@@ -440,6 +461,10 @@ export class PlazaCanvas {
       }
       return; // freeze AI while dropping in
     }
+
+    // ── Startle ticking ────────────────────────────────────────────────────
+    d.startleCooldown = Math.max(0, d.startleCooldown - dt);
+    d.startleTimer = Math.max(0, d.startleTimer - dt);
 
     // ── Sniff ticking (runs before normal AI so sniffing pauses idle) ──────
     d.sniffCooldown = Math.max(0, d.sniffCooldown - dt);
@@ -815,6 +840,7 @@ export class PlazaCanvas {
       if (wx >= d.worldX - halfW && wx <= d.worldX + halfW &&
           wy >= d.worldY - halfH && wy <= d.worldY + halfH) {
         d.tapJump = 0.45; // trigger jump animation
+        this._broadcastStartle(d);
         d.tapJumpHeight = 14 + Math.random() * 22; // 14–36px variable height
         d.state = 'idling';
         d.idleTimer = 3.5 + Math.random() * 2.0; // stay put 3.5–5.5s after tap
@@ -907,6 +933,10 @@ export class PlazaCanvas {
 
     // ── Update & Draw Dinos (Y-sorted for depth) ──────────────────────────
     this.dinos.forEach(d => this._updateDino(d, dt, elapsed));
+    // Sprinting dinos startle nearby dinos
+    for (const d of this.dinos) {
+      if (d.state === 'sprinting') this._broadcastStartle(d);
+    }
 
     // Tick departing dinos (fade-out)
     for (let i = this.departingDinos.length - 1; i >= 0; i--) {
@@ -1143,6 +1173,21 @@ export class PlazaCanvas {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'bottom';
       ctx.fillText(playEmojis[emojiIdx], x, emojiY + floatY);
+      ctx.restore();
+    }
+
+    // Startle emoji above head
+    if (d.startleTimer > 0 && d.state !== 'playing') {
+      const emojiY = y - halfH + hopY - (d.partner.hat ? 14 : 6);
+      const floatY = Math.sin(elapsed * 4 + d.hopPhase) * 2;
+      // Fade out over the last half of the timer
+      const fade = Math.min(1, d.startleTimer / (STARTLE_DURATION * 0.5));
+      ctx.save();
+      ctx.globalAlpha = fade;
+      ctx.font = `${Math.round(11 * d.scale)}px serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText('\u2757', x, emojiY + floatY); // ❗
       ctx.restore();
     }
 
