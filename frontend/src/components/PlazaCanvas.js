@@ -97,7 +97,7 @@ export class PlazaCanvas {
   // Blur is applied once at bake time, so it's free at draw time.
   _bakeShadow(src) {
     if (!src) return null;
-    const pad = 12; // extra padding for blur to bleed into
+    const pad = 10; // extra padding for blur to bleed into
     const c = document.createElement('canvas');
     c.width = src.width + pad * 2;
     c.height = src.height + pad * 2;
@@ -922,7 +922,7 @@ export class PlazaCanvas {
 
     // Pre-baked drop shadow (blurred silhouette, offset down+right)
     if (d._shadowSprite) {
-      const padScale = drawScale * 12; // match the pad=12 from _bakeShadow
+      const padScale = drawScale * 10; // match the pad=10 from _bakeShadow
       const shW = spriteW + padScale * 2;
       const shH = spriteH + padScale * 2;
       ctx.save();
