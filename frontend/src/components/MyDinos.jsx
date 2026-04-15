@@ -34,8 +34,63 @@ function DinoCard({ dino, celebration, onCelebrationComplete }) {
   const speciesData = SPECIES[dino.species] || {};
   const hatData = dino.hat ? HAT_MAP[dino.hat] : null;
   const isTamed = dino.tamed;
-  const progress = xpProgress(dino.xp || 0, dino.level || 1);
+  const actualProgress = xpProgress(dino.xp || 0, dino.level || 1);
   const backdropSrc = BACKDROP_IMG[speciesData.backdrop];
+
+  // Animation state — used only when `celebration` is non-null.
+  // Phases: initial (bar at 0, level=oldLevel) → filling (bar→100) → hop (level ticks to newLevel)
+  // → reset (bar→0, instant) → refill (bar→actualProgress).
+  const [anim, setAnim] = useState(() => celebration
+    ? { displayedLevel: celebration.oldLevel, displayedProgress: 0, hopping: false, skipTransition: false }
+    : null
+  );
+
+  useEffect(() => {
+    if (!celebration) return;
+
+    // Start in initial state, then kick off phase 1 after two animation frames
+    // (first frame: commit DOM at progress=0; second frame: start transition to 100).
+    const raf1 = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setAnim(s => ({ ...s, displayedProgress: 100 }));
+      });
+    });
+
+    // Phase 2: hop + level tick at 400ms (after fill-to-cap completes)
+    const hopTimer = setTimeout(() => {
+      setAnim(s => ({ ...s, displayedLevel: celebration.newLevel, hopping: true }));
+    }, 400);
+
+    // Phase 3: reset bar to 0 instantly at 700ms (400 fill + 300 hop)
+    const resetTimer = setTimeout(() => {
+      setAnim(s => ({ ...s, displayedProgress: 0, hopping: false, skipTransition: true }));
+      // Next two frames: switch transition back on and fill to actual
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setAnim(s => ({ ...s, displayedProgress: actualProgress, skipTransition: false }));
+        });
+      });
+    }, 700);
+
+    // Phase 4: completion at 1300ms (700 + 600 refill)
+    const doneTimer = setTimeout(() => {
+      onCelebrationComplete(dino.species, celebration.newLevel);
+    }, 1300);
+
+    return () => {
+      cancelAnimationFrame(raf1);
+      clearTimeout(hopTimer);
+      clearTimeout(resetTimer);
+      clearTimeout(doneTimer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [celebration?.oldLevel, celebration?.newLevel]);
+
+  // Derive rendered values: use anim state while celebrating, else straight from dino
+  const displayedLevel = (celebration && anim) ? anim.displayedLevel : (dino.level || 1);
+  const displayedProgress = (celebration && anim) ? anim.displayedProgress : actualProgress;
+  const hopping = (celebration && anim?.hopping) || false;
+  const skipTransition = (celebration && anim?.skipTransition) || false;
 
   return (
     <button
@@ -59,7 +114,10 @@ function DinoCard({ dino, celebration, onCelebrationComplete }) {
         }} />
       )}
       {/* Sprite — clipped to box */}
-      <div style={styles.spriteBox}>
+      <div style={{
+        ...styles.spriteBox,
+        animation: hopping ? 'myDinosHop 0.3s ease-out' : 'none',
+      }}>
         <DinoSprite species={dino.species} colors={dino.colors || {}} scale={2} hat={dino.hat || null} style={{ width: '100%', height: '100%' }} />
         {dino.shiny && <span style={styles.shinyBadge}>✨</span>}
       </div>
@@ -78,11 +136,17 @@ function DinoCard({ dino, celebration, onCelebrationComplete }) {
         {isTamed ? (
           <>
             <div style={styles.levelRow}>
-              Lv {dino.level || 1}
+              Lv {displayedLevel}
               {hatData && <span style={styles.hatLabel}>{hatData.name}</span>}
             </div>
             <div style={styles.xpBarBg}>
-              <div style={{ ...styles.xpBarFill, width: `${progress}%` }} />
+              <div style={{
+                ...styles.xpBarFill,
+                width: `${displayedProgress}%`,
+                transition: skipTransition
+                  ? 'none'
+                  : (celebration ? 'width 0.6s ease-out' : 'width 0.3s ease-out'),
+              }} />
             </div>
           </>
         ) : (
@@ -157,6 +221,7 @@ export function MyDinos() {
 
   return (
     <div style={styles.page}>
+      <style>{myDinosHopKeyframes}</style>
       <TitleBar title="My Dinos" subtitle={`${nonSecretDinos.length}/${TOTAL_SPECIES} discovered · ${tamedCount} tamed`} />
       <div style={styles.list}>
         {sorted.map(dino => (
@@ -174,6 +239,13 @@ export function MyDinos() {
     </div>
   );
 }
+
+const myDinosHopKeyframes = `
+@keyframes myDinosHop {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+`;
 
 const styles = {
   page: {
