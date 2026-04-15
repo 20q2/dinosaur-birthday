@@ -72,6 +72,7 @@ const styles = {
     cursor: 'pointer',
     boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
     overflow: 'hidden',
+    opacity: 0.75,
   },
   bg: {
     position: 'absolute', inset: 0,
