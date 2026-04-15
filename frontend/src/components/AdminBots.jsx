@@ -26,6 +26,19 @@ function randomHat() {
   return HATS[Math.floor(Math.random() * HATS.length)].id;
 }
 
+// Weighted random level 1-5 — peaks at 3, tails rare at 1 and 5.
+// Weights: 1→1, 2→3, 3→4, 4→3, 5→1  (total 12)
+const LEVEL_WEIGHTS = [1, 3, 4, 3, 1];
+const LEVEL_WEIGHT_TOTAL = LEVEL_WEIGHTS.reduce((a, b) => a + b, 0);
+function randomLevel() {
+  let r = Math.random() * LEVEL_WEIGHT_TOTAL;
+  for (let i = 0; i < LEVEL_WEIGHTS.length; i++) {
+    r -= LEVEL_WEIGHTS[i];
+    if (r < 0) return i + 1;
+  }
+  return 3;
+}
+
 export function AdminBots() {
   const [bots, setBots] = useState([]);
   const [bulkLobbyCode, setBulkLobbyCode] = useState('');
@@ -56,9 +69,10 @@ export function AdminBots() {
       await api.scanFood(id, food, species);
       const dinoName = randomDinoName();
       const hat = randomHat();
-      await api.customizeDino(id, species, { name: dinoName, hat });
+      const level = randomLevel();
+      await api.customizeDino(id, species, { name: dinoName, hat, level });
       await api.setPartner(id, species);
-      addLog(`${name} auto-collected ${SPECIES_NAMES[species]} with ${hat} and set as partner`);
+      addLog(`${name} auto-collected ${SPECIES_NAMES[species]} (Lv ${level}) with ${hat} and set as partner`);
       updateBot(id, { state: 'idle', dinos: 1 });
     } catch (err) {
       addLog(`Failed to spawn bot: ${err.message}`);
@@ -82,9 +96,10 @@ export function AdminBots() {
 
       const dinoName = randomDinoName();
       const hat = randomHat();
-      await api.customizeDino(bot.id, species, { name: dinoName, hat });
+      const level = randomLevel();
+      await api.customizeDino(bot.id, species, { name: dinoName, hat, level });
       await api.setPartner(bot.id, species);
-      addLog(`${bot.name} set ${dinoName} (${hat}) as partner`);
+      addLog(`${bot.name} set ${dinoName} (Lv ${level}, ${hat}) as partner`);
 
       updateBot(bot.id, { state: 'idle', dinos: (bot.dinos || 0) + 1 });
     } catch (err) {

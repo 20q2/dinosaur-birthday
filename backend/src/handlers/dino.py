@@ -73,6 +73,18 @@ def customize_handler(event, context):
             return error(f"Unknown hat: {new_hat}")
         updates["hat"] = new_hat
 
+    # Handle level (used by admin bot spawning to randomize bot dino levels)
+    new_level = body.get("level")
+    if new_level is not None:
+        try:
+            lvl = int(new_level)
+        except (TypeError, ValueError):
+            return error(f"Invalid level: {new_level}")
+        if lvl < 1 or lvl > 5:
+            return error(f"Level must be between 1 and 5, got {lvl}")
+        updates["level"] = lvl
+        updates["xp"] = (lvl - 1) * 100
+
     # Handle paint: apply a normal or rare paint to a color region
     paint = body.get("paint")
     if paint is not None:
@@ -144,7 +156,7 @@ def customize_handler(event, context):
             profile = get_item(f"PLAYER#{player_id}", "PROFILE")
             plaza_updates = {
                 k: v for k, v in updates.items()
-                if k in ("name", "hat", "colors")
+                if k in ("name", "hat", "colors", "level")
             }
             if plaza_updates:
                 update_item("PLAZA", f"PARTNER#{player_id}", plaza_updates)
