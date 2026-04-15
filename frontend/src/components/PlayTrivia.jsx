@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'preact/hooks';
+import { useState, useEffect, useRef } from 'preact/hooks';
+import confetti from 'canvas-confetti';
 import { store } from '../store.js';
 import { useStore } from '../router.jsx';
 import { api } from '../api.js';
@@ -44,6 +45,31 @@ export function PlayTrivia({ code }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [partnerName, setPartnerName] = useState('');
+  const answerRefs = useRef([]);
+  const confettiFiredRef = useRef(false);
+
+  useEffect(() => {
+    if (!result?.correct || confettiFiredRef.current) return;
+    confettiFiredRef.current = true;
+
+    let origin = { x: 0.5, y: 0.6 };  // fallback: center of answers grid
+    const btn = selectedAnswer != null ? answerRefs.current[selectedAnswer] : null;
+    if (btn) {
+      const rect = btn.getBoundingClientRect();
+      origin = {
+        x: (rect.left + rect.width / 2) / window.innerWidth,
+        y: (rect.top + rect.height / 2) / window.innerHeight,
+      };
+    }
+
+    confetti({
+      particleCount: 60,
+      spread: 70,
+      startVelocity: 35,
+      origin,
+      colors: ['#4ade80', '#f59e0b', '#60a5fa', '#f3f4f6'],
+    });
+  }, [result?.correct, selectedAnswer]);
 
   useEffect(() => {
     ws.subscribe(`lobby:${code}`);
@@ -132,6 +158,7 @@ export function PlayTrivia({ code }) {
               {(trivia.options || []).map((option, i) => (
                 <button
                   key={i}
+                  ref={el => answerRefs.current[i] = el}
                   onClick={() => handleAnswer(i)}
                   disabled={busy}
                   style={{
