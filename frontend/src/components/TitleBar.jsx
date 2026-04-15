@@ -1,3 +1,4 @@
+import { ChevronLeft } from 'lucide-preact';
 import { store } from '../store.js';
 
 export function TitleBar({ title, subtitle, back, transparent }) {
@@ -8,8 +9,8 @@ export function TitleBar({ title, subtitle, back, transparent }) {
     }}>
       <div style={styles.left}>
         {back && (
-          <button onClick={() => store.navigate(back)} style={styles.backBtn}>
-            ‹
+          <button onClick={() => store.navigate(back)} style={styles.backBtn} aria-label="Back">
+            <ChevronLeft size={28} />
           </button>
         )}
       </div>
@@ -68,9 +69,11 @@ const styles = {
     background: 'none',
     border: 'none',
     color: '#4ade80',
-    fontSize: '28px',
     cursor: 'pointer',
     padding: '0 4px',
     lineHeight: 1,
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 };

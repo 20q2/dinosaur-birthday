@@ -242,6 +242,7 @@ export class DinoPartyStack extends Stack {
     addRoute(adminFn, 'POST', '/admin/announce');
     addRoute(adminFn, 'POST', '/admin/give-all-items');
     addRoute(adminFn, 'POST', '/admin/give-item');
+    addRoute(adminFn, 'POST', '/admin/give-dino');
     addRoute(adminFn, 'GET', '/admin/dashboard');
     addRoute(adminFn, 'DELETE', '/admin/reset');
     addRoute(adminFn, 'DELETE', '/admin/reset-all');

@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { api } from '../api.js';
+import { SPECIES } from '../data/species.js';
+import { HATS } from '../data/hats.js';
+import { DinoSprite } from './DinoSprite.jsx';
 
 const BUILDUP_PHASES = [
   { phase: 1, label: 'Shadows', icon: '\uD83C\uDF11', description: 'Shadows creep over the plaza' },
@@ -337,6 +340,11 @@ export function AdminDashboard() {
         )}
       </Section>
 
+      {/* ── Give Tamed Dino ───────────────────────────────────────────────── */}
+      <Section title="Give Tamed Dino" icon={'\uD83E\uDD95'}>
+        <GiveDinoForm players={dashboard?.player_list || []} />
+      </Section>
+
       {/* ── Player List ───────────────────────────────────────────────────── */}
       <Section title="Players" icon={'\uD83D\uDC65'}>
         {dashLoading && <p style={styles.muted}>Loading...</p>}
@@ -385,6 +393,291 @@ function Section({ title, icon, children }) {
     </div>
   );
 }
+
+// ── Give Tamed Dino form ────────────────────────────────────────────────────
+// Species list excludes secret species (godzilla is obtained via boss defeat).
+const GIVEABLE_SPECIES = Object.values(SPECIES).filter(s => !s.secret);
+
+function randomColors(regions) {
+  const out = {};
+  regions.forEach(r => { out[r] = Math.floor(Math.random() * 360); });
+  return out;
+}
+
+function GiveDinoForm({ players }) {
+  const [playerId,   setPlayerId]   = useState('');
+  const [species,    setSpecies]    = useState(GIVEABLE_SPECIES[0]?.id || 'trex');
+  const [level,      setLevel]      = useState(1);
+  const [shiny,      setShiny]      = useState(false);
+  const [hat,        setHat]        = useState('');
+  const [setPartner, setSetPartner] = useState(false);
+  const [name,       setName]       = useState('');
+  const [colors,     setColors]     = useState(() => randomColors(SPECIES[GIVEABLE_SPECIES[0]?.id || 'trex'].regions));
+
+  const [busy,     setBusy]     = useState(false);
+  const [feedback, setFeedback] = useState(null);
+
+  // Reshuffle preview colors when species changes
+  useEffect(() => {
+    const s = SPECIES[species];
+    if (s) setColors(randomColors(s.regions));
+  }, [species]);
+
+  async function handleGive() {
+    if (!playerId || !species || busy) return;
+    setBusy(true);
+    setFeedback(null);
+    try {
+      await api.adminGiveDino(playerId, species, {
+        level,
+        shiny,
+        hat: hat || undefined,
+        name: name.trim() || undefined,
+        colors,
+        set_partner: setPartner,
+      });
+      const playerName = players.find(p => p.id === playerId)?.name || 'player';
+      const speciesName = SPECIES[species]?.name || species;
+      setFeedback({
+        ok: true,
+        msg: `Gave ${shiny ? '✨ ' : ''}${speciesName} (Lv ${level}) to ${playerName}`,
+      });
+      // Clear form but keep player/species selections
+      setName('');
+    } catch (err) {
+      setFeedback({ ok: false, msg: err.message || 'Failed to give dino' });
+    } finally {
+      setBusy(false);
+      setTimeout(() => setFeedback(null), 4500);
+    }
+  }
+
+  return (
+    <div style={giveStyles.wrap}>
+      {/* Preview */}
+      <div style={giveStyles.previewBox}>
+        <DinoSprite species={species} colors={colors} scale={3} hat={hat || null} />
+        {shiny && <div style={giveStyles.shinyTag}>✨ SHINY</div>}
+        <button
+          type="button"
+          style={giveStyles.reshuffleBtn}
+          onClick={() => setColors(randomColors(SPECIES[species].regions))}
+          title="Reshuffle colors"
+        >
+          ↻
+        </button>
+      </div>
+
+      {/* Form rows */}
+      <div style={giveStyles.row}>
+        <label style={giveStyles.label}>Player</label>
+        <select
+          value={playerId}
+          onChange={e => setPlayerId(e.target.value)}
+          style={giveStyles.select}
+        >
+          <option value="">— Select player —</option>
+          {players.map(p => (
+            <option key={p.id} value={p.id}>
+              {p.name} ({p.dino_count} dino{p.dino_count !== 1 ? 's' : ''})
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div style={giveStyles.row}>
+        <label style={giveStyles.label}>Species</label>
+        <select
+          value={species}
+          onChange={e => setSpecies(e.target.value)}
+          style={giveStyles.select}
+        >
+          {GIVEABLE_SPECIES.map(s => (
+            <option key={s.id} value={s.id}>
+              {s.name} ({s.diet})
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div style={giveStyles.row}>
+        <label style={giveStyles.label}>Level</label>
+        <div style={giveStyles.levelRow}>
+          <input
+            type="range"
+            min="1" max="5" step="1"
+            value={level}
+            onInput={e => setLevel(Number(e.target.value))}
+            style={giveStyles.range}
+          />
+          <span style={giveStyles.levelVal}>Lv {level}</span>
+        </div>
+      </div>
+
+      <div style={giveStyles.row}>
+        <label style={giveStyles.label}>Hat</label>
+        <select
+          value={hat}
+          onChange={e => setHat(e.target.value)}
+          style={giveStyles.select}
+        >
+          <option value="">— None —</option>
+          {HATS.map(h => (
+            <option key={h.id} value={h.id}>
+              {h.name} ({h.rarity})
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div style={giveStyles.row}>
+        <label style={giveStyles.label}>Name</label>
+        <input
+          type="text"
+          value={name}
+          onInput={e => setName(e.target.value)}
+          placeholder="(optional)"
+          maxLength={24}
+          style={giveStyles.input}
+        />
+      </div>
+
+      <div style={giveStyles.toggleRow}>
+        <label style={giveStyles.toggleLabel}>
+          <input
+            type="checkbox"
+            checked={shiny}
+            onChange={e => setShiny(e.target.checked)}
+          />
+          <span>Shiny ✨</span>
+        </label>
+        <label style={giveStyles.toggleLabel}>
+          <input
+            type="checkbox"
+            checked={setPartner}
+            onChange={e => setSetPartner(e.target.checked)}
+          />
+          <span>Set as Partner</span>
+        </label>
+      </div>
+
+      <button
+        onClick={handleGive}
+        disabled={busy || !playerId}
+        style={{
+          ...giveStyles.giveBtn,
+          ...(busy || !playerId ? giveStyles.giveBtnDisabled : {}),
+        }}
+      >
+        {busy ? 'Giving...' : 'Give Dino'}
+      </button>
+
+      {feedback && (
+        <p style={{
+          ...giveStyles.feedback,
+          color: feedback.ok ? '#4ade80' : '#f87171',
+        }}>
+          {feedback.msg}
+        </p>
+      )}
+    </div>
+  );
+}
+
+const giveStyles = {
+  wrap: { display: 'flex', flexDirection: 'column', gap: '10px' },
+  previewBox: {
+    position: 'relative',
+    height: '140px',
+    background: 'radial-gradient(ellipse at center, #1a1a2e 0%, #0d1117 70%)',
+    border: '1px solid #2a2a2a',
+    borderRadius: '10px',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  shinyTag: {
+    position: 'absolute', top: '6px', left: '6px',
+    fontSize: '11px', fontWeight: '700',
+    background: '#422006', color: '#facc15',
+    padding: '2px 8px', borderRadius: '6px',
+    border: '1px solid #92400e',
+  },
+  reshuffleBtn: {
+    position: 'absolute', top: '6px', right: '6px',
+    width: '28px', height: '28px',
+    background: 'rgba(0,0,0,0.6)',
+    border: '1px solid #374151',
+    borderRadius: '6px',
+    color: '#e5e7eb',
+    fontSize: '16px',
+    cursor: 'pointer',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+  },
+  row: { display: 'flex', alignItems: 'center', gap: '10px' },
+  label: {
+    width: '70px', flexShrink: 0,
+    fontSize: '12px', fontWeight: '600', color: '#9ca3af',
+    textTransform: 'uppercase', letterSpacing: '0.5px',
+  },
+  select: {
+    flex: 1,
+    padding: '8px 10px',
+    background: '#1f2937',
+    border: '1px solid #374151',
+    borderRadius: '8px',
+    color: '#f0f0f0',
+    fontSize: '13px',
+    outline: 'none',
+  },
+  input: {
+    flex: 1,
+    padding: '8px 10px',
+    background: '#1f2937',
+    border: '1px solid #374151',
+    borderRadius: '8px',
+    color: '#f0f0f0',
+    fontSize: '13px',
+    outline: 'none',
+  },
+  levelRow: { flex: 1, display: 'flex', alignItems: 'center', gap: '10px' },
+  range: { flex: 1, accentColor: '#6366f1' },
+  levelVal: {
+    minWidth: '44px', textAlign: 'right',
+    fontSize: '13px', fontWeight: '700', color: '#facc15',
+  },
+  toggleRow: {
+    display: 'flex', gap: '16px', flexWrap: 'wrap',
+    paddingLeft: '80px',
+  },
+  toggleLabel: {
+    display: 'flex', alignItems: 'center', gap: '6px',
+    fontSize: '13px', color: '#d1d5db', cursor: 'pointer',
+  },
+  giveBtn: {
+    marginTop: '4px',
+    padding: '12px',
+    background: 'linear-gradient(135deg, #065f46, #10b981)',
+    border: '1px solid #34d399',
+    borderRadius: '10px',
+    color: '#fff',
+    fontSize: '15px',
+    fontWeight: '700',
+    letterSpacing: '1px',
+    cursor: 'pointer',
+  },
+  giveBtnDisabled: {
+    background: '#1f2937',
+    border: '1px solid #374151',
+    color: '#6b7280',
+    cursor: 'not-allowed',
+  },
+  feedback: {
+    margin: '4px 0 0',
+    fontSize: '13px',
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+};
 
 function StatCard({ label, value, icon, valueColor }) {
   return (

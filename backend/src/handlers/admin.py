@@ -6,7 +6,10 @@ from decimal import Decimal
 from ..shared.db import get_item, put_item, query_pk, delete_item, get_table, get_connections_table
 from ..shared.response import success, error
 from ..shared.ws_broadcast import broadcast
-from ..shared.game_data import HATS, PAINTS, PAINT_MAP
+from ..shared.game_data import (
+    HATS, PAINTS, PAINT_MAP, SPECIES,
+    random_colors, random_nature, random_gender, is_shiny,
+)
 from ..shared.rare_paints import grant_rare_paint, RARE_EFFECTS
 
 
@@ -452,6 +455,154 @@ def give_item_handler(event, context):
     return success({"item_type": item_type, "item_id": item_id, "player": player_name})
 
 
+def give_dino_handler(event, context):
+    """POST /admin/give-dino — give a player a tamed dino in one shot.
+
+    Body params:
+      player_id (str, required)
+      species   (str, required)
+      level     (int, optional, 1-5, default 1)
+      shiny     (bool, optional, default random 5%)
+      hat       (str, optional, hat_id — empty for none)
+      name      (str, optional, custom name)
+      colors    (dict, optional, pre-set colors)
+      set_partner (bool, optional — if true, also make this the plaza partner)
+    """
+    body = json.loads(event.get("body") or "{}")
+    player_id = (body.get("player_id") or "").strip()
+    species   = (body.get("species") or "").strip()
+
+    if not player_id:
+        return error("player_id is required")
+    if species not in SPECIES:
+        return error(f"Unknown species: {species}")
+
+    profile = get_item(f"PLAYER#{player_id}", "PROFILE")
+    if not profile:
+        return error("Player not found", 404)
+
+    # Normalize optional fields
+    try:
+        level = int(body.get("level") or 1)
+    except (TypeError, ValueError):
+        level = 1
+    level = max(1, min(5, level))
+
+    shiny_raw = body.get("shiny", None)
+    if shiny_raw is None:
+        shiny = is_shiny()
+    else:
+        shiny = bool(shiny_raw)
+
+    hat = (body.get("hat") or "").strip()
+    if hat and not any(h["id"] == hat for h in HATS):
+        return error(f"Unknown hat: {hat}")
+
+    name = (body.get("name") or "").strip()[:24]
+
+    species_data = SPECIES[species]
+    colors = body.get("colors")
+    if not colors or not isinstance(colors, dict):
+        colors = random_colors(species_data["regions"], shiny=shiny)
+
+    gender = random_gender()
+    nature = random_nature()
+    xp = (level - 1) * 100  # place player at the start of their level
+
+    # Preserve some existing fields if the dino already exists
+    existing = get_item(f"PLAYER#{player_id}", f"DINO#{species}")
+    if existing:
+        gender = existing.get("gender", gender)
+        nature = existing.get("nature", nature)
+        # Preserve partner status unless explicitly overridden later
+        is_partner = bool(existing.get("is_partner", False))
+    else:
+        is_partner = False
+
+    dino = {
+        "PK": f"PLAYER#{player_id}",
+        "SK": f"DINO#{species}",
+        "colors": colors,
+        "gender": gender,
+        "nature": nature,
+        "hat": hat,
+        "xp": xp,
+        "level": level,
+        "is_partner": is_partner,
+        "tamed": True,
+        "shiny": shiny,
+        "name": name,
+    }
+    put_item(dino)
+
+    # Optionally promote to partner (only if player has no current partner, or force)
+    set_partner = bool(body.get("set_partner", False))
+    if set_partner:
+        # Clear previous partner flag on any other dino
+        all_dinos = query_pk(f"PLAYER#{player_id}", sk_prefix="DINO#")
+        for d in all_dinos:
+            if d.get("SK") != f"DINO#{species}" and d.get("is_partner"):
+                update_from = d.get("SK")
+                get_table().update_item(
+                    Key={"PK": f"PLAYER#{player_id}", "SK": update_from},
+                    UpdateExpression="SET is_partner = :f",
+                    ExpressionAttributeValues={":f": False},
+                )
+        get_table().update_item(
+            Key={"PK": f"PLAYER#{player_id}", "SK": f"DINO#{species}"},
+            UpdateExpression="SET is_partner = :t",
+            ExpressionAttributeValues={":t": True},
+        )
+
+        plaza_data = {
+            "PK": "PLAZA",
+            "SK": f"PARTNER#{player_id}",
+            "species": species,
+            "hat": hat,
+            "colors": colors,
+            "level": level,
+            "name": name,
+            "gender": gender,
+            "shiny": shiny,
+            "owner_name": profile.get("name", ""),
+            "owner_photo": profile.get("photo_url", ""),
+        }
+        put_item(plaza_data)
+        try:
+            broadcast("plaza", "dino_arrive", {
+                "player_id": player_id,
+                "species": species,
+                "name": name,
+                "hat": hat,
+                "colors": colors,
+                "level": level,
+                "shiny": shiny,
+                "owner_name": profile.get("name", ""),
+                "owner_photo": profile.get("photo_url", ""),
+            })
+        except Exception:
+            pass
+
+    player_name = profile.get("name", "Unknown")
+    display_name = name or species_data["name"]
+    shiny_tag = "✨SHINY✨ " if shiny else ""
+    _post_feed_entry(
+        "tamed",
+        f"{player_name} received {shiny_tag}{display_name} (Lv {level})!",
+        player_name,
+    )
+
+    return success({
+        "species": species,
+        "level": level,
+        "shiny": shiny,
+        "hat": hat,
+        "name": name,
+        "colors": colors,
+        "tamed": True,
+    })
+
+
 def handler(event, context):
     """Route admin endpoints."""
     path = event.get("resource", event.get("path", ""))
@@ -470,6 +621,8 @@ def handler(event, context):
             return give_all_items_handler(event, context)
         if path.endswith("/give-item"):
             return give_item_handler(event, context)
+        if path.endswith("/give-dino"):
+            return give_dino_handler(event, context)
 
     if method == "GET":
         if path.endswith("/dashboard"):

@@ -81,6 +81,9 @@ export const api = {
   adminGiveItem: (playerId, type, itemId) =>
     request('POST', '/admin/give-item', { player_id: playerId, type, item_id: itemId }),
 
+  adminGiveDino: (playerId, species, opts = {}) =>
+    request('POST', '/admin/give-dino', { player_id: playerId, species, ...opts }),
+
   adminDashboard: () =>
     request('GET', '/admin/dashboard'),
 
