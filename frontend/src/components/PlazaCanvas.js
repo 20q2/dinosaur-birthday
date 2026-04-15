@@ -33,12 +33,12 @@ const SPRINT_DIST_MIN = 150;
 const SPRINT_DIST_MAX = 300;
 const IDLE_TIME_MIN = 1.0;
 const IDLE_TIME_MAX = 3.0;
-const SPRINT_CHANCE = 0.2;
+const SPRINT_CHANCE = 0.1;
 const HEADING_LERP = 3.0; // radians/sec smoothing
 const ARRIVE_DIST = 5;
 
 // Lively behavior constants
-const FOLLOW_CHANCE       = 0.35;  // chance when leaving idle to follow instead of random waypoint
+const FOLLOW_CHANCE       = 0.08;  // chance when leaving idle to follow instead of random waypoint
 const FOLLOW_RADIUS       = 350;   // px — "nearby" for follow candidates
 const FOLLOW_OFFSET       = 40;    // random offset from leader so follower doesn't overlap
 const SNIFF_RADIUS        = 80;    // two idle dinos within this range trigger a sniff
@@ -840,7 +840,6 @@ export class PlazaCanvas {
       if (wx >= d.worldX - halfW && wx <= d.worldX + halfW &&
           wy >= d.worldY - halfH && wy <= d.worldY + halfH) {
         d.tapJump = 0.45; // trigger jump animation
-        this._broadcastStartle(d);
         d.tapJumpHeight = 14 + Math.random() * 22; // 14–36px variable height
         d.state = 'idling';
         d.idleTimer = 3.5 + Math.random() * 2.0; // stay put 3.5–5.5s after tap
