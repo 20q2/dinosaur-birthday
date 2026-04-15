@@ -153,6 +153,7 @@ export class PlazaCanvas {
       _cleanSprite: null,    // un-baked recolored sprite (effects get baked onto a copy)
       _effectTmp: null,      // reusable temp canvas for effect baking
       _bakedSprite: null,    // working copy with effects baked on
+      _lastBakeTime: 0,      // timestamp of last effect bake (throttled to ~15fps)
     };
   }
 
@@ -790,10 +791,14 @@ export class PlazaCanvas {
     allDinos.sort((a, b) => a.worldY - b.worldY);
     this._drawParticles();
 
-    // Re-resolve animated dino sprites only when hues change visually (quantized)
+    // Re-resolve animated dino sprites — throttled to ~15fps for both recolor + effect bake
     const now = Date.now();
     allDinos.forEach(d => {
       if (d.animated) {
+        // Throttle all animated sprite work to every ~66ms (15fps) — plenty for color shifts / overlays
+        if (now - d._lastBakeTime < 66) return;
+        d._lastBakeTime = now;
+
         const resolved = resolveColors(d.partner.colors || {}, now);
         // Quantize hues to 4° steps — avoids expensive recolor when nothing visibly changed
         const quantized = {};
