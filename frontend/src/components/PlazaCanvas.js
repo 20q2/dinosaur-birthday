@@ -440,6 +440,24 @@ export class PlazaCanvas {
       }
       return; // freeze AI while dropping in
     }
+
+    // ── Sniff ticking (runs before normal AI so sniffing pauses idle) ──────
+    d.sniffCooldown = Math.max(0, d.sniffCooldown - dt);
+    if (d.sniffTimer > 0) {
+      d.sniffTimer = Math.max(0, d.sniffTimer - dt);
+      if (d.sniffTimer === 0) {
+        d.sniffPartnerId = null;
+        d.sniffCooldown = SNIFF_COOLDOWN;
+        // Fall through — dino resumes normal behavior this frame
+      } else {
+        const partner = this.dinos.find(o => o.partner.player_id === d.sniffPartnerId);
+        if (partner) {
+          d.facingLeft = partner.worldX < d.worldX;
+        }
+        return; // skip rest of AI while sniffing
+      }
+    }
+
     // Squish recovery
     if (d.squish > 0) d.squish = Math.max(0, d.squish - dt * 0.6);
 
@@ -486,6 +504,23 @@ export class PlazaCanvas {
     // ── Normal AI ──────────────────────────────────────────────────────────
     switch (d.state) {
       case 'idling': {
+        // Look for a nearby idle dino to sniff with
+        if (d.sniffCooldown === 0 && d.sniffPartnerId === null) {
+          for (const other of this.dinos) {
+            if (other === d) continue;
+            if (other.state !== 'idling') continue;
+            if (other.sniffCooldown !== 0 || other.sniffPartnerId !== null) continue;
+            if (other.dropIn > 0 || other.playPartner) continue;
+            const dx = other.worldX - d.worldX;
+            const dy = other.worldY - d.worldY;
+            if (Math.hypot(dx, dy) > SNIFF_RADIUS) continue;
+            d.sniffPartnerId = other.partner.player_id;
+            d.sniffTimer = SNIFF_DURATION;
+            other.sniffPartnerId = d.partner.player_id;
+            other.sniffTimer = SNIFF_DURATION;
+            break;
+          }
+        }
         d.idleTimer -= dt;
         if (d.idleTimer <= 0) {
           // Chance to follow another dino instead of picking a random waypoint
@@ -1108,6 +1143,20 @@ export class PlazaCanvas {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'bottom';
       ctx.fillText(playEmojis[emojiIdx], x, emojiY + floatY);
+      ctx.restore();
+    }
+
+    // Sniff emoji above head
+    if (d.sniffTimer > 0 && d.state !== 'playing' && d.startleTimer === 0) {
+      const emojiY = y - halfH + hopY - (d.partner.hat ? 14 : 6);
+      const floatY = Math.sin(elapsed * 2.5 + d.hopPhase) * 3;
+      const emojiAlpha = 0.7 + 0.3 * Math.sin(elapsed * 3 + d.hopPhase);
+      ctx.save();
+      ctx.globalAlpha = emojiAlpha;
+      ctx.font = `${Math.round(10 * d.scale)}px serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText('\u{1F4AD}', x, emojiY + floatY); // 💭
       ctx.restore();
     }
 
