@@ -173,6 +173,11 @@ export function PlayTrivia({ code }) {
                   Answer: {trivia.options[result.correct_index]}
                 </div>
               )}
+              {result?.explanation && (
+                <div style={styles.explanationText}>
+                  {result.explanation}
+                </div>
+              )}
             </div>
 
             <div style={styles.rewardsCard}>
@@ -310,6 +315,10 @@ const styles = {
   resultIcon: { lineHeight: 1 },
   resultLabel: { fontSize: '22px', fontWeight: 'bold' },
   correctAnswerText: { color: '#9ca3af', fontSize: '13px', marginTop: '4px' },
+  explanationText: {
+    color: '#9ca3af', fontSize: '13px', lineHeight: 1.5,
+    marginTop: '10px', fontStyle: 'italic',
+  },
   rewardsCard: {
     background: '#111827', border: '1px solid #1f2937', borderRadius: '14px',
     padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px',
