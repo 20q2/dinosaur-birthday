@@ -281,6 +281,7 @@ def answer_lobby_handler(event, context):
     return success({
         "correct": is_correct,
         "correct_index": correct_index,
+        "explanation": trivia.get("explanation", ""),
         "xp_awarded": xp_amount,
         "reward": item_reward if item_reward else None,
         "my_dino": my_dino,

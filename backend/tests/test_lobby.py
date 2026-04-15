@@ -78,6 +78,7 @@ def _make_lobby(code, host_id, status="waiting", guest_id=None):
             "question": "What period did the T-Rex live in?",
             "options": ["Jurassic", "Cretaceous", "Triassic", "Permian"],
             "answer": 1,
+            "explanation": "T-Rex lived during the late Cretaceous period, about 68-66 million years ago.",
         },
         "created_at": now,
         "ttl": now + 120,
@@ -297,6 +298,50 @@ def test_answer_incorrect_awards_30xp_no_hat():
     guest_items = query_pk("PLAYER#guest7", "ITEM#")
     assert len(host_items) == 0
     assert len(guest_items) == 0
+
+
+# ── Test 4b: Answer response includes explanation ────────────────────────────
+
+def test_answer_response_includes_explanation_when_correct():
+    _make_profile("hostE1", "Expl1")
+    _make_profile("guestE1", "Expl2")
+    _make_partner_dino("hostE1", "trex", xp=0, level=1)
+    _make_partner_dino("guestE1", "spinosaurus", xp=0, level=1)
+
+    _make_lobby("paint_berry_meat", "hostE1", status="active", guest_id="guestE1")
+
+    with patch("src.handlers.lobby.broadcast"):
+        resp = answer_lobby_handler(
+            _answer_event("paint_berry_meat", {"player_id": "hostE1", "answer": 1}),
+            None,
+        )
+
+    assert resp["statusCode"] == 200
+    body = json.loads(resp["body"])
+    assert body["correct"] is True
+    assert "explanation" in body
+    assert body["explanation"] == "T-Rex lived during the late Cretaceous period, about 68-66 million years ago."
+
+
+def test_answer_response_includes_explanation_when_incorrect():
+    _make_profile("hostE2", "Expl3")
+    _make_profile("guestE2", "Expl4")
+    _make_partner_dino("hostE2", "triceratops", xp=0, level=1)
+    _make_partner_dino("guestE2", "ankylosaurus", xp=0, level=1)
+
+    _make_lobby("cooked_meat_paint_berry", "hostE2", status="active", guest_id="guestE2")
+
+    with patch("src.handlers.lobby.broadcast"):
+        resp = answer_lobby_handler(
+            _answer_event("cooked_meat_paint_berry", {"player_id": "hostE2", "answer": 0}),
+            None,
+        )
+
+    assert resp["statusCode"] == 200
+    body = json.loads(resp["body"])
+    assert body["correct"] is False
+    assert "explanation" in body
+    assert body["explanation"] == "T-Rex lived during the late Cretaceous period, about 68-66 million years ago."
 
 
 # ── Test 5: Cooldown enforcement ─────────────────────────────────────────────
