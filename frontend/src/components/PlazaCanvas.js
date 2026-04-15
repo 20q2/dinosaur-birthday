@@ -51,6 +51,7 @@ export class PlazaCanvas {
     this.onSelect = onSelect;
     this.dinos = [];
     this.departingDinos = []; // fading-out dinos (removed from partners but still animating)
+    this._pendingDropIns = new Set(); // player_ids scheduled to drop-in on next buildDinoData
     this.particles = [];
     this.rafId = null;
     this.startTime = performance.now();
@@ -155,9 +156,16 @@ export class PlazaCanvas {
     };
 
     // Preserve active drop-in animation from live dinos, but clear stale
-    // fadeOut from departing dinos used only for position reuse
-    const dropIn = (reuse && reuse.dropIn > 0) ? reuse.dropIn : 0;
-    const dropInTotal = (reuse && reuse.dropInTotal > 0) ? reuse.dropInTotal : 0;
+    // fadeOut from departing dinos used only for position reuse.
+    // Also consume any pending drop-in scheduled for this player_id.
+    let dropIn = (reuse && reuse.dropIn > 0) ? reuse.dropIn : 0;
+    let dropInTotal = (reuse && reuse.dropInTotal > 0) ? reuse.dropInTotal : 0;
+    if (partner.player_id && this._pendingDropIns && this._pendingDropIns.has(partner.player_id)) {
+      dropIn = DROP_IN_DURATION;
+      dropInTotal = DROP_IN_DURATION;
+      this._pendingDropIns.delete(partner.player_id);
+      console.log('[drop-in] consumed pending for', partner.player_id);
+    }
     const squish = (reuse && reuse.squish > 0) ? reuse.squish : 0;
 
     return {
@@ -377,8 +385,13 @@ export class PlazaCanvas {
   _updateDino(d, dt, elapsed) {
     // Drop-in animation — tick timer, spawn poof on landing, skip AI
     if (d.dropIn > 0) {
+      if (!d._dropInTickLogged) {
+        d._dropInTickLogged = true;
+        console.log('[drop-in] tick started', d.partner.player_id, 'dropIn=', d.dropIn);
+      }
       d.dropIn = Math.max(0, d.dropIn - dt);
       if (d.dropIn === 0) {
+        console.log('[drop-in] landed', d.partner.player_id);
         this._spawnLandingPoof(d);
         d.squish = 0.15; // brief squish on landing
       }
@@ -601,12 +614,17 @@ export class PlazaCanvas {
     this.departingDinos.push(d);
   }
 
-  // Mark a dino for drop-in animation (call after updatePartners adds it)
+  // Mark a dino for drop-in animation. Survives rebuilds of this.dinos via
+  // _pendingDropIns — applied in _buildDinoData when the new dino appears.
   dropInDino(playerId) {
+    console.log('[drop-in] scheduled for', playerId);
+    this._pendingDropIns.add(playerId);
     const d = this.dinos.find(d => d.partner.player_id === playerId);
-    if (d) {
+    if (d && !(d.dropIn > 0)) {
       d.dropIn = DROP_IN_DURATION;
       d.dropInTotal = DROP_IN_DURATION;
+      this._pendingDropIns.delete(playerId);
+      console.log('[drop-in] applied directly to existing dino');
     }
   }
 
@@ -874,6 +892,10 @@ export class PlazaCanvas {
       const t = 1 - d.dropIn / d.dropInTotal; // 0→1
       dropOffsetY = -(1 - easeInQuad(t)) * DROP_IN_HEIGHT;
       dinoAlpha = Math.min(1, t * 2.5); // fade in quickly over first 40%
+      if (!d._dropInLogged) {
+        d._dropInLogged = true;
+        console.log('[drop-in] first draw', d.partner.player_id, 'dropIn=', d.dropIn, 'offsetY=', dropOffsetY, 'alpha=', dinoAlpha);
+      }
     }
 
     if (dinoAlpha <= 0.001) return;

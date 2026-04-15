@@ -68,12 +68,13 @@ export function Plaza() {
   // Wire real-time plaza updates
   useEffect(() => {
     const offArrive = ws.on('plaza', 'dino_arrive', (data) => {
+      console.log('[Plaza] dino_arrive ws event', data.player_id, 'plazaRef?', !!plazaRef.current);
+      // Schedule drop-in BEFORE updatePartners so _pendingDropIns is populated
+      // when the new dino gets built (survives any subsequent rebuild).
+      if (plazaRef.current) plazaRef.current.dropInDino(data.player_id);
       setPartners(prev => {
         const updated = [...prev.filter(p => p.player_id !== data.player_id), data];
-        if (plazaRef.current) {
-          plazaRef.current.updatePartners(updated);
-          plazaRef.current.dropInDino(data.player_id);
-        }
+        if (plazaRef.current) plazaRef.current.updatePartners(updated);
         return updated;
       });
     });
@@ -286,7 +287,7 @@ const styles = {
     flexShrink: 0,
   },
   feedText: {
-    fontSize: '12px',
+    fontSize: '10px',
     color: 'rgba(255, 255, 255, 0.85)',
     wordBreak: 'break-word',
   },

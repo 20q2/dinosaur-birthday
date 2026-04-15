@@ -416,8 +416,11 @@ export function DinoDetail({ species }) {
         </div>
       )}
 
+      {/* Tamed-only action sections wrapped in a shared backdrop */}
+      {dino.tamed && (
+      <div style={styles.actionsCard}>
       {/* Hat & Paints row — tamed only */}
-      {dino.tamed && !selectedPaint && (
+      {!selectedPaint && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <div
             role="button"
@@ -687,6 +690,8 @@ export function DinoDetail({ species }) {
           Go for a Run!
         </button>
       )}
+      </div>
+      )}
 
       {/* Untamed — tame button */}
       {!dino.tamed && (() => {
@@ -766,6 +771,15 @@ const styles = {
     background: '#16213e', borderRadius: '12px', padding: '14px',
     border: '1px solid #2a3a5e',
     display: 'flex', flexDirection: 'column', gap: '8px',
+  },
+  actionsCard: {
+    background: 'rgba(13, 17, 23, 0.78)',
+    backdropFilter: 'blur(6px)',
+    WebkitBackdropFilter: 'blur(6px)',
+    border: '1px solid #1e2a3a',
+    borderRadius: '14px',
+    padding: '14px',
+    display: 'flex', flexDirection: 'column', gap: '10px',
   },
   cardActive: {
     borderColor: '#6366f1', background: '#1e2750',
