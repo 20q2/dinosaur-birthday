@@ -898,7 +898,6 @@ export class PlazaCanvas {
     // Sprite (pixelated — sprites face left by default, flip for right)
     ctx.save();
     ctx.globalAlpha = dinoAlpha;
-    ctx.filter = 'drop-shadow(0px 2px 3px rgba(0,0,0,0.6))';
     ctx.imageSmoothingEnabled = false;
     if (!d.facingLeft) {
       ctx.translate(x, y + hopY + dropOffsetY);
