@@ -93,6 +93,20 @@ export class PlazaCanvas {
 
   // ── Initialization ────────────────────────────────────────────────────────
 
+  // Bake a dark silhouette from a sprite canvas (used as a cheap drop-shadow)
+  _bakeShadow(src) {
+    if (!src) return null;
+    const c = document.createElement('canvas');
+    c.width = src.width;
+    c.height = src.height;
+    const ctx = c.getContext('2d');
+    ctx.drawImage(src, 0, 0);
+    ctx.globalCompositeOperation = 'source-in';
+    ctx.fillStyle = 'rgba(0,0,0,0.45)';
+    ctx.fillRect(0, 0, c.width, c.height);
+    return c;
+  }
+
   _buildDinoData(partner, i, reuse) {
     const level = partner.level || 1;
     const scale = SCALE_MIN + ((level - 1) / (MAX_LEVEL - 1)) * (SCALE_MAX - SCALE_MIN);
@@ -103,6 +117,7 @@ export class PlazaCanvas {
     const animated = hasEffects(colors);
     const resolved = resolveColors(colors, Date.now());
     const spriteCanvas = getRecolored(partner.species, resolved, regions);
+    const shadowSprite = animated ? null : this._bakeShadow(spriteCanvas);
 
     // Load owner photo
     const photoUrl = partner.owner_photo || '';
@@ -154,6 +169,7 @@ export class PlazaCanvas {
       _effectTmp: null,      // reusable temp canvas for effect baking
       _bakedSprite: null,    // working copy with effects baked on
       _lastBakeTime: 0,      // timestamp of last effect bake (throttled to ~15fps)
+      _shadowSprite: shadowSprite, // pre-baked dark silhouette for drop-shadow effect
     };
   }
 
@@ -821,6 +837,7 @@ export class PlazaCanvas {
           bc.drawImage(d._cleanSprite, 0, 0);
           d.spriteCanvas = d._bakedSprite;
           this._bakeEffectOnSprite(d, elapsed);
+          d._shadowSprite = this._bakeShadow(d.spriteCanvas);
         }
       }
     });
@@ -892,6 +909,22 @@ export class PlazaCanvas {
       ctx.beginPath();
       ctx.ellipse(x, y + halfH * 0.85, halfW * 0.7, halfH * 0.15, 0, 0, Math.PI * 2);
       ctx.fill();
+      ctx.restore();
+    }
+
+    // Pre-baked drop shadow (dark silhouette offset by 1px)
+    if (d._shadowSprite) {
+      ctx.save();
+      ctx.globalAlpha = dinoAlpha;
+      ctx.imageSmoothingEnabled = false;
+      if (!d.facingLeft) {
+        ctx.translate(x, y + hopY + dropOffsetY + 1);
+        ctx.scale(-squishScaleX, squishScaleY);
+      } else {
+        ctx.translate(x, y + hopY + dropOffsetY + 1);
+        ctx.scale(squishScaleX, squishScaleY);
+      }
+      ctx.drawImage(d._shadowSprite, -halfW, -halfH, spriteW, spriteH);
       ctx.restore();
     }
 
