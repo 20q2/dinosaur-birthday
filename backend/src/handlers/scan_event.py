@@ -2,7 +2,7 @@ import json
 import uuid
 import random
 from datetime import datetime, timezone
-from ..shared.db import get_item, put_item
+from ..shared.db import get_item, put_item, query_pk
 from ..shared.response import success, error
 from ..shared.game_data import random_hat, random_paint, HATS
 from ..shared.xp import award_xp
@@ -11,7 +11,7 @@ from ..shared.ws_broadcast import broadcast
 # Generic endpoint keys → display labels.  Rename labels freely without
 # changing the QR-code URLs (/scan/event/event1 … /scan/event/event5).
 EVENT_LABELS = {
-    "event1": "Grill Master",
+    "event1": "Party Chef",
     "event2": "Dance Floor",
     "event3": "Photo Booth",
     "event4": "Cake Table",
@@ -50,9 +50,21 @@ def handler(event, context):
     # Award 25 XP to partner dino
     dino_result = award_xp(player_id, 25)
 
-    # Award item — special hat if configured, otherwise random hat or paint (50/50)
+    # Award item — special hat if configured (and player doesn't already own it),
+    # otherwise random hat or paint (50/50)
     item_id = str(uuid.uuid4())
     special_hat = EVENT_SPECIAL_HATS.get(event_type)
+
+    # If player already owns the special hat, fall through to random reward
+    if special_hat:
+        inventory = query_pk(f"PLAYER#{player_id}", "ITEM#")
+        has_special = any(
+            i.get("details", {}).get("hat_id") == special_hat["id"]
+            for i in inventory
+        )
+        if has_special:
+            special_hat = None
+
     if special_hat:
         put_item({
             "PK": f"PLAYER#{player_id}",
@@ -110,7 +122,7 @@ def handler(event, context):
     # Post to feed
     try:
         player_name = profile.get("name", "Someone")
-        feed_message = f"{player_name} visited the {event_label}!"
+        feed_message = f"{player_name} brought food for the party!" if event_type == "event1" else f"{player_name} visited the {event_label}!"
 
         ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
         feed_sk = f"{ts}#{uuid.uuid4()}"

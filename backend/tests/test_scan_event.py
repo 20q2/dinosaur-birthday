@@ -46,12 +46,12 @@ def test_claim_event_awards_xp_and_item():
     body = json.loads(resp["body"])
     assert body["claimed"] is True
     assert body["xp_awarded"] == 25
-    assert body["event_label"] == "Grill Master"
+    assert body["event_label"] == "Party Chef"
     assert body["dino"] is not None
     assert body["dino"]["species"] == "trex"
     assert body["dino"]["xp"] == 25
 
-    # Event1 (Grill Master) always awards the Chef Hat
+    # Event1 (Party Chef) awards the Chef Hat if player doesn't already have one
     assert body["item"]["type"] == "hat"
     assert body["item"]["hat_id"] == "chef_hat"
 
@@ -113,10 +113,40 @@ def test_event_feed_message():
     body = json.loads(resp["body"])
     assert body["claimed"] is True
 
-    # Feed message should use the event label
+    # Feed message should mention bringing food
     assert len(feed_entries) == 1
-    assert "Grill Master" in feed_entries[0]["message"]
+    assert "brought food" in feed_entries[0]["message"]
     assert "Carol" in feed_entries[0]["message"]
+
+
+# ── test_event1_gives_random_if_already_has_chef_hat ─────────────────────────
+
+def test_event1_gives_random_if_already_has_chef_hat():
+    """If player already owns a Chef Hat, event1 gives a random reward instead."""
+    _make_profile("ev7", "Grace")
+    _make_partner_dino("ev7", "trex", xp=0, level=1)
+
+    # Pre-give the player a Chef Hat
+    put_item({
+        "PK": "PLAYER#ev7",
+        "SK": "ITEM#existing-chef-hat",
+        "type": "hat",
+        "name": "Chef Hat",
+        "details": {"hat_id": "chef_hat", "rarity": "common"},
+    })
+
+    with patch("src.handlers.scan_event.broadcast"):
+        resp = handler(_event("event1", {"player_id": "ev7"}), None)
+
+    assert resp["statusCode"] == 200
+    body = json.loads(resp["body"])
+    assert body["claimed"] is True
+
+    # Should NOT be a chef hat — should be a random reward
+    item = body["item"]
+    assert item["type"] in ("hat", "paint")
+    if item["type"] == "hat":
+        assert item["hat_id"] != "chef_hat"
 
 
 # ── test_invalid_event_type ───────────────────────────────────────────────────

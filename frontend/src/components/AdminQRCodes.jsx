@@ -27,7 +27,7 @@ const QR_GROUPS = [
     title: 'Events',
     color: '#6366f1',
     items: [
-      { label: 'Event 1 (Grill Master)', route: '/scan/event/event1', sub: 'EVENT', subColor: '#6366f1' },
+      { label: 'Event 1 (Party Chef)', route: '/scan/event/event1', sub: 'EVENT', subColor: '#6366f1' },
       { label: 'Event 2 (Dance Floor)', route: '/scan/event/event2', sub: 'EVENT', subColor: '#6366f1' },
       { label: 'Event 3 (Photo Booth)', route: '/scan/event/event3', sub: 'EVENT', subColor: '#6366f1' },
       { label: 'Event 4 (Cake Table)', route: '/scan/event/event4', sub: 'EVENT', subColor: '#6366f1' },

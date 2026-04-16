@@ -32,8 +32,8 @@ HATS = [
     {"id": "kaiju_slayer", "name": "Kaiju Slayer", "rarity": "legendary"},
 ]
 
-# Hats excluded from random drops (legendary = special rewards, chef_hat = Grill Master event).
-_EXCLUDED_FROM_DROPS = {"birthday_blessing", "kaiju_slayer", "chef_hat"}
+# Hats excluded from random drops (legendary = special rewards only).
+_EXCLUDED_FROM_DROPS = {"birthday_blessing", "kaiju_slayer"}
 DROPPABLE_HATS = [h for h in HATS if h["id"] not in _EXCLUDED_FROM_DROPS]
 
 PAINTS = [
