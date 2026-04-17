@@ -9,14 +9,14 @@ const FOOD_HARVEST_LABELS = { meat: 'a Pile of Meat', mejoberries: 'a Bunch of M
 const TIMING_ROUNDS = 5;
 // Ring shrink duration ramps from slow → fast across rounds for gentle difficulty scaling.
 const ROUND_MS_START = 1000;
-const ROUND_MS_END = 1000;
+const ROUND_MS_END = 800;
 function roundMs(roundIdx) {
   const t = TIMING_ROUNDS > 1 ? roundIdx / (TIMING_ROUNDS - 1) : 0;
   return Math.round(ROUND_MS_START + (ROUND_MS_END - ROUND_MS_START) * t);
 }
 const WHACK_MS = 10000;
-const SPAWN_MS = 700;
-const MAX_ON_SCREEN = 4;
+const SPAWN_MS = 450;
+const MAX_ON_SCREEN = 7;
 
 function computeXp(perfects, goods) {
   const raw = goods + perfects * 2;
@@ -228,30 +228,59 @@ function WhackAFoodGame({ foodType, theme, onFinish }) {
   const popupIdRef = useRef(0);
   const doneRef = useRef(false);
 
-  function spawnItem() {
+  const itemsRef = useRef([]);
+
+  function spawnOne(baseLeft, baseTop, placed) {
     if (doneRef.current) return;
-    const life = 1000 + Math.random() * 400;
+    const MIN_DIST = 12; // minimum % distance between berries
+    let left, top, attempts = 0;
+    do {
+      left = Math.max(2, Math.min(78, baseLeft + (Math.random() - 0.5) * 18));
+      top = Math.max(2, Math.min(80, baseTop + (Math.random() - 0.5) * 18));
+      attempts++;
+    } while (
+      attempts < 10 &&
+      [...itemsRef.current, ...placed].some(
+        p => Math.abs(p.left - left) < MIN_DIST && Math.abs(p.top - top) < MIN_DIST
+      )
+    );
+
+    const life = 1500 + Math.random() * 400;
     const id = nextIdRef.current++;
-    const item = {
-      id,
-      left: 5 + Math.random() * 70,
-      top: 5 + Math.random() * 75,
-      life,
-      spawnTime: performance.now(),
-      state: 'active',
-    };
+    const item = { id, left, top, life, spawnTime: performance.now(), state: 'active' };
+    placed.push(item);
     setItems(prev => {
       if (prev.length >= MAX_ON_SCREEN) return prev;
       totalRef.current++;
-      return [...prev, item];
+      const next = [...prev, item];
+      itemsRef.current = next;
+      return next;
     });
-    // Start expire-out animation, then remove
     setTimeout(() => {
-      setItems(prev => prev.map(i => i.id === id ? { ...i, state: 'expiring' } : i));
+      setItems(prev => {
+        const next = prev.map(i => i.id === id ? { ...i, state: 'expiring' } : i);
+        itemsRef.current = next;
+        return next;
+      });
       setTimeout(() => {
-        setItems(prev => prev.filter(i => i.id !== id));
+        setItems(prev => {
+          const next = prev.filter(i => i.id !== id);
+          itemsRef.current = next;
+          return next;
+        });
       }, 200);
     }, life);
+  }
+
+  function spawnItem() {
+    if (doneRef.current) return;
+    const cx = 5 + Math.random() * 70;
+    const cy = 5 + Math.random() * 75;
+    const count = 2 + Math.floor(Math.random() * 2); // 2-3 per cluster
+    const placed = [];
+    for (let i = 0; i < count; i++) {
+      spawnOne(cx, cy, placed);
+    }
   }
 
   function tapItem(e, id) {
@@ -276,7 +305,11 @@ function WhackAFoodGame({ foodType, theme, onFinish }) {
 
     scoreRef.current += points;
     setScore(scoreRef.current);
-    setItems(prev => prev.filter(i => i.id !== id));
+    setItems(prev => {
+      const next = prev.filter(i => i.id !== id);
+      itemsRef.current = next;
+      return next;
+    });
   }
 
   useEffect(() => {

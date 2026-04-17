@@ -22,6 +22,7 @@ const HOLD_GRAVITY = 0.75;      // reduced gravity while holding (floatier rise)
 const MAX_FALL_SPEED = 18;
 const STUMBLE_DURATION = 300;
 const STUMBLE_SLOW = 0.4;
+const OBSTACLE_PENALTY = 30;    // meters lost on collision
 const DINO_X_FRAC = 0.2;
 const SPRITE_SCALE = 1.5;
 const OBSTACLE_MIN_GAP = 420;
@@ -326,6 +327,7 @@ function checkCollisions(game, spriteCanvas) {
       if (dinoRight > obsLeft && dinoLeft < obsRight && dinoBottom > obsTop && dinoTop < obsBottom) {
         game.stumbling = true;
         game.stumbleStart = performance.now();
+        game.distance = Math.max(0, game.distance - OBSTACLE_PENALTY);
         obs.passed = true;
         return;
       }

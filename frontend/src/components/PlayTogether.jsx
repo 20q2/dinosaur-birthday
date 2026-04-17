@@ -13,7 +13,7 @@ import { SPECIES } from '../data/species.js';
 import { getHatImage } from '../data/hatImages.js';
 import paintUrl from '../assets/items/paint.png';
 
-const COOLDOWN_MS = 0;
+const COOLDOWN_MS = 900000; // 15 minutes, matches backend TTL
 const RECENT_PLAYS_KEY = 'dino_party_recent_plays';
 
 function SymbolDisplay({ sym, size = '28px' }) {
@@ -36,7 +36,8 @@ function getRecentPlays() {
 function formatCountdown(ms) {
   const mins = Math.floor(ms / 60000);
   const secs = Math.floor((ms % 60000) / 1000);
-  return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+  if (mins >= 1) return `${mins}m`;
+  return `${secs}s`;
 }
 
 export function PlayTogether() {
@@ -381,23 +382,22 @@ function MenuPhase({ hasPartner, loading, recentPlays, onHost, onJoin }) {
 
       {recentPlays.length > 0 && (
         <div style={styles.cooldownSection}>
-          <div style={styles.cooldownTitle}>Recent Plays</div>
-          {recentPlays.map((entry, i) => {
-            const remaining = Math.max(0, entry.expiresAt - Date.now());
-            const ready = remaining === 0;
-            return (
-              <div key={i} style={styles.cooldownRow}>
-                <div style={styles.cooldownInfo}>
-                  <Handshake size={14} color="#60a5fa" />
-                  <span style={{ color: '#d1d5db', fontSize: '13px' }}>{entry.withName}</span>
+          <div style={styles.cooldownTitle}>Cooldowns</div>
+          <div style={styles.cooldownPills}>
+            {recentPlays.map((entry, i) => {
+              const remaining = Math.max(0, entry.expiresAt - Date.now());
+              const ready = remaining === 0;
+              return (
+                <div key={i} style={ready ? styles.pillReady : styles.pillCooldown}>
+                  <span style={styles.pillName}>{entry.withName}</span>
+                  {ready
+                    ? <span style={styles.pillReadyText}>Ready</span>
+                    : <span style={styles.pillTimer}>{formatCountdown(remaining)}</span>
+                  }
                 </div>
-                {ready
-                  ? <span style={{ color: '#4ade80', fontSize: '12px', fontWeight: '600' }}>Ready!</span>
-                  : <span style={{ color: '#f59e0b', fontSize: '12px', fontFamily: 'monospace' }}>{formatCountdown(remaining)}</span>
-                }
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       )}
     </>
@@ -744,9 +744,18 @@ const styles = {
     display: 'flex', flexDirection: 'column', gap: '8px',
   },
   cooldownTitle: { fontSize: '12px', fontWeight: '800', color: '#888', letterSpacing: '1.5px', textTransform: 'uppercase' },
-  cooldownRow: {
-    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-    padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,0.04)',
+  cooldownPills: { display: 'flex', flexWrap: 'wrap', gap: '6px' },
+  pillCooldown: {
+    display: 'inline-flex', alignItems: 'center', gap: '6px',
+    background: '#16213e', border: '1px solid rgba(99,102,241,0.2)',
+    borderRadius: '20px', padding: '6px 12px',
   },
-  cooldownInfo: { display: 'flex', alignItems: 'center', gap: '8px' },
+  pillReady: {
+    display: 'inline-flex', alignItems: 'center', gap: '6px',
+    background: 'rgba(22,101,52,0.3)', border: '1px solid rgba(34,197,94,0.2)',
+    borderRadius: '20px', padding: '6px 12px',
+  },
+  pillName: { fontSize: '12px', color: '#d1d5db', fontWeight: '600' },
+  pillTimer: { fontSize: '11px', color: '#f59e0b', fontFamily: 'monospace' },
+  pillReadyText: { fontSize: '11px', color: '#4ade80', fontWeight: '600' },
 };

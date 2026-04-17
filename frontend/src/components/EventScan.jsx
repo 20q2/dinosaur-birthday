@@ -2,7 +2,8 @@ import { useState, useEffect } from 'preact/hooks';
 import { store } from '../store.js';
 import { api } from '../api.js';
 import { EVENT_ICONS } from '../data/icons.js';
-import { PartyPopper, Crown } from 'lucide-preact';
+import { getHatImage } from '../data/hatImages.js';
+import { PartyPopper, Crown, Paintbrush } from 'lucide-preact';
 
 export function EventScan({ eventType }) {
   const [result, setResult] = useState(null);
@@ -38,6 +39,14 @@ export function EventScan({ eventType }) {
   const label = result?.event_label || eventType;
   const EventIcon = EVENT_ICONS[eventType] || PartyPopper;
 
+  const EVENT_DESCRIPTIONS = {
+    event1: 'Thanks for bringing sustenance for the party, you rock!',
+    event2: 'You tore up the dance floor!',
+    event3: 'Say cheese! Great photo moment!',
+    event4: 'Time to celebrate with some cake!',
+    event5: 'You found a mystery chest... what could be inside?',
+  };
+
   if (result?.already_claimed) {
     return (
       <div style={styles.container}>
@@ -57,26 +66,32 @@ export function EventScan({ eventType }) {
       <div style={styles.header}>PARTY EVENT!</div>
       <div style={styles.iconBox}><EventIcon size={56} /></div>
       <h2 style={styles.title}>{label}</h2>
+      <p style={styles.description}>{EVENT_DESCRIPTIONS[eventType] || ''}</p>
 
       <div style={styles.rewardBox}>
         <div style={styles.rewardRow}>
           <span>XP Gained</span>
           <span style={{ color: '#f59e0b', fontWeight: 'bold' }}>+25 XP</span>
         </div>
-        {result?.dino && (
-          <div style={styles.rewardRow}>
-            <span>Partner Dino</span>
-            <span style={{ color: '#a78bfa', fontSize: '13px' }}>
-              {result.dino.species} Lv.{result.dino.level} ({result.dino.xp} XP)
-            </span>
-          </div>
-        )}
         {result?.item && (
           <div style={styles.rewardRow}>
             <span>Item Found</span>
-            <span style={{ color: '#4ade80', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <Crown size={14} /> {result.item.name}
-            </span>
+            {result.item.type === 'hat' ? (() => {
+              const hatImg = getHatImage(result.item.hat_id);
+              return (
+                <span style={{ color: '#4ade80', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  {hatImg
+                    ? <img src={hatImg.img.src} style={{ width: '28px', height: '28px', imageRendering: 'pixelated', objectFit: 'contain' }} />
+                    : <Crown size={14} />
+                  }
+                  {result.item.name}
+                </span>
+              );
+            })() : (
+              <span style={{ color: '#4ade80', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Paintbrush size={14} /> {result.item.name}
+              </span>
+            )}
           </div>
         )}
       </div>
@@ -102,6 +117,7 @@ const styles = {
     color: '#4ade80',
   },
   title: { margin: 0, fontSize: '22px' },
+  description: { color: '#9ca3af', fontSize: '14px', textAlign: 'center', margin: '0', lineHeight: '1.4' },
   pill: {
     background: '#374151', color: '#9ca3af', borderRadius: '999px',
     padding: '4px 14px', fontSize: '12px',
