@@ -11,8 +11,8 @@ let _starryLoaded = false;
 _starryImg.onload = () => { _starryLoaded = true; };
 
 const BASE_SPRITE_SCALE = 1.25;
-const SCALE_MIN = 0.7;
-const SCALE_MAX = 2.3;
+const SCALE_MIN = 1.0;
+const SCALE_MAX = 1.15;
 const MAX_LEVEL = 5;
 
 // Depth: dinos at top of ellipse (far) vs bottom (near)

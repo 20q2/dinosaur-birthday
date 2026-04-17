@@ -122,6 +122,7 @@ export function DinoEncounter({ species }) {
   }
 
   const speciesData = SPECIES[species];
+  const isGodzilla = species === 'godzilla';
   const isCarnivore = dino.diet === 'carnivore';
   const backdropImg = BACKDROP_IMGS[speciesData?.backdrop];
 
@@ -139,7 +140,7 @@ export function DinoEncounter({ species }) {
       {/* Group 1: banner, sprite, name, diet tag */}
       <div style={styles.introGroup}>
         <div style={styles.encounterBanner}>
-          <div style={styles.encounterLabel}>DINO DISCOVERED!</div>
+          <div style={styles.encounterLabel}>{isGodzilla ? 'GODZILLA TAMED!' : 'DINO DISCOVERED!'}</div>
         </div>
 
         <div style={{
@@ -170,22 +171,38 @@ export function DinoEncounter({ species }) {
           </div>
         )}
 
-        <div style={styles.tagRow}>
-          <span style={{
-            ...styles.dietTag,
-            background: isCarnivore ? 'rgba(239,68,68,0.15)' : 'rgba(34,197,94,0.15)',
-            color: isCarnivore ? '#fca5a5' : '#86efac',
-            borderColor: isCarnivore ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.3)',
-          }}>
-            <img src={isCarnivore ? meatImg : berryImg} style={styles.foodIcon} />
-            {isCarnivore ? ' Carnivore' : ' Herbivore'}
-          </span>
-        </div>
+        {!isGodzilla && (
+          <div style={styles.tagRow}>
+            <span style={{
+              ...styles.dietTag,
+              background: isCarnivore ? 'rgba(239,68,68,0.15)' : 'rgba(34,197,94,0.15)',
+              color: isCarnivore ? '#fca5a5' : '#86efac',
+              borderColor: isCarnivore ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.3)',
+            }}>
+              <img src={isCarnivore ? meatImg : berryImg} style={styles.foodIcon} />
+              {isCarnivore ? ' Carnivore' : ' Herbivore'}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Group 2: food / feed card */}
       <div style={styles.actionGroup}>
-        {dino.has_food ? (
+        {isGodzilla ? (
+          <>
+            <div style={{
+              ...styles.questCard,
+              borderColor: 'rgba(74,222,128,0.3)',
+            }}>
+              <p style={styles.questDesc}>
+                Godzilla has calmed down and wants to join the party!
+              </p>
+            </div>
+            <button onClick={() => store.navigate('/dinos')} style={styles.primaryBtn}>
+              Welcome Godzilla!
+            </button>
+          </>
+        ) : dino.has_food ? (
           <>
             <div style={{
               ...styles.questCard,

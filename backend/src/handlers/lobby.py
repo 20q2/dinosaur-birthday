@@ -82,7 +82,7 @@ def _track_trivia_partner(player_id, other_id):
         return
     put_item({"PK": f"EVENT#{player_id}", "SK": sk})
     partners = query_pk(f"EVENT#{player_id}", sk_prefix="PARTNER#")
-    if len(partners) == 10:
+    if len(partners) >= 10:
         grant_rare_paint(player_id, "starry_night")
 
 
@@ -271,7 +271,7 @@ def answer_lobby_handler(event, context):
         put_item({
             "PK": f"COOLDOWN#{pair_key}",
             "SK": "META",
-            "ttl": now + 0,
+            "ttl": now + 900,
         })
 
         if guest_id:

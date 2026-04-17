@@ -8,7 +8,7 @@ const FOOD_LABELS = { meat: 'Meat', mejoberries: 'Mejoberries' };
 const FOOD_HARVEST_LABELS = { meat: 'a Pile of Meat', mejoberries: 'a Bunch of Mejoberries' };
 const TIMING_ROUNDS = 5;
 // Ring shrink duration ramps from slow → fast across rounds for gentle difficulty scaling.
-const ROUND_MS_START = 1600;
+const ROUND_MS_START = 1000;
 const ROUND_MS_END = 1000;
 function roundMs(roundIdx) {
   const t = TIMING_ROUNDS > 1 ? roundIdx / (TIMING_ROUNDS - 1) : 0;
