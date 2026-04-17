@@ -42,6 +42,15 @@ def handler(event, context):
     if not profile:
         return error("Player not found", 404)
 
+    # Require a partner dino before claiming — don't waste the one-time reward
+    dinos = query_pk(f"PLAYER#{player_id}", "DINO#")
+    has_partner = any(d.get("is_partner") and d.get("tamed") for d in dinos)
+    if not has_partner:
+        return error(
+            "You need a dinosaur partner before claiming event rewards! Tame a dino and come back for your prize.",
+            403,
+        )
+
     # Check once-per-player
     existing = get_item(f"EVENT#{player_id}", event_type)
     if existing:

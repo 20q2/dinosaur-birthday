@@ -172,20 +172,21 @@ def test_event_requires_player_id():
 # ── test_event_without_partner_dino ───────────────────────────────────────────
 
 def test_event_without_partner_dino():
-    """Event can still be claimed without a partner dino; dino result is None."""
+    """Event cannot be claimed without a partner dino — tells player to come back."""
     _make_profile("ev5", "Eve")
     # No dino
 
-    with patch("src.handlers.scan_event.broadcast"):
-        resp = handler(_event("event3", {"player_id": "ev5"}), None)
+    resp = handler(_event("event3", {"player_id": "ev5"}), None)
 
-    assert resp["statusCode"] == 200
+    assert resp["statusCode"] == 403
     body = json.loads(resp["body"])
-    assert body["claimed"] is True
-    assert body["dino"] is None
-    # Hat is still awarded
+    assert "dinosaur partner" in body["error"]
+
+    # Event should NOT be claimed — player can come back later
+    claim = get_item("EVENT#ev5", "event3")
+    assert claim is None
     items = query_pk("PLAYER#ev5", "ITEM#")
-    assert len(items) == 1
+    assert len(items) == 0
 
 
 # ── test_different_event_types_independent ────────────────────────────────────
