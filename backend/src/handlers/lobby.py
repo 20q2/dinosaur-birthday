@@ -293,13 +293,24 @@ def answer_lobby_handler(event, context):
 
     update_item(f"LOBBY#{code}", "META", update_fields)
 
-    # Notify plaza that play session ended
-    try:
-        broadcast("plaza", "play_ended", {
-            "player_ids": [host_id, guest_id],
-        })
-    except Exception:
-        pass
+    # Check if both players have now answered
+    other_key = "guest_answered" if player_id == host_id else "host_answered"
+    both_answered = bool(lobby.get(other_key, False))
+
+    if both_answered:
+        # Notify plaza that play session ended
+        try:
+            broadcast("plaza", "play_ended", {
+                "player_ids": [host_id, guest_id],
+            })
+        except Exception:
+            pass
+
+        # Notify lobby that both players answered
+        try:
+            broadcast(f"lobby:{code}", "partner_answered", {})
+        except Exception:
+            pass
 
     # Fetch partner info for cooldown save on the frontend
     partner_id = guest_id if player_id == host_id else host_id
@@ -318,6 +329,7 @@ def answer_lobby_handler(event, context):
         "my_dino": my_dino,
         "partner_id": partner_id,
         "partner_name": partner_name,
+        "waiting": not both_answered,
     })
 
 

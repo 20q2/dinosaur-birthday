@@ -51,7 +51,9 @@ export function PlayTogether() {
   const [trivia, setTrivia] = useState(null);
   const [hostTrivia, setHostTrivia] = useState(null); // stored from create_lobby for reliability
   const [selectedAnswer, setSelectedAnswer] = useState(null);
-  const [result, setResult] = useState(null);
+  const [result, _setResult] = useState(null);
+  const resultRef = useRef(null);
+  const setResult = (v) => { resultRef.current = v; _setResult(v); };
   const [partnerDinoData, setPartnerDinoData] = useState(null);
   const [answering, setAnswering] = useState(false);
   const [countdown, setCountdown] = useState(3);
@@ -105,10 +107,37 @@ export function PlayTogether() {
       setPhase('countdown');
     });
 
+    const unsub2 = ws.on(`lobby:${lobbyCode}`, 'partner_answered', () => {
+      setPhase(prev => {
+        if (prev === 'waiting') {
+          // Fire confetti if answer was correct (result stored in state)
+          const r = resultRef.current;
+          if (r && r.correct) {
+            const rect = answerRectRef.current;
+            let origin = { x: 0.5, y: 0.6 };
+            if (rect) {
+              origin = {
+                x: (rect.left + rect.width / 2) / window.innerWidth,
+                y: (rect.top + rect.height / 2) / window.innerHeight,
+              };
+            }
+            confetti({
+              particleCount: 60, spread: 70, startVelocity: 35, origin,
+              colors: ['#4ade80', '#f59e0b', '#60a5fa', '#f3f4f6'],
+            });
+          }
+          store.refresh();
+          return 'results';
+        }
+        return prev;
+      });
+    });
+
     ws.subscribe(`lobby:${lobbyCode}`);
 
     return () => {
       unsub1();
+      unsub2();
     };
   }, [lobbyCode]);
 
@@ -202,31 +231,18 @@ export function PlayTogether() {
     setLoading(false);
   }
 
+  // Store answer btn rect for confetti origin
+  const answerRectRef = useRef(null);
+
   async function handleAnswer(index, btnRect) {
     if (selectedAnswer !== null) return;
     setSelectedAnswer(index);
     setAnswering(true);
+    answerRectRef.current = btnRect;
     try {
       const data = await api.answerTrivia(store.playerId, lobbyCode, index);
       setResult(data);
-      setPhase('results');
-      if (data.correct) {
-        let origin = { x: 0.5, y: 0.6 };
-        if (btnRect) {
-          origin = {
-            x: (btnRect.left + btnRect.width / 2) / window.innerWidth,
-            y: (btnRect.top + btnRect.height / 2) / window.innerHeight,
-          };
-        }
-        confetti({
-          particleCount: 60,
-          spread: 70,
-          startVelocity: 35,
-          origin,
-          colors: ['#4ade80', '#f59e0b', '#60a5fa', '#f3f4f6'],
-        });
-      }
-      await store.refresh();
+
       if (data.partner_id) {
         try {
           const entries = JSON.parse(localStorage.getItem(RECENT_PLAYS_KEY) || '[]');
@@ -235,10 +251,40 @@ export function PlayTogether() {
           localStorage.setItem(RECENT_PLAYS_KEY, JSON.stringify(filtered));
         } catch {}
       }
+
+      if (data.waiting) {
+        setPhase('waiting');
+      } else {
+        showResults(data, btnRect);
+      }
     } catch (err) {
       setError(err.message || 'Failed to submit answer');
       setAnswering(false);
     }
+  }
+
+  function showResults(data, btnRect) {
+    const r = data || result;
+    setResult(r);
+    setPhase('results');
+    if (r.correct) {
+      const rect = btnRect || answerRectRef.current;
+      let origin = { x: 0.5, y: 0.6 };
+      if (rect) {
+        origin = {
+          x: (rect.left + rect.width / 2) / window.innerWidth,
+          y: (rect.top + rect.height / 2) / window.innerHeight,
+        };
+      }
+      confetti({
+        particleCount: 60,
+        spread: 70,
+        startVelocity: 35,
+        origin,
+        colors: ['#4ade80', '#f59e0b', '#60a5fa', '#f3f4f6'],
+      });
+    }
+    store.refresh();
   }
 
   function handleBackToMenu() {
@@ -311,6 +357,10 @@ export function PlayTogether() {
             answering={answering}
             onAnswer={handleAnswer}
           />
+        )}
+
+        {phase === 'waiting' && (
+          <WaitingPhase onCancel={handleBackToMenu} />
         )}
 
         {phase === 'results' && result && (
@@ -513,6 +563,26 @@ function TriviaPhase({ trivia, selectedAnswer, answering, onAnswer }) {
   );
 }
 
+function WaitingPhase({ onCancel }) {
+  const [showCancel, setShowCancel] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setShowCancel(true), 15000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  return (
+    <div style={styles.waitingContainer}>
+      <div style={styles.waitingSpinner}>⏳</div>
+      <div style={styles.waitingText}>Waiting for your partner to answer...</div>
+      {showCancel && (
+        <button onClick={onCancel} style={styles.ghostBtn}>
+          Cancel &amp; leave lobby
+        </button>
+      )}
+    </div>
+  );
+}
+
 function ResultsPhase({ result, trivia, role, onBack }) {
   const isCorrect = result.correct;
   const correctText = (trivia?.options && result.correct_index != null)
@@ -649,6 +719,11 @@ const styles = {
   waitingText: {
     color: '#9ca3af', fontSize: '14px', textAlign: 'center',
   },
+  waitingContainer: {
+    display: 'flex', flexDirection: 'column', alignItems: 'center',
+    justifyContent: 'center', gap: '16px', padding: '40px 0',
+  },
+  waitingSpinner: { fontSize: '40px', animation: 'pulse 2s infinite' },
   partnerAnsweredBanner: {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
     gap: '12px', padding: '12px 14px', borderRadius: '10px',
