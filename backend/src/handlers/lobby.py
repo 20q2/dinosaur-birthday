@@ -271,7 +271,7 @@ def answer_lobby_handler(event, context):
         put_item({
             "PK": f"COOLDOWN#{pair_key}",
             "SK": "META",
-            "ttl": now + 900,
+            "ttl": now + 600,  # 10 minutes
         })
 
         if guest_id:

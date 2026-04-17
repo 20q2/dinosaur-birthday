@@ -13,7 +13,7 @@ import { SPECIES } from '../data/species.js';
 import { getHatImage } from '../data/hatImages.js';
 import paintUrl from '../assets/items/paint.png';
 
-const COOLDOWN_MS = 900000; // 15 minutes, matches backend TTL
+const COOLDOWN_MS = 600000; // 10 minutes, matches backend TTL
 const RECENT_PLAYS_KEY = 'dino_party_recent_plays';
 
 function SymbolDisplay({ sym, size = '28px' }) {
